@@ -8,9 +8,6 @@
         "@fontsource/roboto": "^4.5.7",
         "@mui/icons-material": "^5.6.2",
         "@mui/material": "^5.7.0",
-        "@testing-library/jest-dom": "^5.16.4",
-        "@testing-library/react": "^13.2.0",
-        "@testing-library/user-event": "^13.5.0",
         "invariant": "^2.2.4",
         "prop-types": "^15.8.1",
         "react": "^18.1.0",
@@ -21,7 +18,7 @@
     "scripts": {
         "start": "react-scripts start",
         "build": "react-scripts build",
-        "test": "react-scripts test",
+        "test": "react-scripts test --watchAll=false --coverage",
         "eject": "react-scripts eject",
         "lint": "eslint --fix src/**/*.js",
         "lint-staged": "lint-staged --config lint-staged.js",
@@ -54,7 +51,20 @@
             "pre-push": "yarn lint"
         }
     },
+    "jest": {
+        "coveragePathIgnorePatterns": [
+            "/node_modules/",
+            "src/index.js",
+            "src/reportWebVitals.js"
+        ],
+        "transformIgnorePatterns": [
+            "node_modules/(?!@ngrx|(?!deck.gl)|ng-dynamic)"
+        ]
+    },
     "devDependencies": {
+        "@testing-library/jest-dom": "^5.16.4",
+        "@testing-library/react": "^13.2.0",
+        "@testing-library/user-event": "^13.5.0",
         "eslint": "^8.0.1",
         "eslint-config-prettier": "^8.5.0",
         "eslint-config-standard": "^17.0.0",

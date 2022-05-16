@@ -9,7 +9,7 @@ import { css } from '@emotion/react';
 
 import { useLoggableEventsContext } from './LoggableEventsProvider';
 
-const MAX_LENGTH = 25;
+export const MAX_LENGTH = 25;
 
 const CreateEventForm = () => {
     const { addLoggableEvent } = useLoggableEventsContext();
@@ -31,15 +31,15 @@ const CreateEventForm = () => {
     const newInputValueIsTooLong = newEventInputValue.length > MAX_LENGTH;
 
     return (
-        <form autoComplete={false} onSubmit={handleNewEventSubmit}>
+        <form onSubmit={handleNewEventSubmit}>
             <TextField
                 id="new-event-input"
                 label="Create a new event"
+                autoComplete="false"
                 value={newEventInputValue}
                 error={newInputValueIsTooLong}
                 helperText={newInputValueIsTooLong ? 'Event name is too long' : null}
                 onChange={handleNewEventInputChange}
-                size="small"
                 variant="standard"
                 margin="normal"
                 InputProps={{
