@@ -15,7 +15,8 @@ import RemoveIcon from '@mui/icons-material/CloseRounded';
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
-import { useLoggableEventsContext } from './LoggableEventsProvider';
+import { useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
+import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
 
 // const WARNING_COLOR = red[50];
 
@@ -24,6 +25,7 @@ type Props = {
 };
 
 const LoggableEventCard = ({ eventName }: Props) => {
+    const { showLoggableEventEditor } = useComponentDisplayContext();
     const { loggableEvents, addRecordToEvent, removeLoggableEvent } = useLoggableEventsContext();
     const currentLoggableEvent = loggableEvents.find(({ name }) => name === eventName);
 
@@ -31,34 +33,34 @@ const LoggableEventCard = ({ eventName }: Props) => {
 
     const { name, logRecords } = currentLoggableEvent;
 
-    const handleLogEventClick = () => {
+    function handleLogEventClick() {
         addRecordToEvent(name);
-    };
+    }
 
-    const handleUnregisterEventClick = () => {
+    function handleEditEventClick() {
+        showLoggableEventEditor(name);
+    }
+
+    function handleUnregisterEventClick() {
         removeLoggableEvent(name);
-    };
+    }
 
     return (
         <Card
             variant="outlined"
             css={css`
                 width: 400px;
-            `}>
+            `}
+        >
             <CardContent>
-                <Grid justifyContent="flex-start" container spacing={1} alignItems="baseline">
-                    <Grid item xs={8}>
+                <Grid container alignItems="baseline">
+                    <Grid item xs={11}>
                         <Typography gutterBottom variant="h5">
                             {name}
                         </Typography>
                     </Grid>
-                    <Grid item xs={2} />
-                    <Grid item xs={2}>
-                        <IconButton
-                            onClick={handleUnregisterEventClick}
-                            size="large"
-                            aria-label="unregister event"
-                            component="span">
+                    <Grid item xs={1}>
+                        <IconButton onClick={handleUnregisterEventClick} aria-label="unregister event" component="span">
                             <RemoveIcon />
                         </IconButton>
                     </Grid>
@@ -66,6 +68,7 @@ const LoggableEventCard = ({ eventName }: Props) => {
                 <Button variant="contained" onClick={handleLogEventClick}>
                     Log Event
                 </Button>
+                <Button onClick={handleEditEventClick}>Edit</Button>
 
                 <List>
                     {logRecords.map(({ displayText, isoString }) => {

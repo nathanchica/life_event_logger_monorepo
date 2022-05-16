@@ -18,7 +18,8 @@ module.exports = {
         'react/react-in-jsx-scope': 'off',
         'no-unused-vars': 'off',
         'react-hooks/exhaustive-deps': 'warn',
-        '@typescript-eslint/no-unused-vars': ['warn']
+        '@typescript-eslint/no-unused-vars': ['warn'],
+        'prettier/prettier': 'warn'
     },
     settings: {
         react: {

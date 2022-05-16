@@ -6,7 +6,10 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
 
-import { useLoggableEventsContext } from './LoggableEventsProvider';
+/** @jsxImportSource @emotion/react */
+import { css } from '@emotion/react';
+
+import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
 
 const LoggableEventList = () => {
     const { loggableEvents, updateLoggableEventIsActive } = useLoggableEventsContext();
@@ -22,10 +25,12 @@ const LoggableEventList = () => {
     };
 
     return (
-        <>
-            <Typography variant="h6" component="div">
-                Registered events:
-            </Typography>
+        <div
+            css={css`
+                margin-top: 16px;
+            `}
+        >
+            <Typography variant="h6">Registered events:</Typography>
             <List>
                 {loggableEvents.map(({ name, active }) => {
                     return (
@@ -35,7 +40,6 @@ const LoggableEventList = () => {
                                     edge="start"
                                     checked={active}
                                     tabIndex={-1}
-                                    disableRipple
                                     inputProps={{ 'aria-labelledby': name }}
                                 />
                             </ListItemIcon>
@@ -44,7 +48,7 @@ const LoggableEventList = () => {
                     );
                 })}
             </List>
-        </>
+        </div>
     );
 };
 

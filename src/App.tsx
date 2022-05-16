@@ -1,11 +1,14 @@
-import LoggableEventsProvider from './components/LoggableEventsProvider';
+import ComponentDisplayProvider from './providers/ComponentDisplayProvider';
+import LoggableEventsProvider from './providers/LoggableEventsProvider';
 import LoggableEventsView from './components/LoggableEventsView';
 
 const App = () => {
     return (
-        <LoggableEventsProvider>
-            <LoggableEventsView />
-        </LoggableEventsProvider>
+        <ComponentDisplayProvider>
+            <LoggableEventsProvider>
+                <LoggableEventsView />
+            </LoggableEventsProvider>
+        </ComponentDisplayProvider>
     );
 };
 

@@ -25,10 +25,7 @@
         "eject": "react-scripts eject",
         "lint": "eslint --fix . --ext .js,.jsx,.ts,.tsx",
         "lint-staged": "lint-staged --config lint-staged.js",
-        "husky-install": "husky install",
-        "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
-        "prettier": "prettier src -w",
-        "prettier:check": "prettier src --check"
+        "husky-install": "husky install"
     },
     "eslintConfig": {
         "extends": [

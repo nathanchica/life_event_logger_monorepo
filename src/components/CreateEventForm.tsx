@@ -1,14 +1,10 @@
 import { useState, ChangeEventHandler, SyntheticEvent } from 'react';
-import IconButton from '@mui/material/IconButton';
-import InputAdornment from '@mui/material/InputAdornment';
+import Button from '@mui/material/Button';
+import Grid from '@mui/material/Grid';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
-import AddIcon from '@mui/icons-material/AddRounded';
 
-/** @jsxImportSource @emotion/react */
-import { css } from '@emotion/react';
-
-import { useLoggableEventsContext } from './LoggableEventsProvider';
+import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
 
 export const MAX_LENGTH = 25;
 
@@ -51,32 +47,31 @@ const CreateEventForm = () => {
 
     return (
         <form onSubmit={handleNewEventSubmit}>
-            <Tooltip open={loggableEvents.length === 0} title="Register your first event!" arrow>
-                <TextField
-                    id="new-event-input"
-                    label="Register a new event"
-                    value={newEventInputValue}
-                    {...textFieldErrorProps}
-                    onChange={handleNewEventInputChange}
-                    margin="normal"
-                    InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <IconButton
-                                    disabled={newEventInputValue.length === 0 || textFieldErrorProps?.error}
-                                    size="large"
-                                    color="primary"
-                                    type="submit">
-                                    <AddIcon />
-                                </IconButton>
-                            </InputAdornment>
-                        )
-                    }}
-                    css={css`
-                        margin-right: 16px;
-                    `}
-                />
-            </Tooltip>
+            <Grid container alignItems="center">
+                <Grid item xs={10}>
+                    <Tooltip open={loggableEvents.length === 0} title="Register your first event!" arrow>
+                        <TextField
+                            id="new-event-input"
+                            label="Register a new event"
+                            {...textFieldErrorProps}
+                            value={newEventInputValue}
+                            onChange={handleNewEventInputChange}
+                            margin="dense"
+                            size="small"
+                            fullWidth
+                        />
+                    </Tooltip>
+                </Grid>
+                <Grid item xs={2}>
+                    <Button
+                        disabled={newEventInputValue.length === 0 || textFieldErrorProps?.error}
+                        type="submit"
+                        size="large"
+                    >
+                        Add
+                    </Button>
+                </Grid>
+            </Grid>
         </form>
     );
 };
