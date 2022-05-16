@@ -20,7 +20,8 @@
     "lint:fix": "eslint --fix src/**/*.js",
     "lint-staged": "lint-staged --config lint-staged.js",
     "husky-install": "husky install",
-    "prettier": "prettier src --check"
+    "prettier": "prettier src -w",
+    "prettier:check": "prettier src --check"
   },
   "eslintConfig": {
     "extends": [
