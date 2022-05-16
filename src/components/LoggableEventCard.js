@@ -9,13 +9,15 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
-
+// import red from '@mui/material/colors/red';
 import RemoveIcon from '@mui/icons-material/CloseRounded';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
 import { useLoggableEventsContext } from './LoggableEventsProvider';
+
+// const WARNING_COLOR = red[50];
 
 const LoggableEventCard = ({ eventId }) => {
     const { loggableEvents, addRecordToEvent, removeLoggableEvent } = useLoggableEventsContext();
@@ -42,7 +44,9 @@ const LoggableEventCard = ({ eventId }) => {
             <CardContent>
                 <Grid justifyContent="flex-start" container spacing={1} alignItems="baseline">
                     <Grid item xs={8}>
-                        <Typography variant="h5">{id}</Typography>
+                        <Typography gutterBottom variant="h5">
+                            {id}
+                        </Typography>
                     </Grid>
                     <Grid item xs={2} />
                     <Grid item xs={2}>

@@ -14,8 +14,11 @@ export const MAX_LENGTH = 25;
 
 const CreateEventForm = () => {
     const { loggableEvents, addLoggableEvent } = useLoggableEventsContext();
+
     const [newEventInputValue, setNewEventInputValue] = useState('');
     const clearNewEventInputValue = () => setNewEventInputValue('');
+    const newInputValueIsTooLong = newEventInputValue.length > MAX_LENGTH;
+    const newEventInputValueAlreadyExists = Boolean(loggableEvents.find(({ id }) => id === newEventInputValue));
 
     const handleNewEventInputChange = (event) => {
         setNewEventInputValue(event.currentTarget.value);
@@ -23,31 +26,44 @@ const CreateEventForm = () => {
 
     const handleNewEventSubmit = (event) => {
         event.preventDefault();
-        if (newEventInputValue.length > 0 && newEventInputValue.length <= MAX_LENGTH) {
+        if (
+            newEventInputValue.length > 0 &&
+            newEventInputValue.length <= MAX_LENGTH &&
+            !newEventInputValueAlreadyExists
+        ) {
             addLoggableEvent(newEventInputValue);
             clearNewEventInputValue();
         }
     };
 
-    const newInputValueIsTooLong = newEventInputValue.length > MAX_LENGTH;
+    let textFieldErrorProps = {};
+    if (newInputValueIsTooLong) {
+        textFieldErrorProps = {
+            error: true,
+            helperText: 'Event name is too long'
+        };
+    } else if (newEventInputValueAlreadyExists) {
+        textFieldErrorProps = {
+            error: true,
+            helperText: 'That event name already exists'
+        };
+    }
 
     return (
-        <form autoComplete="false" onSubmit={handleNewEventSubmit}>
+        <form onSubmit={handleNewEventSubmit}>
             <Tooltip open={loggableEvents.length === 0} title="Register your first event!" arrow>
                 <TextField
                     id="new-event-input"
                     label="Register a new event"
-                    autoComplete="false"
                     value={newEventInputValue}
-                    error={newInputValueIsTooLong}
-                    helperText={newInputValueIsTooLong ? 'Event name is too long' : null}
+                    {...textFieldErrorProps}
                     onChange={handleNewEventInputChange}
                     margin="normal"
                     InputProps={{
                         endAdornment: (
                             <InputAdornment position="end">
                                 <IconButton
-                                    disabled={newEventInputValue.length === 0 || newInputValueIsTooLong}
+                                    disabled={newEventInputValue.length === 0 || textFieldErrorProps?.error}
                                     size="large"
                                     color="primary"
                                     type="submit">
