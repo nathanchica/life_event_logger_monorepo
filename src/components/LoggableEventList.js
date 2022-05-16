@@ -17,10 +17,14 @@ const LoggableEventList = () => {
         updateLoggableEventIsActive(eventId, !eventToUpdate.active);
     };
 
+    if (loggableEvents.length === 0) {
+        return null;
+    }
+
     return (
         <>
             <Typography variant="h6" component="div">
-                Current Events:
+                Registered events:
             </Typography>
             <List>
                 {loggableEvents.map(({ id, active }) => {

@@ -84,6 +84,7 @@ const LoggableEventsProvider = ({ children }) => {
         updateLoggableEventIsActive,
         addRecordToEvent
     };
+
     return <LoggableEventsContext.Provider value={contextValue}>{children}</LoggableEventsContext.Provider>;
 };
 

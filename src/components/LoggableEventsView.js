@@ -18,6 +18,7 @@ const LoggableEventsView = () => {
             wrap="nowrap"
             css={css`
                 height: 100vh;
+                width: 100vw;
             `}>
             <Grid
                 item
@@ -40,8 +41,9 @@ const LoggableEventsView = () => {
                 item
                 css={css`
                     padding: 40px;
+                    width: 100%;
                 `}>
-                <Grid container spacing={2}>
+                <Grid container spacing={5} justifyContent="center">
                     {loggableEvents
                         .filter(({ active }) => active)
                         .map(({ id }) => {
