@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, ChangeEventHandler, SyntheticEvent } from 'react';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import TextField from '@mui/material/TextField';
@@ -18,13 +18,13 @@ const CreateEventForm = () => {
     const [newEventInputValue, setNewEventInputValue] = useState('');
     const clearNewEventInputValue = () => setNewEventInputValue('');
     const newInputValueIsTooLong = newEventInputValue.length > MAX_LENGTH;
-    const newEventInputValueAlreadyExists = Boolean(loggableEvents.find(({ id }) => id === newEventInputValue));
+    const newEventInputValueAlreadyExists = Boolean(loggableEvents.find(({ name }) => name === newEventInputValue));
 
-    const handleNewEventInputChange = (event) => {
+    const handleNewEventInputChange: ChangeEventHandler<HTMLInputElement> = (event) => {
         setNewEventInputValue(event.currentTarget.value);
     };
 
-    const handleNewEventSubmit = (event) => {
+    const handleNewEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
         if (
             newEventInputValue.length > 0 &&
@@ -36,7 +36,7 @@ const CreateEventForm = () => {
         }
     };
 
-    let textFieldErrorProps = {};
+    let textFieldErrorProps: { error?: boolean; helperText?: string } = {};
     if (newInputValueIsTooLong) {
         textFieldErrorProps = {
             error: true,

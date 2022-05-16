@@ -46,10 +46,10 @@ const LoggableEventsView = () => {
                 <Grid container spacing={5}>
                     {loggableEvents
                         .filter(({ active }) => active)
-                        .map(({ id }) => {
+                        .map(({ name }) => {
                             return (
-                                <Grid item key={`${id}-card`}>
-                                    <LoggableEventCard eventId={id} />
+                                <Grid item key={`${name}-card`}>
+                                    <LoggableEventCard eventName={name} />
                                 </Grid>
                             );
                         })}

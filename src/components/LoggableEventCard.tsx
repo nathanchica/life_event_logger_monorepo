@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import invariant from 'invariant';
+import invariant from 'tiny-invariant';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -19,20 +19,24 @@ import { useLoggableEventsContext } from './LoggableEventsProvider';
 
 // const WARNING_COLOR = red[50];
 
-const LoggableEventCard = ({ eventId }) => {
+type Props = {
+    eventName: string;
+};
+
+const LoggableEventCard = ({ eventName }: Props) => {
     const { loggableEvents, addRecordToEvent, removeLoggableEvent } = useLoggableEventsContext();
-    const currentEvent = loggableEvents.find(({ id }) => id === eventId);
+    const currentLoggableEvent = loggableEvents.find(({ name }) => name === eventName);
 
-    invariant(currentEvent, 'Must be a valid event');
+    invariant(currentLoggableEvent, 'Must be a valid loggable event');
 
-    const { id, logRecords } = currentEvent;
+    const { name, logRecords } = currentLoggableEvent;
 
     const handleLogEventClick = () => {
-        addRecordToEvent(id);
+        addRecordToEvent(name);
     };
 
     const handleUnregisterEventClick = () => {
-        removeLoggableEvent(id);
+        removeLoggableEvent(name);
     };
 
     return (
@@ -45,7 +49,7 @@ const LoggableEventCard = ({ eventId }) => {
                 <Grid justifyContent="flex-start" container spacing={1} alignItems="baseline">
                     <Grid item xs={8}>
                         <Typography gutterBottom variant="h5">
-                            {id}
+                            {name}
                         </Typography>
                     </Grid>
                     <Grid item xs={2} />
@@ -64,10 +68,10 @@ const LoggableEventCard = ({ eventId }) => {
                 </Button>
 
                 <List>
-                    {logRecords.map(({ displayString, id: recordId }) => {
+                    {logRecords.map(({ displayText, isoString }) => {
                         return (
-                            <ListItem disablePadding key={recordId}>
-                                <ListItemText>{displayString}</ListItemText>
+                            <ListItem disablePadding key={isoString}>
+                                <ListItemText>{displayText}</ListItemText>
                             </ListItem>
                         );
                     })}

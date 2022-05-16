@@ -1,4 +1,4 @@
-import invariant from 'invariant';
+import invariant from 'tiny-invariant';
 import Checkbox from '@mui/material/Checkbox';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -11,15 +11,15 @@ import { useLoggableEventsContext } from './LoggableEventsProvider';
 const LoggableEventList = () => {
     const { loggableEvents, updateLoggableEventIsActive } = useLoggableEventsContext();
 
-    const createCheckboxClickHandler = (eventId) => () => {
-        const eventToUpdate = loggableEvents.find(({ id }) => id === eventId);
-        invariant(eventToUpdate, 'Must be a valid event');
-        updateLoggableEventIsActive(eventId, !eventToUpdate.active);
-    };
-
     if (loggableEvents.length === 0) {
         return null;
     }
+
+    const createCheckboxClickHandler = (eventName: string) => () => {
+        const eventToUpdate = loggableEvents.find(({ name }) => name === eventName);
+        invariant(eventToUpdate, 'Must be a valid loggable event');
+        updateLoggableEventIsActive(eventName, !eventToUpdate.active);
+    };
 
     return (
         <>
@@ -27,19 +27,19 @@ const LoggableEventList = () => {
                 Registered events:
             </Typography>
             <List>
-                {loggableEvents.map(({ id, active }) => {
+                {loggableEvents.map(({ name, active }) => {
                     return (
-                        <ListItem disablePadding key={id}>
-                            <ListItemIcon onClick={createCheckboxClickHandler(id)}>
+                        <ListItem disablePadding key={name}>
+                            <ListItemIcon onClick={createCheckboxClickHandler(name)}>
                                 <Checkbox
                                     edge="start"
                                     checked={active}
                                     tabIndex={-1}
                                     disableRipple
-                                    inputProps={{ 'aria-labelledby': id }}
+                                    inputProps={{ 'aria-labelledby': name }}
                                 />
                             </ListItemIcon>
-                            <ListItemText>{id}</ListItemText>
+                            <ListItemText>{name}</ListItemText>
                         </ListItem>
                     );
                 })}
