@@ -5,6 +5,9 @@ import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { MAX_LENGTH } from '../components/CreateEventForm';
 
+/**
+ * Mock system time to mock new Date() value
+ */
 jest.useFakeTimers().setSystemTime(new Date('2020-05-10'));
 
 const getNewEventInput = () => screen.getByRole('textbox', { name: 'Create a new event' });

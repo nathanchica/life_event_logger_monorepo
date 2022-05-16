@@ -11,6 +11,9 @@ export const useLoggableEventsContext = () => {
 };
 
 const LoggableEventsProvider = ({ children }) => {
+    /**
+     * List of registered events that can be logged.
+     */
     const [loggableEvents, setLoggableEvents] = useState([]);
 
     /**
@@ -52,7 +55,7 @@ const LoggableEventsProvider = ({ children }) => {
     };
 
     /**
-     * Adds a log record to a registered event
+     * Adds a log record for the current time and date to a registered event
      */
     const addRecordToEvent = (eventId) => {
         setLoggableEvents((currEvents) =>
