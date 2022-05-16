@@ -3,9 +3,16 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
+        "@emotion/react": "^11.9.0",
+        "@emotion/styled": "^11.8.1",
+        "@fontsource/roboto": "^4.5.7",
+        "@mui/icons-material": "^5.6.2",
+        "@mui/material": "^5.7.0",
         "@testing-library/jest-dom": "^5.16.4",
         "@testing-library/react": "^13.2.0",
         "@testing-library/user-event": "^13.5.0",
+        "invariant": "^2.2.4",
+        "prop-types": "^15.8.1",
         "react": "^18.1.0",
         "react-dom": "^18.1.0",
         "react-scripts": "5.0.1",
@@ -16,8 +23,7 @@
         "build": "react-scripts build",
         "test": "react-scripts test",
         "eject": "react-scripts eject",
-        "lint": "eslint src/**/*.js",
-        "lint:fix": "eslint --fix src/**/*.js",
+        "lint": "eslint --fix src/**/*.js",
         "lint-staged": "lint-staged --config lint-staged.js",
         "husky-install": "husky install",
         "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
@@ -44,7 +50,7 @@
     },
     "husky": {
         "hooks": {
-            "pre-commit": "yarn lint-staged",
+            "pre-commit": "yarn lint",
             "pre-push": "yarn lint"
         }
     },
