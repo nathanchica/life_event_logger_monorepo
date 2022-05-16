@@ -2,7 +2,6 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import invariant from 'tiny-invariant';
 
 type ComponentDisplayContextType = {
-    loggableEventEditorIsVisible: boolean;
     showLoggableEventEditor: (eventName: string) => void;
     hideLoggableEventEditor: () => void;
     loggableEventNameToEdit: string | null;
@@ -21,21 +20,17 @@ type Props = {
 };
 
 const ComponentDisplayProvider = ({ children }: Props) => {
-    const [loggableEventEditorIsVisible, setLoggableEventEditorIsVisible] = useState(false);
     const [loggableEventNameToEdit, setLoggableEventNameToEdit] = useState<string | null>(null);
 
     function showLoggableEventEditor(eventName: string) {
         setLoggableEventNameToEdit(eventName);
-        setLoggableEventEditorIsVisible(true);
     }
 
     function hideLoggableEventEditor() {
-        setLoggableEventEditorIsVisible(false);
         setLoggableEventNameToEdit(null);
     }
 
     const contextValue = {
-        loggableEventEditorIsVisible,
         showLoggableEventEditor,
         hideLoggableEventEditor,
         loggableEventNameToEdit

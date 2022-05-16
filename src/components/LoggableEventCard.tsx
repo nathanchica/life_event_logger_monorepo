@@ -17,8 +17,29 @@ import { css } from '@emotion/react';
 
 import { useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
 import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
+import { getNumberOfDaysBetweenDates } from '../utils/time';
 
 // const WARNING_COLOR = red[50];
+
+const DaysSinceLastEventDisplay = ({ lastEventRecordDate }: { lastEventRecordDate: Date }) => {
+    const daysSinceLastEvent = getNumberOfDaysBetweenDates(lastEventRecordDate, new Date());
+    const content =
+        daysSinceLastEvent === 0 ? (
+            <Typography variant="body2">Last event: Today</Typography>
+        ) : (
+            <Typography variant="body2">Last event: {daysSinceLastEvent} days ago</Typography>
+        );
+
+    return (
+        <div
+            css={css`
+                margin-top: 16px;
+            `}
+        >
+            {content}
+        </div>
+    );
+};
 
 type Props = {
     eventName: string;
@@ -45,6 +66,8 @@ const LoggableEventCard = ({ eventName }: Props) => {
         removeLoggableEvent(name);
     }
 
+    const lastEventRecord = currentLoggableEvent.logRecords[0];
+
     return (
         <Card
             variant="outlined"
@@ -68,7 +91,11 @@ const LoggableEventCard = ({ eventName }: Props) => {
                 <Button variant="contained" onClick={handleLogEventClick}>
                     Log Event
                 </Button>
-                <Button onClick={handleEditEventClick}>Edit</Button>
+                <Button disableRipple onClick={handleEditEventClick}>
+                    Edit
+                </Button>
+
+                {lastEventRecord && <DaysSinceLastEventDisplay lastEventRecordDate={lastEventRecord.dateObject} />}
 
                 <List>
                     {logRecords.map(({ displayText, isoString }) => {

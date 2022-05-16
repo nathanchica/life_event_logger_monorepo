@@ -1,6 +1,6 @@
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import teal from '@mui/material/colors/teal';
+import orange from '@mui/material/colors/orange';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
@@ -20,7 +20,7 @@ const LoggableEventsView = () => {
         <Grid
             item
             css={css`
-                background-color: ${teal[50]};
+                background-color: ${orange[50]};
                 padding: 24px;
                 width: 400px;
             `}

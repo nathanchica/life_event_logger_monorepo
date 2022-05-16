@@ -6,6 +6,8 @@ interface EventRecord {
     displayText: string;
     /** String that will be stored in the backend */
     isoString: string;
+    /** Date object for comparison purposes */
+    dateObject: Date;
 }
 
 interface LoggableEvent {
@@ -101,7 +103,8 @@ const LoggableEventsProvider = ({ children }: Props) => {
     }
 
     /**
-     * Adds a log record with the current time and date to a loggable event.
+     * Adds a log record with the current time and date to a loggable event. Sorts log records by datetime in descending
+     * order (newest first).
      */
     function addRecordToEvent(eventName: string) {
         setLoggableEvents((prevData) =>
@@ -113,11 +116,14 @@ const LoggableEventsProvider = ({ children }: Props) => {
                 const currDate = new Date();
                 const newLogEvent = {
                     displayText: currDate.toLocaleString('en-US'),
-                    isoString: currDate.toISOString()
+                    isoString: currDate.toISOString(),
+                    dateObject: currDate
                 };
                 return {
                     ...eventData,
-                    logRecords: [...eventData.logRecords, newLogEvent]
+                    logRecords: [...eventData.logRecords, newLogEvent].sort((currRecord, nextRecord) => {
+                        return nextRecord.dateObject.getTime() - currRecord.dateObject.getTime();
+                    })
                 };
             })
         );
