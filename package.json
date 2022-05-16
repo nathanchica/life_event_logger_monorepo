@@ -18,6 +18,8 @@
     "eject": "react-scripts eject",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint --fix src/**/*.js",
+    "lint-staged": "lint-staged --config lint-staged.js",
+    "husky-install": "husky install",
     "prettier": "prettier src --check"
   },
   "eslintConfig": {
@@ -40,7 +42,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint:fix",
+      "pre-commit": "yarn lint-staged",
       "pre-push": "yarn lint"
     }
   },
