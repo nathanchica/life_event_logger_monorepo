@@ -1,60 +1,59 @@
-import { useState } from 'react';
-import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
-import TextField from '@mui/material/TextField';
-import AddIcon from '@mui/icons-material/Add';
+import teal from '@mui/material/colors/teal';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
 import { useLoggableEventsContext } from './LoggableEventsProvider';
+import LoggableEventCard from './LoggableEventCard';
 import LoggableEventList from './LoggableEventList';
+import CreateEventForm from './CreateEventForm';
 
 const LoggableEventsView = () => {
-    const { addLoggableEvent } = useLoggableEventsContext();
-    const [newEventInputValue, setNewEventInputValue] = useState('');
-    const clearNewEventInputValue = () => setNewEventInputValue('');
-
-    const handleNewEventInputChange = (event) => {
-        setNewEventInputValue(event.currentTarget.value);
-    };
-
-    const handleNewEventSubmit = (event) => {
-        event.preventDefault();
-        if (newEventInputValue.length > 0) {
-            addLoggableEvent(newEventInputValue);
-            clearNewEventInputValue();
-        }
-    };
+    const { loggableEvents } = useLoggableEventsContext();
 
     return (
-        <div
+        <Grid
+            container
+            wrap="nowrap"
             css={css`
-                margin: 40px;
+                height: 100vh;
             `}>
-            <form onSubmit={handleNewEventSubmit}>
-                <TextField
-                    id="new-event-input"
-                    label="Create a new event"
-                    value={newEventInputValue}
-                    onChange={handleNewEventInputChange}
-                    size="small"
-                    css={css`
-                        margin-right: 16px;
-                    `}
-                />
-                <Button type="submit" variant="contained" endIcon={<AddIcon />}>
-                    Create
-                </Button>
-            </form>
-
-            <div
+            <Grid
+                item
                 css={css`
-                    display: block;
+                    background-color: ${teal[50]};
+                    padding: 40px;
+                    max-width: 380px;
                 `}>
-                <LoggableEventList />
-            </div>
-        </div>
+                <CreateEventForm />
+
+                <div
+                    css={css`
+                        display: block;
+                    `}>
+                    <LoggableEventList />
+                </div>
+            </Grid>
+
+            <Grid
+                item
+                css={css`
+                    padding: 40px;
+                `}>
+                <Grid container spacing={2}>
+                    {loggableEvents
+                        .filter(({ active }) => active)
+                        .map(({ id }) => {
+                            return (
+                                <Grid item key={`${id}-card`}>
+                                    <LoggableEventCard eventId={id} />
+                                </Grid>
+                            );
+                        })}
+                </Grid>
+            </Grid>
+        </Grid>
     );
 };
 

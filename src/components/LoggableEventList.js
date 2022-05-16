@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import invariant from 'invariant';
 import Checkbox from '@mui/material/Checkbox';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -10,40 +10,26 @@ import { useLoggableEventsContext } from './LoggableEventsProvider';
 
 const LoggableEventList = () => {
     const { loggableEvents, updateLoggableEventIsActive } = useLoggableEventsContext();
-    const [checkedCheckboxIds, setCheckedCheckboxIds] = useState(
-        loggableEvents.filter(({ active }) => active).map(({ id }) => id)
-    );
-    const removeIdFromCheckedCheckboxIds = (idToRemove) => {
-        setCheckedCheckboxIds((currIds) => currIds.filter((id) => idToRemove !== id));
-    };
-    const addIdtoCheckedCheckboxIds = (idToAdd) => {
-        setCheckedCheckboxIds((currIds) => [...currIds, idToAdd]);
-    };
 
     const createCheckboxClickHandler = (eventId) => () => {
-        if (checkedCheckboxIds.includes(eventId)) {
-            removeIdFromCheckedCheckboxIds(eventId);
-            updateLoggableEventIsActive(eventId, false);
-            return;
-        }
-
-        addIdtoCheckedCheckboxIds(eventId);
-        updateLoggableEventIsActive(eventId, true);
+        const eventToUpdate = loggableEvents.find(({ id }) => id === eventId);
+        invariant(eventToUpdate, 'Must be a valid event');
+        updateLoggableEventIsActive(eventId, !eventToUpdate.active);
     };
 
     return (
         <>
-            <Typography sx={{ mt: 1 }} variant="h6" component="div">
+            <Typography variant="h6" component="div">
                 Current Events:
             </Typography>
             <List>
-                {loggableEvents.map(({ id }) => {
+                {loggableEvents.map(({ id, active }) => {
                     return (
                         <ListItem disablePadding key={id}>
                             <ListItemIcon onClick={createCheckboxClickHandler(id)}>
                                 <Checkbox
                                     edge="start"
-                                    checked={checkedCheckboxIds.includes(id)}
+                                    checked={active}
                                     tabIndex={-1}
                                     disableRipple
                                     inputProps={{ 'aria-labelledby': id }}
