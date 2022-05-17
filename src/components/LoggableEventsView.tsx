@@ -1,3 +1,4 @@
+import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import orange from '@mui/material/colors/orange';
@@ -13,7 +14,7 @@ import LoggableEventList from './LoggableEventList';
 import CreateEventForm from './CreateEventForm';
 
 const LoggableEventsView = () => {
-    const { loggableEventNameToEdit, hideLoggableEventEditor } = useComponentDisplayContext();
+    const { loggableEventNameToEdit, hideLoggableEventEditor, loadingSpinnerIsVisible } = useComponentDisplayContext();
     const { loggableEvents } = useLoggableEventsContext();
 
     const sidebar = (
@@ -40,7 +41,11 @@ const LoggableEventsView = () => {
         </Grid>
     );
 
-    const mainContent = (
+    const mainContent = loadingSpinnerIsVisible ? (
+        <Grid item xs={12}>
+            <CircularProgress />
+        </Grid>
+    ) : (
         <Grid
             item
             xs={12}

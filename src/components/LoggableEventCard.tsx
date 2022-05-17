@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import invariant from 'tiny-invariant';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -7,6 +8,7 @@ import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
+import LoadingButton from '@mui/lab/LoadingButton';
 import Typography from '@mui/material/Typography';
 // import red from '@mui/material/colors/red';
 import RemoveIcon from '@mui/icons-material/CloseRounded';
@@ -45,6 +47,8 @@ type Props = {
 };
 
 const LoggableEventCard = ({ eventName }: Props) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const { showLoggableEventEditor } = useComponentDisplayContext();
     const { loggableEvents, addRecordToEvent, removeLoggableEvent } = useLoggableEventsContext();
     const currentLoggableEvent = loggableEvents.find(({ name }) => name === eventName);
@@ -53,19 +57,31 @@ const LoggableEventCard = ({ eventName }: Props) => {
 
     const { name, logRecords } = currentLoggableEvent;
 
-    function handleLogEventClick() {
-        addRecordToEvent(name);
-    }
+    const handleLogEventClick = async () => {
+        setIsSubmitting(true);
+        await addRecordToEvent(name);
+        setIsSubmitting(false);
+    };
 
-    function handleEditEventClick() {
+    const handleEditEventClick = () => {
         showLoggableEventEditor(name);
-    }
+    };
 
-    function handleUnregisterEventClick() {
+    const handleUnregisterEventClick = () => {
         removeLoggableEvent(name);
-    }
+    };
 
     const lastEventRecord = currentLoggableEvent.logRecords[0];
+
+    const logEventButton = isSubmitting ? (
+        <LoadingButton variant="contained" loadingPosition="end">
+            Log Event
+        </LoadingButton>
+    ) : (
+        <Button variant="contained" onClick={handleLogEventClick}>
+            Log Event
+        </Button>
+    );
 
     return (
         <Card
@@ -87,9 +103,7 @@ const LoggableEventCard = ({ eventName }: Props) => {
                         </IconButton>
                     </Grid>
                 </Grid>
-                <Button variant="contained" onClick={handleLogEventClick}>
-                    Log Event
-                </Button>
+                {logEventButton}
                 <Button disableRipple onClick={handleEditEventClick}>
                     Edit
                 </Button>

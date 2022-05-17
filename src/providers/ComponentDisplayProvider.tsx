@@ -5,6 +5,9 @@ type ComponentDisplayContextType = {
     showLoggableEventEditor: (eventName: string) => void;
     hideLoggableEventEditor: () => void;
     loggableEventNameToEdit: string | null;
+    showLoadingSpinner: () => void;
+    hideLoadingSpinner: () => void;
+    loadingSpinnerIsVisible: boolean;
 };
 
 export const ComponentDisplayContext = createContext<ComponentDisplayContextType | null>(null);
@@ -21,6 +24,7 @@ type Props = {
 
 const ComponentDisplayProvider = ({ children }: Props) => {
     const [loggableEventNameToEdit, setLoggableEventNameToEdit] = useState<string | null>(null);
+    const [loadingSpinnerIsVisible, setLoadingSpinnerIsVisible] = useState(true);
 
     function showLoggableEventEditor(eventName: string) {
         setLoggableEventNameToEdit(eventName);
@@ -33,7 +37,10 @@ const ComponentDisplayProvider = ({ children }: Props) => {
     const contextValue = {
         showLoggableEventEditor,
         hideLoggableEventEditor,
-        loggableEventNameToEdit
+        loggableEventNameToEdit,
+        showLoadingSpinner: () => setLoadingSpinnerIsVisible(true),
+        hideLoadingSpinner: () => setLoadingSpinnerIsVisible(false),
+        loadingSpinnerIsVisible
     };
 
     return <ComponentDisplayContext.Provider value={contextValue}>{children}</ComponentDisplayContext.Provider>;
