@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import invariant from 'tiny-invariant';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -109,10 +108,6 @@ const LoggableEventCard = ({ eventName }: Props) => {
             </CardContent>
         </Card>
     );
-};
-
-LoggableEventCard.propTypes = {
-    eventId: PropTypes.string
 };
 
 export default LoggableEventCard;
