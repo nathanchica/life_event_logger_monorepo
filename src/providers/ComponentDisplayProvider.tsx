@@ -2,12 +2,9 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import invariant from 'tiny-invariant';
 
 type ComponentDisplayContextType = {
-    showLoggableEventEditor: (eventName: string) => void;
-    hideLoggableEventEditor: () => void;
-    loggableEventNameToEdit: string | null;
-    showLoadingSpinner: () => void;
-    hideLoadingSpinner: () => void;
-    loadingSpinnerIsVisible: boolean;
+    showLoadingState: () => void;
+    hideLoadingState: () => void;
+    loadingStateIsShowing: boolean;
 };
 
 export const ComponentDisplayContext = createContext<ComponentDisplayContextType | null>(null);
@@ -23,24 +20,17 @@ type Props = {
 };
 
 const ComponentDisplayProvider = ({ children }: Props) => {
-    const [loggableEventNameToEdit, setLoggableEventNameToEdit] = useState<string | null>(null);
-    const [loadingSpinnerIsVisible, setLoadingSpinnerIsVisible] = useState(true);
-
-    function showLoggableEventEditor(eventName: string) {
-        setLoggableEventNameToEdit(eventName);
-    }
-
-    function hideLoggableEventEditor() {
-        setLoggableEventNameToEdit(null);
-    }
+    const [loadingStateIsShowing, setLoadingStateIsShowing] = useState(true);
+    const hideLoadingState = () => {
+        setTimeout(() => {
+            setLoadingStateIsShowing(false);
+        }, 1000);
+    };
 
     const contextValue = {
-        showLoggableEventEditor,
-        hideLoggableEventEditor,
-        loggableEventNameToEdit,
-        showLoadingSpinner: () => setLoadingSpinnerIsVisible(true),
-        hideLoadingSpinner: () => setLoadingSpinnerIsVisible(false),
-        loadingSpinnerIsVisible
+        showLoadingState: () => setLoadingStateIsShowing(true),
+        hideLoadingState,
+        loadingStateIsShowing
     };
 
     return <ComponentDisplayContext.Provider value={contextValue}>{children}</ComponentDisplayContext.Provider>;

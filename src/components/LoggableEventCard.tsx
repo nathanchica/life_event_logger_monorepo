@@ -1,22 +1,28 @@
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import invariant from 'tiny-invariant';
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
+import Box from '@mui/material/Box';
 import CardContent from '@mui/material/CardContent';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import LoadingButton from '@mui/lab/LoadingButton';
+import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-// import red from '@mui/material/colors/red';
-import RemoveIcon from '@mui/icons-material/CloseRounded';
+import blue from '@mui/material/colors/blue';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
-import { useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
+import EditEventCard from './EditEventCard';
+import EventCard from './EventCard';
 import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
 import { getNumberOfDaysBetweenDates } from '../utils/time';
 
@@ -24,21 +30,57 @@ import { getNumberOfDaysBetweenDates } from '../utils/time';
 
 const DaysSinceLastEventDisplay = ({ lastEventRecordDate }: { lastEventRecordDate: Date }) => {
     const daysSinceLastEvent = getNumberOfDaysBetweenDates(lastEventRecordDate, new Date());
-    const content =
-        daysSinceLastEvent === 0 ? (
-            <Typography variant="body2">Last event: Today</Typography>
-        ) : (
-            <Typography variant="body2">Last event: {daysSinceLastEvent} days ago</Typography>
-        );
+
+    let content = <Typography variant="subtitle1">Last event: {daysSinceLastEvent} days ago</Typography>;
+    if (daysSinceLastEvent === 0) {
+        content = <Typography variant="subtitle1">Last event: Today</Typography>;
+    } else if (daysSinceLastEvent === 1) {
+        content = <Typography variant="subtitle1">Last event: Yesterday</Typography>;
+    }
+
+    return content;
+};
+
+type EventOptionsDropdownProps = {
+    onDismiss: () => void;
+    onEditEventClick: () => void;
+    onDeleteEventClick: () => void;
+};
+
+const EventOptionsDropdown = ({ onDismiss, onEditEventClick, onDeleteEventClick }: EventOptionsDropdownProps) => {
+    const DropdownItem = ({ name, icon, onClick }: { name: string; icon: ReactNode; onClick: () => void }) => (
+        <ListItem disablePadding>
+            <ListItemButton
+                css={css`
+                    :hover {
+                        background-color: ${blue[100]};
+                    }
+                `}
+                onClick={onClick}
+            >
+                <ListItemIcon>{icon}</ListItemIcon>
+                <ListItemText primary={name} />
+            </ListItemButton>
+        </ListItem>
+    );
 
     return (
-        <div
-            css={css`
-                margin-top: 16px;
-            `}
-        >
-            {content}
-        </div>
+        <ClickAwayListener onClickAway={onDismiss}>
+            <Paper
+                elevation={5}
+                css={css`
+                    position: absolute;
+                    width: 200px;
+                    // https://mui.com/material-ui/customization/z-index/#main-content
+                    z-index: 1500;
+                `}
+            >
+                <List disablePadding>
+                    <DropdownItem name="Edit event" icon={<EditIcon />} onClick={onEditEventClick} />
+                    <DropdownItem name="Delete event" icon={<DeleteIcon />} onClick={onDeleteEventClick} />
+                </List>
+            </Paper>
+        </ClickAwayListener>
     );
 };
 
@@ -49,47 +91,48 @@ type Props = {
 const LoggableEventCard = ({ eventName }: Props) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { showLoggableEventEditor } = useComponentDisplayContext();
+    const [eventOptionsDropdownIsShowing, setEventOptionsDropdownIsShowing] = useState(false);
+    const showEventOptionsDropdown = () => {
+        setEventOptionsDropdownIsShowing(true);
+    };
+    const hideEventOptionsDropdown = () => {
+        setEventOptionsDropdownIsShowing(false);
+    };
+
+    const [formIsShowing, setFormIsShowing] = useState(false);
+    const hideForm = () => {
+        setFormIsShowing(false);
+    };
+
     const { loggableEvents, addRecordToEvent, removeLoggableEvent } = useLoggableEventsContext();
     const currentLoggableEvent = loggableEvents.find(({ name }) => name === eventName);
 
     invariant(currentLoggableEvent, 'Must be a valid loggable event');
 
-    const { name, logRecords } = currentLoggableEvent;
+    const { id, name, eventRecords } = currentLoggableEvent;
 
     const handleLogEventClick = async () => {
         setIsSubmitting(true);
-        await addRecordToEvent(name);
+        await addRecordToEvent(id);
         setIsSubmitting(false);
     };
 
     const handleEditEventClick = () => {
-        showLoggableEventEditor(name);
+        setFormIsShowing(true);
+        hideEventOptionsDropdown();
     };
 
-    const handleUnregisterEventClick = () => {
-        removeLoggableEvent(name);
+    const handleDeleteEventClick = () => {
+        removeLoggableEvent(id);
+        hideEventOptionsDropdown();
     };
 
-    const lastEventRecord = currentLoggableEvent.logRecords[0];
+    const lastEventRecord = currentLoggableEvent.eventRecords[0];
 
-    const logEventButton = isSubmitting ? (
-        <LoadingButton variant="contained" loadingPosition="end">
-            Log Event
-        </LoadingButton>
+    return formIsShowing ? (
+        <EditEventCard onDismiss={hideForm} eventIdToEdit={id} />
     ) : (
-        <Button variant="contained" onClick={handleLogEventClick}>
-            Log Event
-        </Button>
-    );
-
-    return (
-        <Card
-            variant="outlined"
-            css={css`
-                width: 400px;
-            `}
-        >
+        <EventCard>
             <CardContent>
                 <Grid container alignItems="baseline">
                     <Grid item xs={11}>
@@ -98,29 +141,45 @@ const LoggableEventCard = ({ eventName }: Props) => {
                         </Typography>
                     </Grid>
                     <Grid item xs={1}>
-                        <IconButton onClick={handleUnregisterEventClick} aria-label="unregister event" component="span">
-                            <RemoveIcon />
-                        </IconButton>
+                        <Box
+                            css={css`
+                                position: relative;
+                            `}
+                        >
+                            <IconButton
+                                onClick={showEventOptionsDropdown}
+                                aria-label="unregister event"
+                                component="span"
+                            >
+                                <MoreVertIcon />
+                            </IconButton>
+                            {eventOptionsDropdownIsShowing && (
+                                <EventOptionsDropdown
+                                    onDismiss={hideEventOptionsDropdown}
+                                    onDeleteEventClick={handleDeleteEventClick}
+                                    onEditEventClick={handleEditEventClick}
+                                />
+                            )}
+                        </Box>
                     </Grid>
                 </Grid>
-                {logEventButton}
-                <Button disableRipple onClick={handleEditEventClick}>
-                    Edit
-                </Button>
+                <LoadingButton size="large" loading={isSubmitting} onClick={handleLogEventClick} variant="contained">
+                    Log Event
+                </LoadingButton>
 
-                {lastEventRecord && <DaysSinceLastEventDisplay lastEventRecordDate={lastEventRecord.dateObject} />}
+                {lastEventRecord && <DaysSinceLastEventDisplay lastEventRecordDate={lastEventRecord} />}
 
                 <List>
-                    {logRecords.map(({ displayText, isoString }) => {
+                    {eventRecords.map((record: Date) => {
                         return (
-                            <ListItem disablePadding key={isoString}>
-                                <ListItemText>{displayText}</ListItemText>
+                            <ListItem disablePadding key={record.toISOString()}>
+                                <ListItemText>{record.toLocaleString('en-US')}</ListItemText>
                             </ListItem>
                         );
                     })}
                 </List>
             </CardContent>
-        </Card>
+        </EventCard>
     );
 };
 

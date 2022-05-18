@@ -1,36 +1,37 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import invariant from 'tiny-invariant';
+import { v4 as uuidv4 } from 'uuid';
 
 import { useComponentDisplayContext } from './ComponentDisplayProvider';
 import useLoggableEventsApi from '../utils/useLoggableEventsApi';
-
-interface EventRecord {
-    /** Human-readable string that will be displayed */
-    displayText: string;
-    /** String that will be stored in the backend */
-    isoString: string;
-    /** Date object for comparison purposes */
-    dateObject: Date;
-}
 
 interface LoggableEvent {
     /** id of the event */
     id: string;
     /** Name of the event */
     name: string;
-    /** Log records of the event */
-    logRecords: Array<EventRecord>;
+    /** Date objects of when this event has been logged */
+    eventRecords: Array<Date>;
     /** Whether this event should show */
     active: boolean;
+    /** Number of days since the last event record before a warning will show for this event */
+    warningThresholdInDays: number;
 }
+
+export const EVENT_DEFAULT_VALUES: LoggableEvent = {
+    id: '',
+    name: '',
+    eventRecords: [],
+    active: true,
+    warningThresholdInDays: 7
+};
 
 type LoggableEventsContextType = {
     loggableEvents: Array<LoggableEvent>;
-    addLoggableEvent: (eventName: string) => void;
-    removeLoggableEvent: (eventNameToRemove: string) => void;
-    updateLoggableEventIsActive: (eventName: string, isActive: boolean) => void;
-    updateLoggableEventName: (currEventName: string, newName: string) => void;
-    addRecordToEvent: (eventName: string) => void;
+    addLoggableEvent: (newEventName: string, warningThresholdInDays: number) => void;
+    removeLoggableEvent: (eventIdToRemove: string) => void;
+    updateLoggableEvent: (updatedLoggableEvent: LoggableEvent) => void;
+    addRecordToEvent: (eventId: string) => void;
 };
 
 export const LoggableEventsContext = createContext<LoggableEventsContextType | null>(null);
@@ -41,75 +42,76 @@ export const useLoggableEventsContext = () => {
     return context;
 };
 
-const createEventRecordFromDateObject = (dateObject: Date) => {
-    return {
-        displayText: dateObject.toLocaleString('en-US'),
-        isoString: dateObject.toISOString(),
-        dateObject
-    };
-};
-
 type Props = {
+    offlineMode: boolean;
     children: ReactNode;
 };
 
-const LoggableEventsProvider = ({ children }: Props) => {
+const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
+    /**
+     * States and values from providers
+     */
+
     /**
      * List of registered events. A registered event can be logged and maintain records of its own logs.
      */
     const [loggableEvents, setLoggableEvents] = useState<Array<LoggableEvent>>([]);
 
-    /**
-     * Data fetch
-     */
-    const { hideLoadingSpinner } = useComponentDisplayContext();
+    const { hideLoadingState, showLoadingState } = useComponentDisplayContext();
+
     const {
         isLoading,
-        fetchError,
         fetchedLoggableEvents,
-        refetchLoggableEvents,
-        createEventRecordIsSubmitting,
-        createEventRecordError,
+        submitCreateLoggableEvent,
+        submitDeleteLoggableEvent,
         submitCreateEventRecord
-    } = useLoggableEventsApi();
+    } = useLoggableEventsApi(offlineMode);
+
+    /**
+     * Effects
+     */
 
     useEffect(() => {
-        if (!isLoading) {
+        /**
+         * Load fetched data into state
+         */
+        if (!isLoading && !offlineMode) {
             setLoggableEvents(
-                fetchedLoggableEvents.map(({ id: eventId, name, dateTimeRecords, active }: any) => {
-                    return {
-                        id: eventId,
-                        name,
-                        logRecords: dateTimeRecords.map((dateTimeISO: string) => {
-                            return createEventRecordFromDateObject(new Date(dateTimeISO));
-                        }),
-                        active
-                    };
-                })
+                fetchedLoggableEvents.map(
+                    ({ id: eventId, name, dateTimeRecords, active, warningThresholdInDays }: any) => {
+                        return {
+                            id: eventId,
+                            name,
+                            eventRecords: dateTimeRecords.map((dateTimeISO: string) => new Date(dateTimeISO)),
+                            active,
+                            warningThresholdInDays
+                        };
+                    }
+                )
             );
-            hideLoadingSpinner();
+            hideLoadingState();
+        } else if (offlineMode) {
+            hideLoadingState();
+        } else if (isLoading) {
+            showLoadingState();
         }
-    }, [isLoading]);
-
-    useEffect(() => {
-        if (fetchError) {
-            console.error(fetchError);
-        }
-    }, [fetchError]);
+    }, [isLoading, offlineMode]);
 
     /**
      * Register a new loggable event.
      */
-    const addLoggableEvent = (newEventName: string) => {
+    const addLoggableEvent = async (newEventName: string, warningThresholdInDays: number) => {
+        const response = await submitCreateLoggableEvent(newEventName);
+
         setLoggableEvents((prevData) => {
             return [
-                ...prevData,
                 {
-                    id: '',
+                    ...EVENT_DEFAULT_VALUES,
+                    id: response?.data?.createLoggableEvent?.id || uuidv4(),
                     name: newEventName,
-                    logRecords: [],
-                    active: true
-                }
+                    warningThresholdInDays
+                },
+                ...prevData
             ];
         });
     };
@@ -117,39 +119,15 @@ const LoggableEventsProvider = ({ children }: Props) => {
     /**
      * Unregister a loggable event.
      */
-    const removeLoggableEvent = (eventNameToRemove: string) => {
-        setLoggableEvents((prevData) => prevData.filter(({ name }) => name !== eventNameToRemove));
+    const removeLoggableEvent = async (eventIdToRemove: string) => {
+        await submitDeleteLoggableEvent(eventIdToRemove);
+        setLoggableEvents((prevData) => prevData.filter(({ id }) => id !== eventIdToRemove));
     };
 
-    /**
-     * Update the `active` field of a loggable event. `active` will determine if the event will be displayed in the
-     * view that displays loggable events and their records.
-     */
-    const updateLoggableEventIsActive = (eventName: string, isActive: boolean) => {
+    const updateLoggableEvent = (updatedLoggableEvent: LoggableEvent) => {
         setLoggableEvents((prevData) =>
             prevData.map((eventData) => {
-                return eventData.name === eventName
-                    ? {
-                          ...eventData,
-                          active: isActive
-                      }
-                    : eventData;
-            })
-        );
-    };
-
-    /**
-     * Update the `name` field of a loggable event.
-     */
-    const updateLoggableEventName = (currEventName: string, newName: string) => {
-        setLoggableEvents((prevData) =>
-            prevData.map((eventData) => {
-                return eventData.name === currEventName
-                    ? {
-                          ...eventData,
-                          name: newName
-                      }
-                    : eventData;
+                return eventData.id === updatedLoggableEvent.id ? updatedLoggableEvent : eventData;
             })
         );
     };
@@ -158,48 +136,33 @@ const LoggableEventsProvider = ({ children }: Props) => {
      * Adds a log record with the current time and date to a loggable event. Sorts log records by datetime in descending
      * order (newest first).
      */
-    const addRecordToEvent = async (eventName: string) => {
-        let eventIdToUpdate;
-        let newEventDateTimeISOString;
+    const addRecordToEvent = async (eventId: string) => {
+        const currDate = new Date();
+        const newEventDateTimeISOString = currDate.toISOString();
+
         setLoggableEvents((prevData) =>
             prevData.map((eventData: LoggableEvent) => {
-                if (eventData.name !== eventName) {
+                if (eventData.id !== eventId) {
                     return eventData;
                 }
 
-                const newLogEvent = createEventRecordFromDateObject(new Date());
-
-                eventIdToUpdate = eventData.id;
-                newEventDateTimeISOString = newLogEvent.isoString;
-
                 return {
                     ...eventData,
-                    logRecords: [...eventData.logRecords, newLogEvent].sort((currRecord, nextRecord) => {
-                        return nextRecord.dateObject.getTime() - currRecord.dateObject.getTime();
+                    eventRecords: [...eventData.eventRecords, currDate].sort((currRecord: Date, nextRecord: Date) => {
+                        return nextRecord.getTime() - currRecord.getTime();
                     })
                 };
             })
         );
 
-        if (eventIdToUpdate) {
-            await submitCreateEventRecord({
-                variables: {
-                    loggableEventId: eventIdToUpdate,
-                    input: {
-                        dateTimeISO: newEventDateTimeISOString
-                    }
-                }
-            });
-            refetchLoggableEvents();
-        }
+        await submitCreateEventRecord(eventId, newEventDateTimeISOString);
     };
 
     const contextValue: LoggableEventsContextType = {
         loggableEvents,
         addLoggableEvent,
         removeLoggableEvent,
-        updateLoggableEventIsActive,
-        updateLoggableEventName,
+        updateLoggableEvent,
         addRecordToEvent
     };
 

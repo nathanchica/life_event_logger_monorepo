@@ -11,12 +11,26 @@ export const GET_LOGGABLE_EVENTS_QUERY = gql`
     }
 `;
 
+export const CREATE_LOGGABLE_EVENT_MUTATION = gql`
+    mutation CreateLoggableEvent($input: CreateLoggableEventInput!) {
+        createLoggableEvent(input: $input) {
+            id
+        }
+    }
+`;
+
 export const UPDATE_LOGGABLE_EVENT_MUTATION = gql`
-    query UpdateLoggableEvent($loggableEventId: ID!, $input: UpdateLoggableEventInput!) {
+    mutation UpdateLoggableEvent($loggableEventId: ID!, $input: UpdateLoggableEventInput!) {
         updateLoggableEvent(id: $loggableEventId, input: $input) {
             id
-            name
-            active
+        }
+    }
+`;
+
+export const DELETE_LOGGABLE_EVENT_MUTATION = gql`
+    mutation DeleteLoggableEvent($loggableEventId: ID!) {
+        deleteLoggableEvent(id: $loggableEventId) {
+            id
         }
     }
 `;
@@ -25,34 +39,76 @@ export const CREATE_EVENT_RECORD_MUTATION = gql`
     mutation CreateEventRecord($loggableEventId: ID!, $input: CreateEventRecordInput!) {
         createEventRecord(loggableEventId: $loggableEventId, input: $input) {
             id
-            name
         }
     }
 `;
 
-const useLoggableEventsApi = () => {
+const useLoggableEventsApi = (offlineMode: boolean) => {
+    const onSuccessfulSubmit = () => {
+        refetchLoggableEvents();
+    };
+
+    const onError = (error: Error) => {
+        console.error(error);
+    };
+
+    const mutationOptions = { onCompleted: onSuccessfulSubmit, onError };
+
     const {
         loading,
         data: fetchLoggableEventsData,
-        error: fetchError,
         refetch: refetchLoggableEvents
     } = useQuery(GET_LOGGABLE_EVENTS_QUERY, {
-        fetchPolicy: 'no-cache'
+        fetchPolicy: 'no-cache',
+        onError,
+        skip: offlineMode
     });
 
-    const [submitCreateEventRecord, { loading: createEventRecordIsSubmitting, error: createEventRecordError }] =
-        useMutation(CREATE_EVENT_RECORD_MUTATION);
+    const [createLoggableEventMutation] = useMutation(CREATE_LOGGABLE_EVENT_MUTATION, mutationOptions);
+    const submitCreateLoggableEvent = offlineMode
+        ? () => Promise.resolve({ data: { createLoggableEvent: { id: null } } })
+        : (newEventName: string) => {
+              return createLoggableEventMutation({
+                  variables: {
+                      input: {
+                          name: newEventName
+                      }
+                  }
+              });
+          };
+
+    const [deleteLoggableEventMutation] = useMutation(DELETE_LOGGABLE_EVENT_MUTATION, mutationOptions);
+    const submitDeleteLoggableEvent = offlineMode
+        ? () => Promise.resolve({})
+        : (eventIdToRemove: string) => {
+              return deleteLoggableEventMutation({
+                  variables: {
+                      loggableEventId: eventIdToRemove
+                  }
+              });
+          };
+
+    const [createEventRecordMutation] = useMutation(CREATE_EVENT_RECORD_MUTATION, mutationOptions);
+    const submitCreateEventRecord = offlineMode
+        ? () => Promise.resolve({})
+        : (eventIdToUpdate: string, newEventDateTimeISOString: string) => {
+              return createEventRecordMutation({
+                  variables: {
+                      loggableEventId: eventIdToUpdate,
+                      input: {
+                          dateTimeISO: newEventDateTimeISOString
+                      }
+                  }
+              });
+          };
 
     return {
-        /** Fetch loggable events */
         isLoading: loading,
-        fetchError,
         fetchedLoggableEvents: fetchLoggableEventsData?.loggableEvents || [],
         refetchLoggableEvents,
-        /** Submit create event record */
-        submitCreateEventRecord,
-        createEventRecordIsSubmitting,
-        createEventRecordError
+        submitCreateLoggableEvent,
+        submitDeleteLoggableEvent,
+        submitCreateEventRecord
     };
 };
 

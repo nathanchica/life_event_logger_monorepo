@@ -2,6 +2,7 @@ import invariant from 'tiny-invariant';
 import Checkbox from '@mui/material/Checkbox';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
@@ -12,16 +13,19 @@ import { css } from '@emotion/react';
 import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
 
 const LoggableEventList = () => {
-    const { loggableEvents, updateLoggableEventIsActive } = useLoggableEventsContext();
+    const { loggableEvents, updateLoggableEvent } = useLoggableEventsContext();
 
     if (loggableEvents.length === 0) {
         return null;
     }
 
-    const createCheckboxClickHandler = (eventName: string) => () => {
-        const eventToUpdate = loggableEvents.find(({ name }) => name === eventName);
+    const createCheckboxClickHandler = (eventId: string) => async () => {
+        const eventToUpdate = loggableEvents.find(({ id }) => id === eventId);
         invariant(eventToUpdate, 'Must be a valid loggable event');
-        updateLoggableEventIsActive(eventName, !eventToUpdate.active);
+        await updateLoggableEvent({
+            ...eventToUpdate,
+            active: !eventToUpdate.active
+        });
     };
 
     return (
@@ -30,20 +34,22 @@ const LoggableEventList = () => {
                 margin-top: 16px;
             `}
         >
-            <Typography variant="h6">Registered events:</Typography>
-            <List>
-                {loggableEvents.map(({ name, active }) => {
+            <Typography variant="subtitle1">Registered events</Typography>
+            <List disablePadding>
+                {loggableEvents.map(({ id, name, active }) => {
                     return (
                         <ListItem disablePadding key={name}>
-                            <ListItemIcon onClick={createCheckboxClickHandler(name)}>
-                                <Checkbox
-                                    edge="start"
-                                    checked={active}
-                                    tabIndex={-1}
-                                    inputProps={{ 'aria-labelledby': name }}
-                                />
-                            </ListItemIcon>
-                            <ListItemText>{name}</ListItemText>
+                            <ListItemButton dense disableRipple onClick={createCheckboxClickHandler(id)}>
+                                <ListItemIcon>
+                                    <Checkbox
+                                        edge="start"
+                                        checked={active}
+                                        tabIndex={-1}
+                                        inputProps={{ 'aria-labelledby': `${name}-isactive-toggle` }}
+                                    />
+                                </ListItemIcon>
+                                <ListItemText>{name}</ListItemText>
+                            </ListItemButton>
                         </ListItem>
                     );
                 })}
