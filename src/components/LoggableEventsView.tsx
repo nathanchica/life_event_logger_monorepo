@@ -58,10 +58,10 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
                         </Grid>
                         {loggableEvents
                             .filter(({ active }) => active)
-                            .map(({ name }) => {
+                            .map(({ id, name }) => {
                                 return (
                                     <Grid item key={`${name}-card`}>
-                                        <LoggableEventCard eventName={name} />
+                                        <LoggableEventCard eventId={id} />
                                     </Grid>
                                 );
                             })}

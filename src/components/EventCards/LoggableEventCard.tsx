@@ -18,13 +18,17 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
+
 import blue from '@mui/material/colors/blue';
 import grey from '@mui/material/colors/grey';
+import red from '@mui/material/colors/red';
+
 import CancelIcon from '@mui/icons-material/Cancel';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
@@ -34,10 +38,15 @@ import EventCard from './EventCard';
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { getNumberOfDaysBetweenDates } from '../../utils/time';
 
-// const WARNING_COLOR = red[50];
-
-const DaysSinceLastEventDisplay = ({ lastEventRecordDate }: { lastEventRecordDate: Date }) => {
+const DaysSinceLastEventDisplay = ({
+    lastEventRecordDate,
+    warningThresholdInDays
+}: {
+    lastEventRecordDate: Date;
+    warningThresholdInDays: number;
+}) => {
     const daysSinceLastEvent = getNumberOfDaysBetweenDates(lastEventRecordDate, new Date());
+    const isViolatingThreshold = warningThresholdInDays > 0 && daysSinceLastEvent >= warningThresholdInDays;
 
     let content = <Typography variant="caption">Last event: {daysSinceLastEvent} days ago</Typography>;
     if (daysSinceLastEvent === 0) {
@@ -50,9 +59,13 @@ const DaysSinceLastEventDisplay = ({ lastEventRecordDate }: { lastEventRecordDat
         <Box
             css={css`
                 margin-top: 8px;
+                color: ${isViolatingThreshold ? red[500] : 'inherit'};
             `}
         >
-            {content}
+            <Stack direction="row" spacing={1}>
+                {content}
+                {isViolatingThreshold && <WarningAmberIcon color="error" fontSize="small" />}
+            </Stack>
         </Box>
     );
 };
@@ -101,10 +114,10 @@ const EventOptionsDropdown = ({ onDismiss, onEditEventClick, onDeleteEventClick 
 };
 
 type Props = {
-    eventName: string;
+    eventId: string;
 };
 
-const LoggableEventCard = ({ eventName }: Props) => {
+const LoggableEventCard = ({ eventId }: Props) => {
     const currDate = new Date();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -130,11 +143,11 @@ const LoggableEventCard = ({ eventName }: Props) => {
     };
 
     const { loggableEvents, addRecordToEvent, removeLoggableEvent } = useLoggableEventsContext();
-    const currentLoggableEvent = loggableEvents.find(({ name }) => name === eventName);
+    const currentLoggableEvent = loggableEvents.find(({ id }) => id === eventId);
 
     invariant(currentLoggableEvent, 'Must be a valid loggable event');
 
-    const { id, name, eventRecords } = currentLoggableEvent;
+    const { id, name, eventRecords, warningThresholdInDays } = currentLoggableEvent;
 
     const handleLogEventClick = async (dateToAdd?: Date | null) => {
         setIsSubmitting(true);
@@ -218,7 +231,12 @@ const LoggableEventCard = ({ eventName }: Props) => {
                     </Button>
                 </Stack>
 
-                {lastEventRecord && <DaysSinceLastEventDisplay lastEventRecordDate={lastEventRecord} />}
+                {lastEventRecord && (
+                    <DaysSinceLastEventDisplay
+                        lastEventRecordDate={lastEventRecord}
+                        warningThresholdInDays={warningThresholdInDays}
+                    />
+                )}
 
                 <List>
                     <Collapse in={datepickerIsShowing} orientation="vertical">
