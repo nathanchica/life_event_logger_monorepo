@@ -4,28 +4,46 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
+import Collapse from '@mui/material/Collapse';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
-import * as colors from '@mui/material/colors';
+import blueGrey from '@mui/material/colors/blueGrey';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
 import EventCard from './EventCard';
-import { useLoggableEventsContext, EVENT_DEFAULT_VALUES } from '../providers/LoggableEventsProvider';
+import { useLoggableEventsContext, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
 
 export const MAX_LENGTH = 25;
+export const MAX_WARNING_THRESHOLD_DAYS = 365 * 2; // 2 years
 
 type Props = {
     onDismiss: () => void;
     eventIdToEdit?: string;
 };
 
-const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
-    const { loggableEvents, addLoggableEvent, updateLoggableEvent } = useLoggableEventsContext();
+const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (newCheckedValue: boolean) => void }) => {
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(event.target.checked);
+    };
 
+    return (
+        <FormGroup>
+            <FormControlLabel control={<Switch checked={checked} onChange={handleChange} />} label="Enable warning" />
+        </FormGroup>
+    );
+};
+
+const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
+    /** Context */
+    const { loggableEvents, addLoggableEvent, updateLoggableEvent } = useLoggableEventsContext();
     const eventToEdit = loggableEvents.find(({ id }) => id === eventIdToEdit) || EVENT_DEFAULT_VALUES;
 
+    /** Event name */
     const [eventNameInputValue, setEventNameInputValue] = useState(eventToEdit.name);
     const resetEventNameInputValue = () => setEventNameInputValue(EVENT_DEFAULT_VALUES.name);
     const eventNameIsTooLong = eventNameInputValue.length > MAX_LENGTH;
@@ -35,16 +53,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const eventNameIsValid =
         eventNameInputValue.length > 0 && eventNameInputValue.length <= MAX_LENGTH && !eventNameAlreadyExists;
 
-    const [warningThresholdInputValue, setWarningThresholdInputValue] = useState(eventToEdit.warningThresholdInDays);
-    const resetWarningThresholdInputValue = () =>
-        setWarningThresholdInputValue(EVENT_DEFAULT_VALUES.warningThresholdInDays);
-
-    const dismissForm = () => {
-        resetEventNameInputValue();
-        resetWarningThresholdInputValue();
-        onDismiss();
-    };
-
+    /** Event name validation error display */
     let textFieldErrorProps: { error?: boolean; helperText?: string } = {};
     if (eventNameIsTooLong) {
         textFieldErrorProps = {
@@ -58,21 +67,45 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         };
     }
 
+    /**
+     * Warning threshold.
+     * Default to disabled. Initialize as enabled if the event being edited has an existing value
+     */
+    const [warningIsEnabled, setWarningIsEnabled] = useState(
+        eventIdToEdit ? eventToEdit.warningThresholdInDays > 0 : false
+    );
+    const [warningThresholdInputValue, setWarningThresholdInputValue] = useState(eventToEdit.warningThresholdInDays);
+    const resetWarningThresholdInputValue = () =>
+        setWarningThresholdInputValue(EVENT_DEFAULT_VALUES.warningThresholdInDays);
+    const warningThresholdValueToSave = warningIsEnabled ? warningThresholdInputValue : 0;
+
+    /** Handlers */
+    const dismissForm = () => {
+        resetEventNameInputValue();
+        resetWarningThresholdInputValue();
+        onDismiss();
+    };
+
     const handleEventNameInputChange: ChangeEventHandler<HTMLInputElement> = (event) => {
         setEventNameInputValue(event.currentTarget.value);
     };
 
     const handleWarningThresholdInputChange: ChangeEventHandler<HTMLInputElement> = (event) => {
         const newValue = Number(event.currentTarget.value);
-        if (newValue >= 0) {
+        if (newValue >= 0 && newValue < MAX_WARNING_THRESHOLD_DAYS) {
             setWarningThresholdInputValue(newValue);
         }
     };
 
+    const handleWarningToggleChange = (newCheckedValue: boolean) => {
+        setWarningIsEnabled(newCheckedValue);
+    };
+
+    /** Save handlers */
     const handleNewEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
         if (eventNameIsValid) {
-            addLoggableEvent(eventNameInputValue, warningThresholdInputValue);
+            addLoggableEvent(eventNameInputValue, warningThresholdValueToSave);
             dismissForm();
         }
     };
@@ -83,7 +116,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
             updateLoggableEvent({
                 ...eventToEdit,
                 name: eventNameInputValue,
-                warningThresholdInDays: warningThresholdInputValue
+                warningThresholdInDays: warningThresholdValueToSave
             });
             dismissForm();
         }
@@ -94,7 +127,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
             <Box component="form" onSubmit={eventIdToEdit ? handleUpdateEventSubmit : handleNewEventSubmit}>
                 <EventCard
                     css={css`
-                        background-color: ${colors.blueGrey[50]};
+                        background-color: ${blueGrey[50]};
                     `}
                 >
                     <CardContent>
@@ -109,17 +142,20 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                             variant="standard"
                             margin="normal"
                         />
-                        <TextField
-                            id="new-event-input"
-                            label="Warning threshold"
-                            helperText="Show warning when last update has been this many days long. Set to 0 to disable warning."
-                            type="number"
-                            fullWidth
-                            variant="standard"
-                            margin="normal"
-                            value={warningThresholdInputValue}
-                            onChange={handleWarningThresholdInputChange}
-                        />
+                        <WarningSwitch checked={warningIsEnabled} onChange={handleWarningToggleChange} />
+                        <Collapse in={warningIsEnabled}>
+                            <TextField
+                                id="warning-threshold-input"
+                                label="Warning threshold"
+                                helperText="Show warning when last update has been this many days long. Between 1 and 730 (2 years)."
+                                type="number"
+                                fullWidth
+                                variant="standard"
+                                margin="normal"
+                                value={warningThresholdInputValue}
+                                onChange={handleWarningThresholdInputChange}
+                            />
+                        </Collapse>
                     </CardContent>
                     <CardActions>
                         <Button disabled={!eventNameIsValid} type="submit" size="small">

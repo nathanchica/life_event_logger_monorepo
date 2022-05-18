@@ -1,14 +1,11 @@
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
-import Collapse from '@mui/material/Collapse';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
-import Typography from '@mui/material/Typography';
 import teal from '@mui/material/colors/teal';
-import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
 
 /** @jsxImportSource @emotion/react */
@@ -16,77 +13,22 @@ import { css } from '@emotion/react';
 
 import { useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
 import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
-import CreateEventCard from './CreateEventCard';
-import { EventCardSkeleton } from './EventCard';
-import LoggableEventCard from './LoggableEventCard';
-import LoggableEventList from './LoggableEventList';
+import CreateEventCard from './EventCards/CreateEventCard';
+import { EventCardSkeleton } from './EventCards/EventCard';
+import LoggableEventCard from './EventCards/LoggableEventCard';
+import Sidebar from './Sidebar';
 
 type Props = {
     offlineMode: boolean;
 };
 
-const sidebarToggleButtonCss = css`
-    :hover {
-        background-color: ${teal[100]};
-    }
-`;
-
 const LoggableEventsView = ({ offlineMode }: Props) => {
     const { loadingStateIsShowing } = useComponentDisplayContext();
     const { loggableEvents } = useLoggableEventsContext();
 
-    const [sidebarIsShowing, setSidebarIsShowing] = useState(true);
-    const showSidebar = () => setSidebarIsShowing(true);
-    const hideSidebar = () => setSidebarIsShowing(false);
-
-    const sidebar = (
-        <Grid item>
-            <Collapse
-                in={sidebarIsShowing}
-                collapsedSize={56}
-                orientation="horizontal"
-                css={css`
-                    height: 100%;
-                `}
-            >
-                <Paper
-                    elevation={3}
-                    css={css`
-                        background-color: ${teal[50]};
-                        padding: 16px;
-                        width: 400px;
-                        height: 100%;
-                        position: relative;
-                    `}
-                >
-                    {sidebarIsShowing && (
-                        <>
-                            <Box
-                                css={css`
-                                    position: absolute;
-                                    right: 16px;
-                                `}
-                            >
-                                <Tooltip title="Hide sidebar">
-                                    <IconButton onClick={hideSidebar} css={sidebarToggleButtonCss}>
-                                        <KeyboardDoubleArrowLeftIcon />
-                                    </IconButton>
-                                </Tooltip>
-                            </Box>
-
-                            <Box>
-                                <Typography variant="h6" gutterBottom>
-                                    Event Log {offlineMode && '(Offline mode)'}
-                                </Typography>
-
-                                <LoggableEventList />
-                            </Box>
-                        </>
-                    )}
-                </Paper>
-            </Collapse>
-        </Grid>
-    );
+    const [sidebarIsCollapsed, setSidebarIsCollapsed] = useState(false);
+    const expandSidebar = () => setSidebarIsCollapsed(false);
+    const collapseSidebar = () => setSidebarIsCollapsed(true);
 
     const mainContent = (
         <Grid
@@ -136,7 +78,7 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
                 position: relative;
             `}
         >
-            {!sidebarIsShowing && (
+            {sidebarIsCollapsed && (
                 <Box
                     css={css`
                         position: absolute;
@@ -147,7 +89,14 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
                     `}
                 >
                     <Tooltip title="Show sidebar">
-                        <IconButton onClick={showSidebar} css={sidebarToggleButtonCss}>
+                        <IconButton
+                            onClick={expandSidebar}
+                            css={css`
+                                :hover {
+                                    background-color: ${teal[200]};
+                                }
+                            `}
+                        >
                             <KeyboardDoubleArrowRight />
                         </IconButton>
                     </Tooltip>
@@ -161,7 +110,13 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
                     width: 100vw;
                 `}
             >
-                {sidebar}
+                <Grid item>
+                    <Sidebar
+                        isCollapsed={sidebarIsCollapsed}
+                        onCollapseSidebarClick={collapseSidebar}
+                        isOfflineMode={offlineMode}
+                    />
+                </Grid>
 
                 {mainContent}
             </Grid>

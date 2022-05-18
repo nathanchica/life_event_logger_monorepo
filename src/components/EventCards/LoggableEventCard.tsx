@@ -23,8 +23,8 @@ import { css } from '@emotion/react';
 
 import EditEventCard from './EditEventCard';
 import EventCard from './EventCard';
-import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
-import { getNumberOfDaysBetweenDates } from '../utils/time';
+import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { getNumberOfDaysBetweenDates } from '../../utils/time';
 
 // const WARNING_COLOR = red[50];
 

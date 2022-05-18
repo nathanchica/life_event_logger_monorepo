@@ -1,4 +1,5 @@
 import invariant from 'tiny-invariant';
+import Box from '@mui/material/Box';
 import Checkbox from '@mui/material/Checkbox';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -29,7 +30,7 @@ const LoggableEventList = () => {
     };
 
     return (
-        <div
+        <Box
             css={css`
                 margin-top: 16px;
             `}
@@ -54,7 +55,7 @@ const LoggableEventList = () => {
                     );
                 })}
             </List>
-        </div>
+        </Box>
     );
 };
 
