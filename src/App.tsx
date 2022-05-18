@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import ComponentDisplayProvider from './providers/ComponentDisplayProvider';
 import LoggableEventsProvider from './providers/LoggableEventsProvider';
@@ -20,11 +22,13 @@ const App = () => {
     }, []);
 
     return (
-        <ComponentDisplayProvider>
-            <LoggableEventsProvider offlineMode={isOfflineMode}>
-                <LoggableEventsView offlineMode={isOfflineMode} />
-            </LoggableEventsProvider>
-        </ComponentDisplayProvider>
+        <LocalizationProvider dateAdapter={AdapterMoment}>
+            <ComponentDisplayProvider>
+                <LoggableEventsProvider offlineMode={isOfflineMode}>
+                    <LoggableEventsView offlineMode={isOfflineMode} />
+                </LoggableEventsProvider>
+            </ComponentDisplayProvider>
+        </LocalizationProvider>
     );
 };
 

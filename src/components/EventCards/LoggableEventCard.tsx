@@ -1,8 +1,11 @@
 import { useState, ReactNode } from 'react';
+import { Moment } from 'moment';
 import invariant from 'tiny-invariant';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import CardContent from '@mui/material/CardContent';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
+import Collapse from '@mui/material/Collapse';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
@@ -12,11 +15,16 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import LoadingButton from '@mui/lab/LoadingButton';
 import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import blue from '@mui/material/colors/blue';
+import grey from '@mui/material/colors/grey';
+import CancelIcon from '@mui/icons-material/Cancel';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
@@ -31,14 +39,22 @@ import { getNumberOfDaysBetweenDates } from '../../utils/time';
 const DaysSinceLastEventDisplay = ({ lastEventRecordDate }: { lastEventRecordDate: Date }) => {
     const daysSinceLastEvent = getNumberOfDaysBetweenDates(lastEventRecordDate, new Date());
 
-    let content = <Typography variant="subtitle1">Last event: {daysSinceLastEvent} days ago</Typography>;
+    let content = <Typography variant="caption">Last event: {daysSinceLastEvent} days ago</Typography>;
     if (daysSinceLastEvent === 0) {
-        content = <Typography variant="subtitle1">Last event: Today</Typography>;
+        content = <Typography variant="caption">Last event: Today</Typography>;
     } else if (daysSinceLastEvent === 1) {
-        content = <Typography variant="subtitle1">Last event: Yesterday</Typography>;
+        content = <Typography variant="caption">Last event: Yesterday</Typography>;
     }
 
-    return content;
+    return (
+        <Box
+            css={css`
+                margin-top: 8px;
+            `}
+        >
+            {content}
+        </Box>
+    );
 };
 
 type EventOptionsDropdownProps = {
@@ -89,6 +105,7 @@ type Props = {
 };
 
 const LoggableEventCard = ({ eventName }: Props) => {
+    const currDate = new Date();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [eventOptionsDropdownIsShowing, setEventOptionsDropdownIsShowing] = useState(false);
@@ -104,6 +121,14 @@ const LoggableEventCard = ({ eventName }: Props) => {
         setFormIsShowing(false);
     };
 
+    const [datepickerInputValue, setDatepickerInputValue] = useState(currDate);
+    const [datepickerIsShowing, setDatepickerIsShowing] = useState(false);
+    const showDatepicker = () => setDatepickerIsShowing(true);
+    const hideDatepicker = () => {
+        setDatepickerIsShowing(false);
+        setDatepickerInputValue(currDate);
+    };
+
     const { loggableEvents, addRecordToEvent, removeLoggableEvent } = useLoggableEventsContext();
     const currentLoggableEvent = loggableEvents.find(({ name }) => name === eventName);
 
@@ -111,9 +136,9 @@ const LoggableEventCard = ({ eventName }: Props) => {
 
     const { id, name, eventRecords } = currentLoggableEvent;
 
-    const handleLogEventClick = async () => {
+    const handleLogEventClick = async (dateToAdd?: Date | null) => {
         setIsSubmitting(true);
-        await addRecordToEvent(id);
+        await addRecordToEvent(id, dateToAdd || currDate);
         setIsSubmitting(false);
     };
 
@@ -127,7 +152,21 @@ const LoggableEventCard = ({ eventName }: Props) => {
         hideEventOptionsDropdown();
     };
 
-    const lastEventRecord = currentLoggableEvent.eventRecords[0];
+    const handleDatepickerInputChange = (newDate: Moment | null) => {
+        setDatepickerInputValue(newDate?.toDate() || currDate);
+    };
+
+    const handleDatepickerAccept = (newDate: Moment | null) => {
+        handleLogEventClick(newDate ? newDate.toDate() : null);
+        hideDatepicker();
+    };
+
+    /**
+     * Get most recent event record that has happened (not future dates)
+     */
+    const lastEventRecord = currentLoggableEvent.eventRecords.find((eventDate) => {
+        return getNumberOfDaysBetweenDates(eventDate, currDate) >= 0;
+    });
 
     return formIsShowing ? (
         <EditEventCard onDismiss={hideForm} eventIdToEdit={id} />
@@ -163,17 +202,64 @@ const LoggableEventCard = ({ eventName }: Props) => {
                         </Box>
                     </Grid>
                 </Grid>
-                <LoadingButton size="large" loading={isSubmitting} onClick={handleLogEventClick} variant="contained">
-                    Log Event
-                </LoadingButton>
+                <Stack direction="row" spacing={2}>
+                    <LoadingButton
+                        size="small"
+                        loading={isSubmitting}
+                        onClick={() => {
+                            handleLogEventClick();
+                        }}
+                        variant="contained"
+                    >
+                        Log Event
+                    </LoadingButton>
+                    <Button size="small" disableRipple onClick={showDatepicker}>
+                        Log custom date
+                    </Button>
+                </Stack>
 
                 {lastEventRecord && <DaysSinceLastEventDisplay lastEventRecordDate={lastEventRecord} />}
 
                 <List>
+                    <Collapse in={datepickerIsShowing} orientation="vertical">
+                        <ListItem disablePadding>
+                            <Stack mt={1} direction="row" alignItems="flex-start">
+                                <MobileDatePicker
+                                    label="Event date"
+                                    inputFormat="MM/D/yyyy"
+                                    value={datepickerInputValue}
+                                    onChange={handleDatepickerInputChange}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            size="small"
+                                            helperText="Pick a date to log an event for"
+                                            {...params}
+                                        />
+                                    )}
+                                    onAccept={handleDatepickerAccept}
+                                    showTodayButton
+                                />
+                                <IconButton onClick={hideDatepicker}>
+                                    <CancelIcon />
+                                </IconButton>
+                            </Stack>
+                        </ListItem>
+                    </Collapse>
                     {eventRecords.map((record: Date) => {
+                        const isFutureDate = getNumberOfDaysBetweenDates(record, currDate) < 0;
                         return (
                             <ListItem disablePadding key={record.toISOString()}>
-                                <ListItemText>{record.toLocaleString('en-US')}</ListItemText>
+                                <ListItemText
+                                    css={
+                                        isFutureDate
+                                            ? css`
+                                                  color: ${grey[400]};
+                                              `
+                                            : null
+                                    }
+                                >
+                                    {record.toLocaleString('en-US')}
+                                </ListItemText>
                             </ListItem>
                         );
                     })}

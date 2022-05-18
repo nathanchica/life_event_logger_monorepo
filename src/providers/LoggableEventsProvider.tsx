@@ -31,7 +31,7 @@ type LoggableEventsContextType = {
     addLoggableEvent: (newEventName: string, warningThresholdInDays: number) => void;
     removeLoggableEvent: (eventIdToRemove: string) => void;
     updateLoggableEvent: (updatedLoggableEvent: LoggableEvent) => void;
-    addRecordToEvent: (eventId: string) => void;
+    addRecordToEvent: (eventId: string, dateToAdd: Date) => void;
 };
 
 export const LoggableEventsContext = createContext<LoggableEventsContextType | null>(null);
@@ -136,9 +136,8 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
      * Adds a log record with the current time and date to a loggable event. Sorts log records by datetime in descending
      * order (newest first).
      */
-    const addRecordToEvent = async (eventId: string) => {
-        const currDate = new Date();
-        const newEventDateTimeISOString = currDate.toISOString();
+    const addRecordToEvent = async (eventId: string, dateToAdd: Date) => {
+        const newEventDateTimeISOString = dateToAdd.toISOString();
 
         setLoggableEvents((prevData) =>
             prevData.map((eventData: LoggableEvent) => {
@@ -148,7 +147,7 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
 
                 return {
                     ...eventData,
-                    eventRecords: [...eventData.eventRecords, currDate].sort((currRecord: Date, nextRecord: Date) => {
+                    eventRecords: [...eventData.eventRecords, dateToAdd].sort((currRecord: Date, nextRecord: Date) => {
                         return nextRecord.getTime() - currRecord.getTime();
                     })
                 };

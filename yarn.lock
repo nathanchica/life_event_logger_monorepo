@@ -1697,7 +1697,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@date-io/moment@npm:^2.11.0":
+"@date-io/moment@npm:^2.11.0, @date-io/moment@npm:^2.14.0":
   version: 2.14.0
   resolution: "@date-io/moment@npm:2.14.0"
   dependencies:
@@ -8824,6 +8824,7 @@ __metadata:
   resolution: "life_event_logger@workspace:."
   dependencies:
     "@apollo/client": ^3.6.4
+    "@date-io/moment": ^2.14.0
     "@emotion/react": ^11.9.0
     "@emotion/styled": ^11.8.1
     "@fontsource/roboto": ^4.5.7
@@ -8853,6 +8854,7 @@ __metadata:
     graphql: ^16.5.0
     husky: ^8.0.1
     lint-staged: ^12.4.1
+    moment: ^2.29.3
     prettier: ^2.6.2
     react: ^18.1.0
     react-dom: ^18.1.0
@@ -9390,6 +9392,13 @@ __metadata:
   bin:
     mkdirp: bin/cmd.js
   checksum: 0c91b721bb12c3f9af4b77ebf73604baf350e64d80df91754dc509491ae93bf238581e59c7188360cec7cb62fc4100959245a42cfe01834efedc5e9d068376c2
+  languageName: node
+  linkType: hard
+
+"moment@npm:^2.29.3":
+  version: 2.29.3
+  resolution: "moment@npm:2.29.3"
+  checksum: 2e780e36d9a1823c08a1b6313cbb08bd01ecbb2a9062095820a34f42c878991ccba53abaa6abb103fd5c01e763724f295162a8c50b7e95b4f1c992ef0772d3f0
   languageName: node
   linkType: hard
 
