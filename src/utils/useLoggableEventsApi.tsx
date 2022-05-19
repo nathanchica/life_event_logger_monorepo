@@ -35,14 +35,6 @@ export const DELETE_LOGGABLE_EVENT_MUTATION = gql`
     }
 `;
 
-export const CREATE_EVENT_RECORD_MUTATION = gql`
-    mutation CreateEventRecord($loggableEventId: ID!, $input: CreateEventRecordInput!) {
-        createEventRecord(loggableEventId: $loggableEventId, input: $input) {
-            id
-        }
-    }
-`;
-
 const useLoggableEventsApi = (offlineMode: boolean) => {
     const onSuccessfulSubmit = () => {
         refetchLoggableEvents();
@@ -88,19 +80,19 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
               });
           };
 
-    const [createEventRecordMutation] = useMutation(CREATE_EVENT_RECORD_MUTATION, mutationOptions);
-    const submitCreateEventRecord = offlineMode
-        ? () => Promise.resolve({})
-        : (eventIdToUpdate: string, newEventDateTimeISOString: string) => {
-              return createEventRecordMutation({
-                  variables: {
-                      loggableEventId: eventIdToUpdate,
-                      input: {
-                          dateTimeISO: newEventDateTimeISOString
-                      }
-                  }
-              });
-          };
+    // const [createEventRecordMutation] = useMutation(CREATE_EVENT_RECORD_MUTATION, mutationOptions);
+    // const submitCreateEventRecord = offlineMode
+    //     ? () => Promise.resolve({})
+    //     : (eventIdToUpdate: string, newEventDateTimeISOString: string) => {
+    //           return createEventRecordMutation({
+    //               variables: {
+    //                   loggableEventId: eventIdToUpdate,
+    //                   input: {
+    //                       dateTimeISO: newEventDateTimeISOString
+    //                   }
+    //               }
+    //           });
+    //       };
 
     return {
         isLoading: loading,
@@ -108,7 +100,7 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
         refetchLoggableEvents,
         submitCreateLoggableEvent,
         submitDeleteLoggableEvent,
-        submitCreateEventRecord
+        // submitCreateEventRecord
     };
 };
 

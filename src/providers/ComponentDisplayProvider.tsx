@@ -2,6 +2,9 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import invariant from 'tiny-invariant';
 
 type ComponentDisplayContextType = {
+    showLoginView: () => void;
+    hideLoginView: () => void;
+    loginViewIsShowing: boolean;
     showLoadingState: () => void;
     hideLoadingState: () => void;
     loadingStateIsShowing: boolean;
@@ -20,7 +23,12 @@ type Props = {
 };
 
 const ComponentDisplayProvider = ({ children }: Props) => {
+    const [loginViewIsShowing, setLoginViewIsShowing] = useState(true);
+    const showLoginView = () => setLoginViewIsShowing(true);
+    const hideLoginView = () => setLoadingStateIsShowing(false);
+
     const [loadingStateIsShowing, setLoadingStateIsShowing] = useState(true);
+    const showLoadingState = () => setLoadingStateIsShowing(true);
     const hideLoadingState = () => {
         setTimeout(() => {
             setLoadingStateIsShowing(false);
@@ -28,7 +36,10 @@ const ComponentDisplayProvider = ({ children }: Props) => {
     };
 
     const contextValue = {
-        showLoadingState: () => setLoadingStateIsShowing(true),
+        showLoginView,
+        hideLoginView,
+        loginViewIsShowing,
+        showLoadingState,
         hideLoadingState,
         loadingStateIsShowing
     };
