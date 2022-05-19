@@ -14,7 +14,7 @@ import { css } from '@emotion/react';
 import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
 
 const LoggableEventList = () => {
-    const { loggableEvents, updateLoggableEvent } = useLoggableEventsContext();
+    const { loggableEvents, updateLoggableEventDetails } = useLoggableEventsContext();
 
     if (loggableEvents.length === 0) {
         return null;
@@ -23,7 +23,7 @@ const LoggableEventList = () => {
     const createCheckboxClickHandler = (eventId: string) => async () => {
         const eventToUpdate = loggableEvents.find(({ id }) => id === eventId);
         invariant(eventToUpdate, 'Must be a valid loggable event');
-        await updateLoggableEvent({
+        await updateLoggableEventDetails({
             ...eventToUpdate,
             active: !eventToUpdate.active
         });

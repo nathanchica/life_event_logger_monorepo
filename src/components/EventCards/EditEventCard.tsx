@@ -40,7 +40,7 @@ const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (new
 
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /** Context */
-    const { loggableEvents, addLoggableEvent, updateLoggableEvent } = useLoggableEventsContext();
+    const { loggableEvents, createLoggableEvent, updateLoggableEventDetails } = useLoggableEventsContext();
     const eventToEdit = loggableEvents.find(({ id }) => id === eventIdToEdit) || EVENT_DEFAULT_VALUES;
 
     /** Event name */
@@ -105,7 +105,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const handleNewEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
         if (eventNameIsValid) {
-            addLoggableEvent(eventNameInputValue, warningThresholdValueToSave);
+            createLoggableEvent(eventNameInputValue, warningThresholdValueToSave, []);
             dismissForm();
         }
     };
@@ -113,7 +113,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const handleUpdateEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
         if (eventNameIsValid) {
-            updateLoggableEvent({
+            updateLoggableEventDetails({
                 ...eventToEdit,
                 name: eventNameInputValue,
                 warningThresholdInDays: warningThresholdValueToSave

@@ -142,16 +142,16 @@ const LoggableEventCard = ({ eventId }: Props) => {
         setDatepickerInputValue(currDate);
     };
 
-    const { loggableEvents, addRecordToEvent, removeLoggableEvent } = useLoggableEventsContext();
+    const { loggableEvents, addTimestampToEvent, removeLoggableEvent } = useLoggableEventsContext();
     const currentLoggableEvent = loggableEvents.find(({ id }) => id === eventId);
 
     invariant(currentLoggableEvent, 'Must be a valid loggable event');
 
-    const { id, name, eventRecords, warningThresholdInDays } = currentLoggableEvent;
+    const { id, name, timestamps, warningThresholdInDays } = currentLoggableEvent;
 
     const handleLogEventClick = async (dateToAdd?: Date | null) => {
         setIsSubmitting(true);
-        await addRecordToEvent(id, dateToAdd || currDate);
+        await addTimestampToEvent(id, dateToAdd || currDate);
         setIsSubmitting(false);
     };
 
@@ -177,7 +177,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
     /**
      * Get most recent event record that has happened (not future dates)
      */
-    const lastEventRecord = currentLoggableEvent.eventRecords.find((eventDate) => {
+    const lastEventRecord = currentLoggableEvent.timestamps.find((eventDate) => {
         return getNumberOfDaysBetweenDates(eventDate, currDate) >= 0;
     });
 
@@ -263,7 +263,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
                             </Stack>
                         </ListItem>
                     </Collapse>
-                    {eventRecords.map((record: Date) => {
+                    {timestamps.map((record: Date) => {
                         const isFutureDate = getNumberOfDaysBetweenDates(record, currDate) < 0;
                         return (
                             <ListItem disablePadding key={record.toISOString()}>

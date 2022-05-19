@@ -18,3 +18,7 @@ export const getNumberOfDaysBetweenDates = (start: Date, end: Date): number => {
 
     return daysDiff;
 };
+
+export const sortDateObjectsByNewestFirst = (currDate: Date, nextDate: Date) => {
+    return nextDate.getTime() - currDate.getTime();
+};

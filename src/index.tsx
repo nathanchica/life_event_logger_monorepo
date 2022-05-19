@@ -16,21 +16,21 @@ const root = ReactDOM.createRoot(document.getElementById('root') as Element);
 
 /**
  * Adding user authorization token to request headers
- * https://www.apollographql.com/docs/react/networking/authentication 
+ * https://www.apollographql.com/docs/react/networking/authentication
  */
 const httpLink = createHttpLink({
     uri: 'http://localhost:4000',
-    credentials: 'include',
+    credentials: 'include'
 });
 const authLink = setContext((_, { headers }) => {
     const token = localStorage.getItem('token');
     return {
         headers: {
             ...headers,
-            authorization: token ? `Bearer ${token}` : "",
+            authorization: token ? `Bearer ${token}` : ''
         }
-    }
-})
+    };
+});
 const client = new ApolloClient({
     link: authLink.concat(httpLink),
     cache: new InMemoryCache()
