@@ -113,7 +113,7 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
         fetchedLoggableEvents,
         fetchedEventLabels,
         submitCreateLoggableEvent,
-        submitCreateTimestampForEvent,
+        submitCreateEventRecord,
         submitUpdateLoggableEventDetails,
         submitDeleteLoggableEvent,
         submitCreateEventLabel,
@@ -202,7 +202,7 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
             })
         );
 
-        await submitCreateTimestampForEvent(eventId, newEventDateTimeISOString);
+        await submitCreateEventRecord(eventId, newEventDateTimeISOString);
     };
 
     const updateLoggableEventDetails = async (updatedLoggableEvent: LoggableEvent) => {

@@ -38,21 +38,22 @@ import EventCard from './EventCard';
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { getNumberOfDaysBetweenDates } from '../../utils/time';
 
+const MAX_RECORDS_TO_DISPLAY = 5;
+
 const DaysSinceLastEventDisplay = ({
-    lastEventRecordDate,
+    daysSinceLastEvent,
     warningThresholdInDays
 }: {
-    lastEventRecordDate: Date;
+    daysSinceLastEvent: number;
     warningThresholdInDays: number;
 }) => {
-    const daysSinceLastEvent = getNumberOfDaysBetweenDates(lastEventRecordDate, new Date());
     const isViolatingThreshold = warningThresholdInDays > 0 && daysSinceLastEvent >= warningThresholdInDays;
 
-    let content = <Typography variant="caption">Last event: {daysSinceLastEvent} days ago</Typography>;
+    let textToDisplay = `Last event: ${daysSinceLastEvent} days ago`;
     if (daysSinceLastEvent === 0) {
-        content = <Typography variant="caption">Last event: Today</Typography>;
+        textToDisplay = `Last event: Today`;
     } else if (daysSinceLastEvent === 1) {
-        content = <Typography variant="caption">Last event: Yesterday</Typography>;
+        textToDisplay = `Last event: Yesterday`;
     }
 
     return (
@@ -63,7 +64,7 @@ const DaysSinceLastEventDisplay = ({
             `}
         >
             <Stack direction="row" spacing={1}>
-                {content}
+                <Typography variant="caption">{textToDisplay}</Typography>
                 {isViolatingThreshold && <WarningAmberIcon color="error" fontSize="small" />}
             </Stack>
         </Box>
@@ -180,6 +181,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
     const lastEventRecord = currentLoggableEvent.timestamps.find((eventDate) => {
         return getNumberOfDaysBetweenDates(eventDate, currDate) >= 0;
     });
+    const daysSinceLastEvent = lastEventRecord ? getNumberOfDaysBetweenDates(lastEventRecord, new Date()) : undefined;
 
     return formIsShowing ? (
         <EditEventCard onDismiss={hideForm} eventIdToEdit={id} />
@@ -219,21 +221,23 @@ const LoggableEventCard = ({ eventId }: Props) => {
                     <LoadingButton
                         size="small"
                         loading={isSubmitting}
+                        disabled={daysSinceLastEvent === 0}
                         onClick={() => {
                             handleLogEventClick();
                         }}
                         variant="contained"
                     >
-                        Log Event
+                        Log Today
                     </LoadingButton>
+
                     <Button size="small" disableRipple onClick={showDatepicker}>
                         Log custom date
                     </Button>
                 </Stack>
 
-                {lastEventRecord && (
+                {typeof daysSinceLastEvent === 'number' && (
                     <DaysSinceLastEventDisplay
-                        lastEventRecordDate={lastEventRecord}
+                        daysSinceLastEvent={daysSinceLastEvent}
                         warningThresholdInDays={warningThresholdInDays}
                     />
                 )}
@@ -247,6 +251,11 @@ const LoggableEventCard = ({ eventId }: Props) => {
                                     inputFormat="MM/D/yyyy"
                                     value={datepickerInputValue}
                                     onChange={handleDatepickerInputChange}
+                                    shouldDisableDate={(date) =>
+                                        timestamps.some(
+                                            (record: Date) => record.toDateString() === date.toDate().toDateString()
+                                        )
+                                    }
                                     renderInput={(params) => (
                                         <TextField
                                             size="small"
@@ -263,10 +272,16 @@ const LoggableEventCard = ({ eventId }: Props) => {
                             </Stack>
                         </ListItem>
                     </Collapse>
-                    {timestamps.map((record: Date) => {
+
+                    {timestamps.length > 0 && (
+                        <Typography variant="subtitle2">
+                            Records {timestamps.length >= MAX_RECORDS_TO_DISPLAY ? ' (Up to 5 most recent)' : ''}
+                        </Typography>
+                    )}
+                    {timestamps.slice(0, MAX_RECORDS_TO_DISPLAY).map((record: Date) => {
                         const isFutureDate = getNumberOfDaysBetweenDates(record, currDate) < 0;
                         return (
-                            <ListItem disablePadding key={record.toISOString()}>
+                            <ListItem disablePadding key={`${id}-${record.toISOString()}`}>
                                 <ListItemText
                                     css={
                                         isFutureDate
@@ -276,7 +291,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
                                             : null
                                     }
                                 >
-                                    {record.toLocaleString('en-US')}
+                                    {record.toLocaleDateString('en-US')}
                                 </ListItemText>
                             </ListItem>
                         );

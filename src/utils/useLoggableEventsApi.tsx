@@ -31,8 +31,8 @@ export const CREATE_LOGGABLE_EVENT_MUTATION = gql`
     }
 `;
 
-export const CREATE_TIMESTAMP_FOR_EVENT_MUTATION = gql`
-    mutation CreateTimestampForEvent($input: CreateTimestampForEventMutation!) {
+export const CREATE_EVENT_RECORD_MUTATION = gql`
+    mutation CreateEventRecord($input: CreateEventRecordMutation!) {
         createTimestampForEvent(input: $input) {
             id
         }
@@ -123,8 +123,8 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
               });
           };
 
-    const [createTimestampForEventMutation] = useMutation(CREATE_TIMESTAMP_FOR_EVENT_MUTATION, mutationOptions);
-    const submitCreateTimestampForEvent = offlineMode
+    const [createTimestampForEventMutation] = useMutation(CREATE_EVENT_RECORD_MUTATION, mutationOptions);
+    const submitCreateEventRecord = offlineMode
         ? () => Promise.resolve({ data: { createTimestampForEvent: { id: null } } })
         : (eventId: string, timestampString: string) => {
               return createTimestampForEventMutation({
@@ -204,7 +204,7 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
         fetchedEventLabels: fetchEventsAndLabelsData?.eventLabels || [],
         refetchEventsAndLabelsData,
         submitCreateLoggableEvent,
-        submitCreateTimestampForEvent,
+        submitCreateEventRecord,
         submitUpdateLoggableEventDetails,
         submitDeleteLoggableEvent,
         submitCreateEventLabel,
