@@ -199,7 +199,7 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
           };
 
     return {
-        isFetchingData: loading,
+        isFetchingData: !offlineMode && loading,
         fetchedLoggableEvents: fetchEventsAndLabelsData?.loggableEvents || [],
         fetchedEventLabels: fetchEventsAndLabelsData?.eventLabels || [],
         refetchEventsAndLabelsData,

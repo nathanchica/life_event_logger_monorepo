@@ -38,18 +38,19 @@ const LoggableEventList = () => {
             <Typography variant="subtitle1">Registered events</Typography>
             <List disablePadding>
                 {loggableEvents.map(({ id, name, active }) => {
+                    const labelId = `Toggle ${name}`;
                     return (
-                        <ListItem disablePadding key={name}>
+                        <ListItem disablePadding key={id}>
                             <ListItemButton dense disableRipple onClick={createCheckboxClickHandler(id)}>
                                 <ListItemIcon>
                                     <Checkbox
                                         edge="start"
                                         checked={active}
                                         tabIndex={-1}
-                                        inputProps={{ 'aria-labelledby': `${name}-isactive-toggle` }}
+                                        inputProps={{ 'aria-labelledby': labelId }}
                                     />
                                 </ListItemIcon>
-                                <ListItemText>{name}</ListItemText>
+                                <ListItemText id={labelId}>{name}</ListItemText>
                             </ListItemButton>
                         </ListItem>
                     );

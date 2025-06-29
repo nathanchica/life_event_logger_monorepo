@@ -13,7 +13,7 @@ export const CARD_WIDTH = '400px';
 export const EventCardSkeleton = () => {
     return (
         <Grow in>
-            <Skeleton variant="rectangular" width={CARD_WIDTH} height={200} />
+            <Skeleton data-testid="event-card-shimmer" variant="rectangular" width={CARD_WIDTH} height={200} />
         </Grow>
     );
 };

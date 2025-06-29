@@ -10,7 +10,7 @@ import LoginView from './components/LoginView';
 const App = () => {
     /**
      * Whether or not the app is in offline mode based on a url parameter. If in offline mode, data will not
-     * be fetched or persisted from the server.
+     * be fetched or persisted.
      */
     const [isOfflineMode, setIsOfflineMode] = useState(false);
 
@@ -32,7 +32,7 @@ const App = () => {
 
     return (
         <LocalizationProvider dateAdapter={AdapterMoment}>
-            <ComponentDisplayProvider>
+            <ComponentDisplayProvider offlineMode={isOfflineMode}>
                 <LoggableEventsProvider offlineMode={isOfflineMode}>
                     {isLoggedIn ? <LoggableEventsView offlineMode={isOfflineMode} /> : <LoginView />}
                 </LoggableEventsProvider>
