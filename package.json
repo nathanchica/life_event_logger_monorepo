@@ -84,7 +84,6 @@
         "eslint-plugin-import": "^2.25.2",
         "eslint-plugin-jest": "^26.2.2",
         "eslint-plugin-n": "^15.0.0",
-        "eslint-plugin-prettier": "^4.0.0",
         "eslint-plugin-promise": "^6.0.0",
         "eslint-plugin-react": "^7.29.4",
         "eslint-plugin-react-hooks": "^4.5.0",

@@ -7,7 +7,6 @@ module.exports = {
     extends: [
         'plugin:react/recommended',
         'plugin:react-hooks/recommended',
-        'plugin:prettier/recommended',
         'eslint:recommended',
         'plugin:@typescript-eslint/recommended',
         'plugin:jest/recommended'
@@ -18,8 +17,7 @@ module.exports = {
         'react/react-in-jsx-scope': 'off',
         'no-unused-vars': 'off',
         'react-hooks/exhaustive-deps': 'off',
-        '@typescript-eslint/no-unused-vars': ['warn'],
-        'prettier/prettier': 'warn'
+        '@typescript-eslint/no-unused-vars': ['warn']
     },
     settings: {
         react: {
