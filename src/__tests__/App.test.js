@@ -1,95 +1,107 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitForElementToBeRemoved } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MockedProvider } from '@apollo/client/testing';
 
 import App from '../App';
-import { MAX_LENGTH } from '../components/CreateEventForm';
+import { MAX_LENGTH } from '../components/EventCards/EditEventCard';
+import { GET_USERS_EVENTS_AND_LABELS_QUERY_MOCK_EMPTY } from '../__mocks__/useLoggableEventsApiMocks';
 
 /**
  * Mock system time to mock new Date() value
  */
 jest.useFakeTimers().setSystemTime(new Date('2020-05-10'));
 
-const getNewEventInput = () => screen.getByRole('textbox', { name: 'Create a new event' });
-const registerLoggableEvent = () => {
-    userEvent.type(getNewEventInput(), 'get haircut');
-    userEvent.click(screen.getByRole('button', { type: 'submit' }));
+const EVENT_NAME = 'get haircut';
+
+const registerLoggableEvent = async () => {
+    userEvent.click(screen.getByLabelText('Add event'));
+    await userEvent.type(screen.getByLabelText('Event name'), EVENT_NAME);
+    userEvent.click(screen.getByRole('button', { name: 'Create' }));
 };
 
-it('renders', () => {
-    render(<App />);
-    expect(screen.getByText(/Current Events/)).toBeInTheDocument();
+const customRender = (content) => {
+    return render(
+        <MockedProvider mocks={GET_USERS_EVENTS_AND_LABELS_QUERY_MOCK_EMPTY} addTypename={false}>
+            {content}
+        </MockedProvider>
+    );
+};
+
+let originalLocation;
+
+beforeEach(() => {
+    // Set the URL to include the 'offline' search param
+    originalLocation = window.location;
+    delete window.location;
+    window.location = { ...originalLocation, search: '?offline' };
 });
 
-it('handles loggable event creation', () => {
-    render(<App />);
+afterEach(() => {
+    window.location = originalLocation;
+});
 
-    expect(getNewEventInput()).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+it('renders in offline mode', () => {
+    customRender(<App />);
+    expect(screen.getByText(/Offline mode/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Add event')).toBeInTheDocument();
+});
+
+it('handles loggable event creation', async () => {
+    customRender(<App />);
+
+    expect(await screen.findByLabelText('Add event')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Registered events' })).not.toBeInTheDocument();
 
-    registerLoggableEvent();
+    await registerLoggableEvent();
 
-    expect(screen.getByRole('checkbox')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Registered events' })).toBeInTheDocument();
 });
 
-it('handles loggable event creation via form submit', () => {
-    render(<App />);
+it('handles disabling loggable event', async () => {
+    customRender(<App />);
+    await registerLoggableEvent();
 
-    expect(getNewEventInput()).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
 
-    userEvent.type(getNewEventInput(), 'get haircut');
-    fireEvent.submit(getNewEventInput());
+    await userEvent.click(screen.getByRole('button', { name: 'get haircut' }));
 
-    expect(screen.getByRole('checkbox')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
-});
-
-it('handles disabling loggable event', () => {
-    render(<App />);
-    registerLoggableEvent();
-
-    const checkbox = screen.getByRole('checkbox');
-    expect(screen.getByRole('checkbox')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
-
-    userEvent.click(checkbox);
-
-    expect(screen.getByRole('checkbox')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
 });
 
-it('handles logging an event', () => {
-    render(<App />);
-    registerLoggableEvent();
+it('handles logging an event', async() => {
+    customRender(<App />);
+    await registerLoggableEvent();
 
+    expect(await screen.findByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
     expect(screen.queryByText(/2020/)).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', { name: 'Log Event' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Log Event' }));
 
     expect(screen.getByText(/2020/)).toBeInTheDocument();
 });
 
-it('validates event name length', () => {
-    render(<App />);
+it('validates event name length', async () => {
+    customRender(<App />);
 
     expect(screen.queryByText(/Event name is too long/)).not.toBeInTheDocument();
 
-    userEvent.type(getNewEventInput(), 'a'.repeat(MAX_LENGTH + 1));
+    userEvent.click(screen.getByLabelText('Add event'));
+    await userEvent.type(screen.getByLabelText('Event name'), 'a'.repeat(MAX_LENGTH + 1));
 
-    expect(screen.getByRole('button', { type: 'submit' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
     expect(screen.getByText(/Event name is too long/)).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
 });
 
-it('handles empty event name input', () => {
-    render(<App />);
-    expect(screen.getByRole('button', { type: 'submit' })).toBeDisabled();
+it('handles empty event name input', async() => {
+    customRender(<App />);
+    
+    await userEvent.click(screen.getByLabelText('Add event'));
 
-    fireEvent.submit(getNewEventInput());
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
+    fireEvent.submit(screen.getByRole('button', { name: 'Create' }));
 
     expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
 });

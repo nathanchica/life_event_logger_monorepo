@@ -19,21 +19,18 @@ export const useComponentDisplayContext = () => {
 };
 
 type Props = {
+    offlineMode: boolean;
     children: ReactNode;
 };
 
-const ComponentDisplayProvider = ({ children }: Props) => {
+const ComponentDisplayProvider = ({ offlineMode, children }: Props) => {
     const [loginViewIsShowing, setLoginViewIsShowing] = useState(true);
     const showLoginView = () => setLoginViewIsShowing(true);
-    const hideLoginView = () => setLoadingStateIsShowing(false);
+    const hideLoginView = () => setLoginViewIsShowing(false);
 
-    const [loadingStateIsShowing, setLoadingStateIsShowing] = useState(true);
+    const [loadingStateIsShowing, setLoadingStateIsShowing] = useState(!offlineMode);
     const showLoadingState = () => setLoadingStateIsShowing(true);
-    const hideLoadingState = () => {
-        setTimeout(() => {
-            setLoadingStateIsShowing(false);
-        }, 1000);
-    };
+    const hideLoadingState = () => setLoadingStateIsShowing(false);
 
     const contextValue = {
         showLoginView,
