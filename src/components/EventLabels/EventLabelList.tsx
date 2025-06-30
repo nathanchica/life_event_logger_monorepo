@@ -19,6 +19,9 @@ type Props = {
     isEditing: boolean;
 };
 
+/**
+ * EventLabelList component for displaying and managing a list of event labels.
+ */
 const EventLabelList = ({ isEditing }: Props) => {
     const { eventLabels, createEventLabel } = useLoggableEventsContext();
     const [newLabelFormIsShowing, setNewLabelFormIsShowing] = useState(false);

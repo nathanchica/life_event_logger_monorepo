@@ -86,6 +86,10 @@ export const DELETE_EVENT_LABEL_MUTATION = gql`
     }
 `;
 
+/**
+ * Custom hook for managing loggable events API interactions.
+ * @param offlineMode Whether the app is in offline mode. If true, it will not make any API calls.
+ */
 const useLoggableEventsApi = (offlineMode: boolean) => {
     const onError = (error: Error) => {
         console.error(error);

@@ -1,6 +1,5 @@
-// Validation utilities for event labels
+// Validation utilities
 
-/** The event label name is empty */
 export enum EventLabelNameValidationError {
     EmptyName = 'EmptyName',
     /** The event label name is too long */

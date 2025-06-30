@@ -24,6 +24,11 @@ type Props = {
     offlineMode: boolean;
 };
 
+/**
+ * LoggableEventsView component for displaying the main view of loggable events.
+ * It shows a list of loggable events and allows users to create new events.
+ * It includes a sidebar for navigation and a loading state while data is being fetched.
+ */
 const LoggableEventsView = ({ offlineMode }: Props) => {
     const { loadingStateIsShowing, showLoadingState, hideLoadingState } = useComponentDisplayContext();
     const { loggableEvents, dataIsLoaded } = useLoggableEventsContext();

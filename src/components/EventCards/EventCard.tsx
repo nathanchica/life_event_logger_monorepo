@@ -12,6 +12,9 @@ import { css } from '@emotion/react';
 
 export const CARD_WIDTH = '400px';
 
+/**
+ * EventCardSkeleton component for displaying a shimmer effect while the event card data is loading.
+ */
 export const EventCardSkeleton = () => {
     return (
         <Grow in>
@@ -24,6 +27,9 @@ type Props = {
     children: ReactNode;
 } & ComponentProps<typeof Card>;
 
+/**
+ * EventCard component for displaying a single event card.
+ */
 const EventCard = (props: Props) => {
     const theme = useTheme();
     return (

@@ -97,6 +97,11 @@ type Props = {
     children: ReactNode;
 };
 
+/**
+ * LoggableEventsProvider is a context provider that manages loggable events and event labels.
+ * It fetches data from the backend and provides methods to create, update, and delete loggable events and event labels.
+ * In offline mode, it only updates local states without making backend calls.
+ */
 const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
     /**
      * States

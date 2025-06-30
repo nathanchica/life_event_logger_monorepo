@@ -39,6 +39,18 @@ const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (new
     );
 };
 
+/**
+ * EditEventCard component for editing an existing event.
+ *
+ * It allows users to change the event name and set a warning threshold.
+ *
+ * It also provides a form to create a new event if no eventIdToEdit is provided.
+ *
+ * It includes validation for the event name and warning threshold.
+ *
+ * It displays a form with input fields for the event name and warning threshold,
+ * and buttons to submit or cancel the changes.
+ */
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /** Context */
     const { loggableEvents, createLoggableEvent, updateLoggableEventDetails } = useLoggableEventsContext();
@@ -49,6 +61,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /** Event name */
     const [eventNameInputValue, setEventNameInputValue] = useState(eventToEdit.name);
     const resetEventNameInputValue = () => setEventNameInputValue(EVENT_DEFAULT_VALUES.name);
+
     const eventNameIsTooLong = eventNameInputValue.length > MAX_LENGTH;
     const eventNameAlreadyExists = Boolean(
         loggableEvents.find(({ id, name }) => id !== eventIdToEdit && name === eventNameInputValue)

@@ -19,6 +19,9 @@ type Props = {
     isShowingEditActions: boolean;
 };
 
+/**
+ * EventLabel component for displaying and editing event labels.
+ */
 const EventLabel = ({ data, isShowingEditActions }: Props) => {
     const { updateEventLabel, deleteEventLabel, eventLabels } = useLoggableEventsContext();
     const { id, name } = data;

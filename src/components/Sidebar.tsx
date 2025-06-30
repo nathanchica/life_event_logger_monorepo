@@ -25,6 +25,11 @@ type Props = {
     isOfflineMode: boolean;
 };
 
+/**
+ * Sidebar component.
+ * It includes a list of event labels, theme toggle button,
+ * and a link to the GitHub repository.
+ */
 const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
     const [isEditingLabels, setIsEditingLabels] = useState(false);
     const { theme, enableDarkTheme, enableLightTheme } = useComponentDisplayContext();

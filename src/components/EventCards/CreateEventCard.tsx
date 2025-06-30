@@ -11,6 +11,10 @@ import { css } from '@emotion/react';
 
 import EditEventCard from './EditEventCard';
 
+/**
+ * CreateEventCard component for displaying a card that allows users to create a new event.
+ * It shows a dashed border with an add icon, and when clicked, it opens a form to create a new event.
+ */
 const CreateEventCard = () => {
     const [formIsShowing, setFormIsShowing] = useState(false);
     const hideForm = () => {

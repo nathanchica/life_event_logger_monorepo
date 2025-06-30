@@ -6,6 +6,10 @@ import ComponentDisplayProvider from './providers/ComponentDisplayProvider';
 import LoggableEventsProvider from './providers/LoggableEventsProvider';
 import EventLoggerPage from './components/EventLoggerPage';
 
+/**
+ * Main application component that initializes the app and provides context providers.
+ * It checks for offline mode based on URL parameters and manages user login state.
+ */
 const App = () => {
     /**
      * Whether or not the app is in offline mode based on a url parameter. If in offline mode, data will not

@@ -18,6 +18,11 @@ type Props = {
     currentDate: Date;
 };
 
+/**
+ * EventRecord component for displaying a single record of an event.
+ * It shows the date of the record and allows users to delete it if hovered.
+ * If the record date is in the future, it will be displayed in a lighter color.
+ */
 const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
     const [isHovered, setIsHovered] = useState(false);
     const { loggableEvents, updateLoggableEventDetails } = useLoggableEventsContext();

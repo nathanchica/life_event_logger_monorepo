@@ -119,6 +119,13 @@ type Props = {
     eventId: string;
 };
 
+/**
+ * LoggableEventCard component for displaying a card that allows users to log events.
+ * It shows the event name, a button to log today's event, a button to log a custom date,
+ * and a list of previously logged events.
+ * It also provides options to edit or delete the event.
+ * If the event has not been logged for a certain number of days, it displays a warning.
+ */
 const LoggableEventCard = ({ eventId }: Props) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 

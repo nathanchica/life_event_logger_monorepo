@@ -31,6 +31,10 @@ type Props = {
     children: ReactNode;
 };
 
+/**
+ * ComponentDisplayProvider is a context provider that manages the display state of various components.
+ * It provides methods to show/hide the login view, loading state, and to switch between light and dark themes.
+ */
 const ComponentDisplayProvider = ({ offlineMode, children }: Props) => {
     const [loginViewIsShowing, setLoginViewIsShowing] = useState(true);
     const showLoginView = () => setLoginViewIsShowing(true);
