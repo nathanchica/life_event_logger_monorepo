@@ -1,7 +1,6 @@
 import AddIcon from '@mui/icons-material/Add';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/Check';
-import LabelIcon from '@mui/icons-material/Label';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -12,36 +11,36 @@ import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import { useState } from 'react';
 
+import EventLabel from './EventLabel';
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
-import { EventLabelColor } from '../../providers/LoggableEventsProvider';
+import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
 
-export const MAX_LABEL_LENGTH = 24;
+type Props = {
+    isEditing: boolean;
+};
 
-const EventLabelList = () => {
+const EventLabelList = ({ isEditing }: Props) => {
     const { eventLabels, createEventLabel } = useLoggableEventsContext();
     const [newLabelFormIsShowing, setNewLabelFormIsShowing] = useState(false);
-    const [newLabelAlias, setNewLabelAlias] = useState('');
+    const [newLabelName, setNewLabelName] = useState('');
 
-    const aliasExists = eventLabels.some(
-        (label) => label.alias.trim().toLowerCase() === newLabelAlias.trim().toLowerCase()
-    );
+    const validationError = validateEventLabelName(newLabelName, eventLabels);
+    const isTooLong = validationError === 'TooLongName';
+    const isDuplicate = validationError === 'DuplicateName';
+    const isEmpty = validationError === 'EmptyName';
 
     const handleCreateLabel = async () => {
-        if (newLabelAlias.trim() && newLabelAlias.length <= MAX_LABEL_LENGTH && !aliasExists) {
-            await createEventLabel(newLabelAlias.trim(), EventLabelColor.Blue);
-            setNewLabelAlias('');
+        if (validationError === null) {
+            await createEventLabel(newLabelName.trim());
+            setNewLabelName('');
             setNewLabelFormIsShowing(false);
         }
     };
 
     const handleCancelCreate = () => {
-        setNewLabelAlias('');
+        setNewLabelName('');
         setNewLabelFormIsShowing(false);
     };
-
-    const isTooLong = newLabelAlias.length > MAX_LABEL_LENGTH;
-    const isDuplicate = !!newLabelAlias && aliasExists;
-    const isEmpty = newLabelAlias.trim() === '';
 
     return (
         <Box>
@@ -61,9 +60,9 @@ const EventLabelList = () => {
                             <Box sx={{ flex: 1, mr: 1 }}>
                                 <TextField
                                     size="small"
-                                    variant="outlined"
-                                    value={newLabelAlias}
-                                    onChange={(e) => setNewLabelAlias(e.target.value)}
+                                    variant="standard"
+                                    value={newLabelName}
+                                    onChange={(e) => setNewLabelName(e.target.value)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleCreateLabel();
                                         if (e.key === 'Escape') handleCancelCreate();
@@ -79,6 +78,12 @@ const EventLabelList = () => {
                                               ? 'Label already exists'
                                               : ''
                                     }
+                                    InputProps={{
+                                        sx: {
+                                            padding: '0px 8px', // reduce vertical and horizontal padding
+                                            height: 36
+                                        }
+                                    }}
                                 />
                             </Box>
                             <IconButton
@@ -102,18 +107,9 @@ const EventLabelList = () => {
                     )}
                 </ListItem>
 
-                {eventLabels.map(({ id, alias }) => {
-                    return (
-                        <ListItem disablePadding key={id}>
-                            <ListItemButton dense disableRipple>
-                                <ListItemIcon>
-                                    <LabelIcon />
-                                </ListItemIcon>
-                                <ListItemText id={id}>{alias}</ListItemText>
-                            </ListItemButton>
-                        </ListItem>
-                    );
-                })}
+                {eventLabels.map((eventLabelData) => (
+                    <EventLabel key={eventLabelData.id} data={eventLabelData} isShowingEditActions={isEditing} />
+                ))}
             </List>
         </Box>
     );

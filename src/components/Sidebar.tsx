@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
@@ -5,16 +6,17 @@ import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import blueGrey from '@mui/material/colors/blueGrey';
-import teal from '@mui/material/colors/teal';
-import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
-import { useComponentDisplayContext, AppTheme } from '../providers/ComponentDisplayProvider';
+import green from '@mui/material/colors/green';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import EditIcon from '@mui/icons-material/Edit';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
+import { useComponentDisplayContext, AppTheme } from '../providers/ComponentDisplayProvider';
 import EventLabelList from './EventLabels/EventLabelList';
 
 type Props = {
@@ -24,7 +26,9 @@ type Props = {
 };
 
 const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
+    const [isEditingLabels, setIsEditingLabels] = useState(false);
     const { theme, enableDarkTheme, enableLightTheme } = useComponentDisplayContext();
+
     const isDark = theme === AppTheme.Dark;
     const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());
 
@@ -41,7 +45,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                 elevation={3}
                 square
                 css={css`
-                    background-color: ${isDark ? blueGrey[900] : teal[50]};
+                    background-color: ${isDark ? blueGrey[900] : green[100]};
                     padding: 16px;
                     width: 400px;
                     height: 100%;
@@ -63,7 +67,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                 onClick={onCollapseSidebarClick}
                                 css={css`
                                     :hover {
-                                        background-color: ${isDark ? blueGrey[600] : teal[100]};
+                                        background-color: ${isDark ? blueGrey[600] : green[200]};
                                     }
                                 `}
                             >
@@ -90,7 +94,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                 overflow-y: auto;
                             `}
                         >
-                            <EventLabelList />
+                            <EventLabelList isEditing={isEditingLabels} />
                         </Box>
                     </Box>
                 </Collapse>
@@ -105,13 +109,17 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                     }}
                 >
                     <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-                        <IconButton onClick={handleToggleTheme} color="inherit">
+                        <IconButton onClick={handleToggleTheme}>
                             {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Manage labels">
+                        <IconButton onClick={() => setIsEditingLabels((prev) => !prev)} sx={{ ml: 1 }}>
+                            <EditIcon />
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="View on GitHub">
                         <IconButton
-                            color="inherit"
                             component="a"
                             href="https://github.com/nathanchica/life_event_logger"
                             target="_blank"

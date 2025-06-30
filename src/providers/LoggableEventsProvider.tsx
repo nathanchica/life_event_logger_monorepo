@@ -2,28 +2,14 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import invariant from 'tiny-invariant';
 import { v4 as uuidv4 } from 'uuid';
 
-import { useComponentDisplayContext } from './ComponentDisplayProvider';
 import useLoggableEventsApi from '../utils/useLoggableEventsApi';
 import { sortDateObjectsByNewestFirst } from '../utils/time';
 
-export enum EventLabelColor {
-    Red = 'red',
-    Orange = 'orange',
-    Yellow = 'yellow',
-    Green = 'green',
-    Blue = 'blue',
-    Purple = 'purple',
-    Pink = 'pink',
-    Grey = 'grey'
-}
-
-interface EventLabel {
+export interface EventLabel {
     /** id of the event label */
     id: string;
-    /** Displayable alias of the event label */
-    alias: string;
-    /** Color of the event label */
-    color: EventLabelColor;
+    /** Displayable name of the event label */
+    name: string;
 }
 
 interface LoggableEvent {
@@ -64,6 +50,10 @@ type LoggableEventsContextType = {
      */
     eventLabels: Array<EventLabel>;
     /**
+     * Whether or not we have finished loading fetched data into states
+     */
+    dataIsLoaded: boolean;
+    /**
      * Create a new loggable event. Inserts the new event into the beginning of the list of loggable events.
      */
     createLoggableEvent: (newEventName: string, warningThresholdInDays: number, labelIds: Array<string>) => void;
@@ -83,7 +73,7 @@ type LoggableEventsContextType = {
     /**
      * Creates an event label.
      */
-    createEventLabel: (alias: string, color: EventLabelColor) => void;
+    createEventLabel: (name: string) => void;
     /**
      * Update details of an event label.
      */
@@ -109,12 +99,11 @@ type Props = {
 
 const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
     /**
-     * Context and states
+     * States
      */
-    const { hideLoadingState, showLoadingState } = useComponentDisplayContext();
-
     const [loggableEvents, setLoggableEvents] = useState<Array<LoggableEvent>>([]);
     const [eventLabels, setEventLabels] = useState<Array<EventLabel>>([]);
+    const [dataIsLoaded, setDataIsLoaded] = useState<boolean>(false);
 
     /**
      * API methods
@@ -163,11 +152,11 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
                     };
                 })
             );
-            hideLoadingState();
+            setDataIsLoaded(true);
         } else if (offlineMode) {
-            hideLoadingState();
+            setDataIsLoaded(true);
         } else if (isFetchingData) {
-            showLoadingState();
+            setDataIsLoaded(false);
         }
     }, [isFetchingData, offlineMode]);
 
@@ -241,15 +230,14 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
         setLoggableEvents((prevData) => prevData.filter(({ id }) => id !== eventIdToRemove));
     };
 
-    const createEventLabel = async (alias: string, color: EventLabelColor) => {
-        const response = await submitCreateEventLabel(alias, color);
+    const createEventLabel = async (name: string) => {
+        const response = await submitCreateEventLabel(name);
 
         setEventLabels((prevData) => {
             return [
                 {
                     id: response?.data?.createEventLabel?.id || uuidv4(),
-                    alias,
-                    color
+                    name
                 },
                 ...prevData
             ];
@@ -270,7 +258,7 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
             })
         );
 
-        await submitUpdateEventLabel(updatedEventLabel.id, updatedEventLabel.alias, updatedEventLabel.color);
+        await submitUpdateEventLabel(updatedEventLabel.id, updatedEventLabel.name);
     };
 
     const deleteEventLabel = async (eventLabelIdToRemove: string) => {
@@ -281,6 +269,7 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
     const contextValue: LoggableEventsContextType = {
         loggableEvents,
         eventLabels,
+        dataIsLoaded,
         createLoggableEvent,
         addTimestampToEvent,
         updateLoggableEventDetails,

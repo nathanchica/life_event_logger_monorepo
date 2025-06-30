@@ -1,62 +1,52 @@
 import { render, screen, waitForElementToBeRemoved } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import EventLabelList, { MAX_LABEL_LENGTH } from '../components/EventLabels/EventLabelList';
+import { MockedProvider } from '@apollo/client/testing';
 
-// Mock context provider for LoggableEventsProvider
-const mockCreateEventLabel = jest.fn();
-const mockEventLabels = [
-    { id: '1', alias: 'Work' },
-    { id: '2', alias: 'Personal' }
-];
-
-jest.mock('../providers/LoggableEventsProvider', () => {
-    const actual = jest.requireActual('../providers/LoggableEventsProvider');
-    return {
-        ...actual,
-        useLoggableEventsContext: () => ({
-            eventLabels: mockEventLabels,
-            createEventLabel: mockCreateEventLabel
-        }),
-        EventLabelColor: { Blue: 'blue' }
-    };
-});
+import EventLabelList from '../components/EventLabels/EventLabelList';
+import LoggableEventsProvider from '../providers/LoggableEventsProvider';
+import { MAX_LABEL_LENGTH } from '../utils/validation';
 
 describe('EventLabelList', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    it('renders existing labels', () => {
-        render(<EventLabelList />);
-        expect(screen.getByText('Work')).toBeInTheDocument();
-        expect(screen.getByText('Personal')).toBeInTheDocument();
-    });
+    function renderWithProvider(ui) {
+        return render(
+            <MockedProvider mocks={[]} addTypename={false}>
+                <LoggableEventsProvider offlineMode={true}>{ui}</LoggableEventsProvider>
+            </MockedProvider>
+        );
+    }
 
     it('shows the label creation form when clicking create new label', async () => {
-        render(<EventLabelList />);
+        renderWithProvider(<EventLabelList isEditing={false} />);
         await userEvent.click(screen.getByText('Create new label'));
         expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
     });
 
-    it('disables check button if alias is empty', async () => {
-        render(<EventLabelList />);
+    it('disables check button if name is empty', async () => {
+        renderWithProvider(<EventLabelList isEditing={false} />);
         await userEvent.click(screen.getByText('Create new label'));
         const checkButton = screen.getByRole('button', { name: /Create label/i });
         expect(checkButton).toBeDisabled();
     });
 
-    it('shows error and disables check button for duplicate alias', async () => {
-        render(<EventLabelList />);
+    it('shows error and disables check button for duplicate name', async () => {
+        renderWithProvider(<EventLabelList isEditing={false} />);
         await userEvent.click(screen.getByText('Create new label'));
         const input = screen.getByPlaceholderText('Label name');
         await userEvent.type(input, 'Work');
-        expect(screen.getByText('Label already exists')).toBeInTheDocument();
+        // Create the label first
         const checkButton = screen.getByRole('button', { name: /Create label/i });
-        expect(checkButton).toBeDisabled();
+        await userEvent.click(checkButton);
+        // Try to create duplicate
+        await userEvent.click(await screen.findByText('Create new label'));
+        const input2 = screen.getByPlaceholderText('Label name');
+        await userEvent.type(input2, 'Work');
+        expect(screen.getByText('Label already exists')).toBeInTheDocument();
+        const checkButton2 = screen.getByRole('button', { name: /Create label/i });
+        expect(checkButton2).toBeDisabled();
     });
 
-    it('shows error and disables create for too long alias', async () => {
-        render(<EventLabelList />);
+    it('shows error and disables create for too long names', async () => {
+        renderWithProvider(<EventLabelList isEditing={false} />);
         await userEvent.click(screen.getByText('Create new label'));
         const input = screen.getByPlaceholderText('Label name');
         await userEvent.type(input, 'a'.repeat(MAX_LABEL_LENGTH + 1));
@@ -65,18 +55,8 @@ describe('EventLabelList', () => {
         expect(checkButton).toBeDisabled();
     });
 
-    it('calls createEventLabel with correct value', async () => {
-        render(<EventLabelList />);
-        await userEvent.click(screen.getByText('Create new label'));
-        const input = screen.getByPlaceholderText('Label name');
-        await userEvent.type(input, 'NewLabel');
-        const checkButton = screen.getByRole('button', { name: /Create label/i });
-        await userEvent.click(checkButton);
-        expect(mockCreateEventLabel).toHaveBeenCalledWith('NewLabel', 'blue');
-    });
-
     it('cancels label creation on cancel button', async () => {
-        render(<EventLabelList />);
+        renderWithProvider(<EventLabelList isEditing={false} />);
         await userEvent.click(screen.getByText('Create new label'));
         expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
         const cancelButton = screen.getByRole('button', { name: /Cancel label creation/ });
@@ -85,7 +65,7 @@ describe('EventLabelList', () => {
     });
 
     it('cancels label creation on escape key', async () => {
-        render(<EventLabelList />);
+        renderWithProvider(<EventLabelList isEditing={false} />);
         await userEvent.click(screen.getByText('Create new label'));
         const input = screen.getByPlaceholderText('Label name');
         await userEvent.type(input, '{Escape}');
@@ -93,20 +73,19 @@ describe('EventLabelList', () => {
     });
 
     it('creates a label when pressing Enter in the input', async () => {
-        render(<EventLabelList />);
+        renderWithProvider(<EventLabelList isEditing={false} />);
         await userEvent.click(screen.getByText('Create new label'));
         const input = screen.getByPlaceholderText('Label name');
         await userEvent.type(input, 'EnterLabel{Enter}');
-        expect(mockCreateEventLabel).toHaveBeenCalledWith('EnterLabel', 'blue');
-        await waitForElementToBeRemoved(() => screen.queryByPlaceholderText('Label name'));
+        expect(await screen.findByText('EnterLabel')).toBeInTheDocument();
+        expect(screen.queryByPlaceholderText('Label name')).not.toBeInTheDocument();
     });
 
     it('does not create a label when pressing Enter on an empty form', async () => {
-        render(<EventLabelList />);
+        renderWithProvider(<EventLabelList isEditing={false} />);
         await userEvent.click(screen.getByText('Create new label'));
         const input = screen.getByPlaceholderText('Label name');
         await userEvent.type(input, '{Enter}');
-        expect(mockCreateEventLabel).not.toHaveBeenCalled();
         // The input should still be present
         expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
     });

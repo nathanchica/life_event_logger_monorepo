@@ -1,18 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
-import teal from '@mui/material/colors/teal';
+import blueGrey from '@mui/material/colors/blueGrey';
+import green from '@mui/material/colors/green';
 import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
 import { useTheme } from '@mui/material/styles';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
-import { useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
+import { AppTheme, useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
 import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
 import CreateEventCard from './EventCards/CreateEventCard';
 import { EventCardSkeleton } from './EventCards/EventCard';
@@ -24,13 +25,15 @@ type Props = {
 };
 
 const LoggableEventsView = ({ offlineMode }: Props) => {
-    const { loadingStateIsShowing } = useComponentDisplayContext();
-    const { loggableEvents } = useLoggableEventsContext();
+    const { loadingStateIsShowing, showLoadingState, hideLoadingState } = useComponentDisplayContext();
+    const { loggableEvents, dataIsLoaded } = useLoggableEventsContext();
     const theme = useTheme();
 
     const [sidebarIsCollapsed, setSidebarIsCollapsed] = useState(false);
     const expandSidebar = () => setSidebarIsCollapsed(false);
     const collapseSidebar = () => setSidebarIsCollapsed(true);
+
+    const isDarkMode = theme.palette.mode === AppTheme.Dark;
 
     const mainContent = (
         <Grid
@@ -73,6 +76,14 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
         </Grid>
     );
 
+    // Show loading state when data is not loaded
+    useEffect(() => {
+        if (!dataIsLoaded) {
+            showLoadingState();
+        }
+        hideLoadingState();
+    }, [dataIsLoaded, showLoadingState, hideLoadingState]);
+
     return (
         <Paper
             square
@@ -96,7 +107,7 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
                             onClick={expandSidebar}
                             css={css`
                                 :hover {
-                                    background-color: ${teal[200]};
+                                    background-color: ${isDarkMode ? blueGrey[600] : green[200]};
                                 }
                             `}
                         >
