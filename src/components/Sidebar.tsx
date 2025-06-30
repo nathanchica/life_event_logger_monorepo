@@ -10,11 +10,12 @@ import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrow
 import { useComponentDisplayContext, AppTheme } from '../providers/ComponentDisplayProvider';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import GitHubIcon from '@mui/icons-material/GitHub';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
-import LoggableEventList from './LoggableEventList';
+import EventLabelList from './EventLabels/EventLabelList';
 
 type Props = {
     isCollapsed: boolean;
@@ -47,6 +48,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                     position: relative;
                     display: flex;
                     flex-direction: column;
+                    overflow: hidden;
                 `}
             >
                 <Collapse in={!isCollapsed} orientation="horizontal">
@@ -61,7 +63,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                 onClick={onCollapseSidebarClick}
                                 css={css`
                                     :hover {
-                                        background-color: ${teal[100]};
+                                        background-color: ${isDark ? blueGrey[600] : teal[100]};
                                     }
                                 `}
                             >
@@ -70,12 +72,26 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                         </Tooltip>
                     </Box>
 
-                    <Box>
-                        <Typography noWrap variant="h6" gutterBottom>
+                    <Box
+                        css={css`
+                            flex: 1 1 auto;
+                            overflow-y: auto;
+                            min-height: 0;
+                        `}
+                    >
+                        <Typography noWrap variant="h5" gutterBottom>
                             Event Log {isOfflineMode && '(Offline mode)'}
                         </Typography>
 
-                        <LoggableEventList />
+                        <Box
+                            sx={{ mt: 4 }}
+                            css={css`
+                                max-height: 80vh;
+                                overflow-y: auto;
+                            `}
+                        >
+                            <EventLabelList />
+                        </Box>
                     </Box>
                 </Collapse>
                 <Box
@@ -91,6 +107,18 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                     <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
                         <IconButton onClick={handleToggleTheme} color="inherit">
                             {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="View on GitHub">
+                        <IconButton
+                            color="inherit"
+                            component="a"
+                            href="https://github.com/nathanchica/life_event_logger"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ ml: 1 }}
+                        >
+                            <GitHubIcon />
                         </IconButton>
                     </Tooltip>
                 </Box>

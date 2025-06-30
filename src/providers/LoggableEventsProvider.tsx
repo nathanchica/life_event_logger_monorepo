@@ -6,13 +6,24 @@ import { useComponentDisplayContext } from './ComponentDisplayProvider';
 import useLoggableEventsApi from '../utils/useLoggableEventsApi';
 import { sortDateObjectsByNewestFirst } from '../utils/time';
 
+export enum EventLabelColor {
+    Red = 'red',
+    Orange = 'orange',
+    Yellow = 'yellow',
+    Green = 'green',
+    Blue = 'blue',
+    Purple = 'purple',
+    Pink = 'pink',
+    Grey = 'grey'
+}
+
 interface EventLabel {
     /** id of the event label */
     id: string;
     /** Displayable alias of the event label */
     alias: string;
-    /** Color alias of the event label. The alias will map to a color that the label will be displayed with. */
-    colorAlias: string;
+    /** Color of the event label */
+    color: EventLabelColor;
 }
 
 interface LoggableEvent {
@@ -72,11 +83,11 @@ type LoggableEventsContextType = {
     /**
      * Creates an event label.
      */
-    createEventLabel: (alias: string, colorAlias: string) => void;
+    createEventLabel: (alias: string, color: EventLabelColor) => void;
     /**
      * Update details of an event label.
      */
-    updateEventLabel: (eventLabelId: string, alias: string, colorAlias: string) => void;
+    updateEventLabel: (updatedEventLabel: EventLabel) => void;
     /**
      * Delete an event label.
      */
@@ -144,11 +155,11 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
                 )
             );
             setEventLabels(
-                fetchedEventLabels.map(({ id: eventLabelId, alias, colorAlias }: any) => {
+                fetchedEventLabels.map(({ id: eventLabelId, alias, color }: any) => {
                     return {
                         id: eventLabelId,
                         alias,
-                        colorAlias
+                        color
                     };
                 })
             );
@@ -230,37 +241,36 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
         setLoggableEvents((prevData) => prevData.filter(({ id }) => id !== eventIdToRemove));
     };
 
-    const createEventLabel = async (alias: string, colorAlias: string) => {
-        const response = await submitCreateEventLabel(alias, colorAlias);
+    const createEventLabel = async (alias: string, color: EventLabelColor) => {
+        const response = await submitCreateEventLabel(alias, color);
 
         setEventLabels((prevData) => {
             return [
-                ...prevData,
                 {
                     id: response?.data?.createEventLabel?.id || uuidv4(),
                     alias,
-                    colorAlias
-                }
+                    color
+                },
+                ...prevData
             ];
         });
     };
 
-    const updateEventLabel = async (eventLabelId: string, alias: string, colorAlias: string) => {
+    const updateEventLabel = async (updatedEventLabel: EventLabel) => {
         setEventLabels((prevData) =>
             prevData.map((eventLabelData) => {
-                if (eventLabelData.id !== eventLabelId) {
+                if (eventLabelData.id !== updatedEventLabel.id) {
                     return eventLabelData;
                 }
 
                 return {
                     ...eventLabelData,
-                    alias,
-                    colorAlias
+                    ...updatedEventLabel
                 };
             })
         );
 
-        await submitUpdateEventLabel(eventLabelId, alias, colorAlias);
+        await submitUpdateEventLabel(updatedEventLabel.id, updatedEventLabel.alias, updatedEventLabel.color);
     };
 
     const deleteEventLabel = async (eventLabelIdToRemove: string) => {

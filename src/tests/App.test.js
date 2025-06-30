@@ -51,23 +51,10 @@ it('handles loggable event creation', async () => {
 
     expect(await screen.findByLabelText('Add event')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Registered events' })).not.toBeInTheDocument();
 
     await registerLoggableEvent();
 
     expect(await screen.findByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'Registered events' })).toBeInTheDocument();
-});
-
-it('handles disabling loggable event', async () => {
-    customRender(<App />);
-    await registerLoggableEvent();
-
-    expect(await screen.findByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'get haircut' }));
-
-    expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
 });
 
 it('handles logging an event', async () => {

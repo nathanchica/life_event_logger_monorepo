@@ -11,13 +11,13 @@ export const GET_USERS_EVENTS_AND_LABELS_QUERY = gql`
                 warningThresholdInDays
                 labels {
                     alias
-                    colorAlias
+                    color
                 }
             }
             eventLabels {
                 id
                 alias
-                colorAlias
+                color
             }
         }
     }
@@ -162,10 +162,10 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
     const [createEventLabelMutation] = useMutation(CREATE_EVENT_LABEL_MUTATION, mutationOptions);
     const submitCreateEventLabel = offlineMode
         ? () => Promise.resolve({ data: { createEventLabel: { id: null } } })
-        : (alias: string, colorAlias: string) => {
+        : (alias: string, color: string) => {
               return createEventLabelMutation({
                   variables: {
-                      input: { alias, colorAlias }
+                      input: { alias, color }
                   }
               });
           };
@@ -173,13 +173,13 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
     const [updateEventLabelMutation] = useMutation(UPDATE_EVENT_LABEL_MUTATION, mutationOptions);
     const submitUpdateEventLabel = offlineMode
         ? () => Promise.resolve({ data: { updateEventLabel: { id: null } } })
-        : (eventLabelId: string, alias: string, colorAlias: string) => {
+        : (eventLabelId: string, alias: string, color: string) => {
               return updateEventLabelMutation({
                   variables: {
                       input: {
                           id: eventLabelId,
                           alias,
-                          colorAlias
+                          color
                       }
                   }
               });
