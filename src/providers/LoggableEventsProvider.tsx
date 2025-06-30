@@ -206,13 +206,6 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
     };
 
     const updateLoggableEventDetails = async (updatedLoggableEvent: LoggableEvent) => {
-        const fieldsToUpdate = {
-            name: updatedLoggableEvent.name,
-            active: updatedLoggableEvent.active,
-            warningThresholdInDays: updatedLoggableEvent.warningThresholdInDays,
-            labelIds: updatedLoggableEvent.labelIds
-        };
-
         setLoggableEvents((prevData) =>
             prevData.map((eventData) => {
                 if (eventData.id !== updatedLoggableEvent.id) {
@@ -221,14 +214,14 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
 
                 return {
                     ...eventData,
-                    ...fieldsToUpdate
+                    ...updatedLoggableEvent
                 };
             })
         );
 
         await submitUpdateLoggableEventDetails({
             eventId: updatedLoggableEvent.id,
-            ...fieldsToUpdate
+            ...updatedLoggableEvent
         });
     };
 

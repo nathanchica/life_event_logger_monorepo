@@ -1,0 +1,84 @@
+import { useState } from 'react';
+import IconButton from '@mui/material/IconButton';
+import ListItem from '@mui/material/ListItem';
+import CancelIcon from '@mui/icons-material/Cancel';
+import ListItemText from '@mui/material/ListItemText';
+import { grey } from '@mui/material/colors';
+
+/** @jsxImportSource @emotion/react */
+import { css } from '@emotion/react';
+
+import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { getNumberOfDaysBetweenDates } from '../../utils/time';
+import invariant from 'tiny-invariant';
+
+type Props = {
+    eventId: string;
+    recordDate: Date;
+    currentDate: Date;
+};
+
+const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const { loggableEvents, updateLoggableEventDetails } = useLoggableEventsContext();
+
+    const isFutureDate = getNumberOfDaysBetweenDates(recordDate, currentDate) < 0;
+
+    const onDeleteRecord = () => {
+        const currentLoggableEvent = loggableEvents.find(({ id }) => id === eventId);
+
+        invariant(currentLoggableEvent, 'Must be a valid loggable event');
+
+        // Remove the record from the event's timestamps
+        const updatedTimestamps = currentLoggableEvent.timestamps.filter(
+            (record: Date) => record.toDateString() !== recordDate.toDateString()
+        );
+
+        // Update the event with the new timestamps
+        updateLoggableEventDetails({
+            ...currentLoggableEvent,
+            timestamps: updatedTimestamps
+        });
+    };
+
+    return (
+        <ListItem
+            key={`${eventId}-${recordDate.toISOString()}`}
+            disablePadding
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <ListItemText
+                css={[
+                    isFutureDate
+                        ? css`
+                              color: ${grey[400]};
+                          `
+                        : null,
+                    css`
+                        display: flex;
+                        align-items: center;
+                    `
+                ]}
+            >
+                {recordDate.toLocaleDateString('en-US')}
+                {isHovered && (
+                    <IconButton
+                        edge="end"
+                        aria-label="Dismiss record"
+                        size="small"
+                        sx={{
+                            marginLeft: 1,
+                            padding: '0px'
+                        }}
+                        onClick={onDeleteRecord}
+                    >
+                        <CancelIcon fontSize="small" />
+                    </IconButton>
+                )}
+            </ListItemText>
+        </ListItem>
+    );
+};
+
+export default EventRecord;

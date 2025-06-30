@@ -35,6 +35,7 @@ import { css } from '@emotion/react';
 
 import EditEventCard from './EditEventCard';
 import EventCard from './EventCard';
+import EventRecord from './EventRecord';
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { getNumberOfDaysBetweenDates } from '../../utils/time';
 
@@ -285,24 +286,14 @@ const LoggableEventCard = ({ eventId }: Props) => {
                             Records {timestamps.length >= MAX_RECORDS_TO_DISPLAY ? ' (Up to 5 most recent)' : ''}
                         </Typography>
                     )}
-                    {timestamps.slice(0, MAX_RECORDS_TO_DISPLAY).map((record: Date) => {
-                        const isFutureDate = getNumberOfDaysBetweenDates(record, currDate) < 0;
-                        return (
-                            <ListItem disablePadding key={`${id}-${record.toISOString()}`}>
-                                <ListItemText
-                                    css={
-                                        isFutureDate
-                                            ? css`
-                                                  color: ${grey[400]};
-                                              `
-                                            : null
-                                    }
-                                >
-                                    {record.toLocaleDateString('en-US')}
-                                </ListItemText>
-                            </ListItem>
-                        );
-                    })}
+                    {timestamps.slice(0, MAX_RECORDS_TO_DISPLAY).map((record: Date) => (
+                        <EventRecord
+                            key={`${id}-${record.toISOString()}`}
+                            eventId={id}
+                            recordDate={record}
+                            currentDate={currDate}
+                        />
+                    ))}
                 </List>
             </CardContent>
         </EventCard>
