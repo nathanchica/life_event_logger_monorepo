@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import invariant from 'tiny-invariant';
 
+export enum AppTheme {
+    Light = 'light',
+    Dark = 'dark'
+}
+
 type ComponentDisplayContextType = {
     showLoginView: () => void;
     hideLoginView: () => void;
@@ -8,6 +13,9 @@ type ComponentDisplayContextType = {
     showLoadingState: () => void;
     hideLoadingState: () => void;
     loadingStateIsShowing: boolean;
+    theme: AppTheme;
+    enableLightTheme: () => void;
+    enableDarkTheme: () => void;
 };
 
 export const ComponentDisplayContext = createContext<ComponentDisplayContextType | null>(null);
@@ -32,13 +40,20 @@ const ComponentDisplayProvider = ({ offlineMode, children }: Props) => {
     const showLoadingState = () => setLoadingStateIsShowing(true);
     const hideLoadingState = () => setLoadingStateIsShowing(false);
 
+    const [theme, setTheme] = useState<AppTheme>(AppTheme.Light);
+    const enableLightTheme = () => setTheme(AppTheme.Light);
+    const enableDarkTheme = () => setTheme(AppTheme.Dark);
+
     const contextValue = {
         showLoginView,
         hideLoginView,
         loginViewIsShowing,
         showLoadingState,
         hideLoadingState,
-        loadingStateIsShowing
+        loadingStateIsShowing,
+        theme,
+        enableLightTheme,
+        enableDarkTheme
     };
 
     return <ComponentDisplayContext.Provider value={contextValue}>{children}</ComponentDisplayContext.Provider>;

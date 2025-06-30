@@ -119,7 +119,6 @@ type Props = {
 };
 
 const LoggableEventCard = ({ eventId }: Props) => {
-    const currDate = new Date();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [eventOptionsDropdownIsShowing, setEventOptionsDropdownIsShowing] = useState(false);
@@ -135,12 +134,12 @@ const LoggableEventCard = ({ eventId }: Props) => {
         setFormIsShowing(false);
     };
 
-    const [datepickerInputValue, setDatepickerInputValue] = useState(currDate);
+    const [datepickerInputValue, setDatepickerInputValue] = useState<Date | undefined>(undefined);
     const [datepickerIsShowing, setDatepickerIsShowing] = useState(false);
     const showDatepicker = () => setDatepickerIsShowing(true);
     const hideDatepicker = () => {
         setDatepickerIsShowing(false);
-        setDatepickerInputValue(currDate);
+        setDatepickerInputValue(undefined);
     };
 
     const { loggableEvents, addTimestampToEvent, removeLoggableEvent } = useLoggableEventsContext();
@@ -149,10 +148,17 @@ const LoggableEventCard = ({ eventId }: Props) => {
     invariant(currentLoggableEvent, 'Must be a valid loggable event');
 
     const { id, name, timestamps, warningThresholdInDays } = currentLoggableEvent;
+    const currDate = new Date();
 
     const handleLogEventClick = async (dateToAdd?: Date | null) => {
+        const date = dateToAdd || currDate;
+
+        // Prevent duplicate logging for the same day
+        const alreadyLogged = timestamps.some((record: Date) => record.toDateString() === date.toDateString());
+        if (alreadyLogged) return;
+
         setIsSubmitting(true);
-        await addTimestampToEvent(id, dateToAdd || currDate);
+        await addTimestampToEvent(id, date);
         setIsSubmitting(false);
     };
 
@@ -181,7 +187,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
     const lastEventRecord = currentLoggableEvent.timestamps.find((eventDate) => {
         return getNumberOfDaysBetweenDates(eventDate, currDate) >= 0;
     });
-    const daysSinceLastEvent = lastEventRecord ? getNumberOfDaysBetweenDates(lastEventRecord, new Date()) : undefined;
+    const daysSinceLastEvent = lastEventRecord ? getNumberOfDaysBetweenDates(lastEventRecord, currDate) : undefined;
 
     return formIsShowing ? (
         <EditEventCard onDismiss={hideForm} eventIdToEdit={id} />
@@ -264,6 +270,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
                                         />
                                     )}
                                     onAccept={handleDatepickerAccept}
+                                    onClose={hideDatepicker}
                                     showTodayButton
                                 />
                                 <IconButton onClick={hideDatepicker}>

@@ -41,6 +41,7 @@ export const GET_USERS_EVENTS_AND_LABELS_QUERY_MOCK_ONE_LOGGABLE_EVENT = [
                             name: 'Test Event 1',
                             active: true,
                             warningThresholdInDays: 7,
+                            timestamps: [],
                             labels: []
                         }
                     ],

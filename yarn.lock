@@ -1872,10 +1872,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fontsource/roboto@npm:^4.5.7":
-  version: 4.5.7
-  resolution: "@fontsource/roboto@npm:4.5.7"
-  checksum: 3f9afc7f4c77e517e804e65823db5aea2513e8352fbc26cf7ea8b8b11e7dc6eff48d7a2855ed71e3a6b727446b2bf137629e2389fe3d676be45d95dd9992b558
+"@fontsource/roboto@npm:^5.2.6":
+  version: 5.2.6
+  resolution: "@fontsource/roboto@npm:5.2.6"
+  checksum: d010804e5468c73dc37bfa20a0809fa1283dfd218ce323d6608b986cdcc1b6f329ed09e4d35711c04701b3e3a08f95eff97d98642e82a51f771c8ccb13d39660
   languageName: node
   linkType: hard
 
@@ -8892,7 +8892,7 @@ __metadata:
     "@date-io/moment": ^2.14.0
     "@emotion/react": ^11.9.0
     "@emotion/styled": ^11.8.1
-    "@fontsource/roboto": ^4.5.7
+    "@fontsource/roboto": ^5.2.6
     "@mui/icons-material": ^5.6.2
     "@mui/lab": ^5.0.0-alpha.81
     "@mui/material": ^5.7.0

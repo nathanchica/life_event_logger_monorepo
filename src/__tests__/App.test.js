@@ -1,10 +1,10 @@
-import { render, screen, fireEvent, waitForElementToBeRemoved } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MockedProvider } from '@apollo/client/testing';
 
 import App from '../App';
 import { MAX_LENGTH } from '../components/EventCards/EditEventCard';
-import { GET_USERS_EVENTS_AND_LABELS_QUERY_MOCK_EMPTY } from '../__mocks__/useLoggableEventsApiMocks';
+import { GET_USERS_EVENTS_AND_LABELS_QUERY_MOCK_EMPTY } from '../mocks/useLoggableEventsApiMocks';
 
 /**
  * Mock system time to mock new Date() value
@@ -70,14 +70,14 @@ it('handles disabling loggable event', async () => {
     expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
 });
 
-it('handles logging an event', async() => {
+it('handles logging an event', async () => {
     customRender(<App />);
     await registerLoggableEvent();
 
     expect(await screen.findByRole('heading', { name: 'get haircut' })).toBeInTheDocument();
     expect(screen.queryByText(/2020/)).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Log Event' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Log Today' }));
 
     expect(screen.getByText(/2020/)).toBeInTheDocument();
 });
@@ -95,9 +95,9 @@ it('validates event name length', async () => {
     expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
 });
 
-it('handles empty event name input', async() => {
+it('handles empty event name input', async () => {
     customRender(<App />);
-    
+
     await userEvent.click(screen.getByLabelText('Add event'));
 
     expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();

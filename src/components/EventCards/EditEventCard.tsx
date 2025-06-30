@@ -11,6 +11,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import blueGrey from '@mui/material/colors/blueGrey';
+import { useTheme } from '@mui/material/styles';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
@@ -41,6 +42,8 @@ const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (new
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /** Context */
     const { loggableEvents, createLoggableEvent, updateLoggableEventDetails } = useLoggableEventsContext();
+    const theme = useTheme();
+
     const eventToEdit = loggableEvents.find(({ id }) => id === eventIdToEdit) || EVENT_DEFAULT_VALUES;
 
     /** Event name */
@@ -127,11 +130,12 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
             <Box component="form" onSubmit={eventIdToEdit ? handleUpdateEventSubmit : handleNewEventSubmit}>
                 <EventCard
                     css={css`
-                        background-color: ${blueGrey[50]};
+                        background-color: ${theme.palette.mode === 'dark' ? blueGrey[900] : blueGrey[50]};
                     `}
                 >
                     <CardContent>
                         <TextField
+                            autoComplete="off"
                             autoFocus
                             id="new-event-input"
                             label="Event name"

@@ -4,8 +4,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import ComponentDisplayProvider from './providers/ComponentDisplayProvider';
 import LoggableEventsProvider from './providers/LoggableEventsProvider';
-import LoggableEventsView from './components/LoggableEventsView';
-import LoginView from './components/LoginView';
+import EventLoggerPage from './components/EventLoggerPage';
 
 const App = () => {
     /**
@@ -34,7 +33,7 @@ const App = () => {
         <LocalizationProvider dateAdapter={AdapterMoment}>
             <ComponentDisplayProvider offlineMode={isOfflineMode}>
                 <LoggableEventsProvider offlineMode={isOfflineMode}>
-                    {isLoggedIn ? <LoggableEventsView offlineMode={isOfflineMode} /> : <LoginView />}
+                    <EventLoggerPage isOfflineMode={isOfflineMode} isLoggedIn={isLoggedIn} />
                 </LoggableEventsProvider>
             </ComponentDisplayProvider>
         </LocalizationProvider>

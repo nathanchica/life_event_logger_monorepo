@@ -7,6 +7,7 @@ import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
 import teal from '@mui/material/colors/teal';
 import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
+import { useTheme } from '@mui/material/styles';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
@@ -25,6 +26,7 @@ type Props = {
 const LoggableEventsView = ({ offlineMode }: Props) => {
     const { loadingStateIsShowing } = useComponentDisplayContext();
     const { loggableEvents } = useLoggableEventsContext();
+    const theme = useTheme();
 
     const [sidebarIsCollapsed, setSidebarIsCollapsed] = useState(false);
     const expandSidebar = () => setSidebarIsCollapsed(false);
@@ -73,8 +75,9 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
 
     return (
         <Paper
+            square
             css={css`
-                background-color: #fafafa;
+                background-color: ${theme.palette.background.default};
                 position: relative;
             `}
         >

@@ -4,8 +4,12 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import blueGrey from '@mui/material/colors/blueGrey';
 import teal from '@mui/material/colors/teal';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
+import { useComponentDisplayContext, AppTheme } from '../providers/ComponentDisplayProvider';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
@@ -19,6 +23,10 @@ type Props = {
 };
 
 const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
+    const { theme, enableDarkTheme, enableLightTheme } = useComponentDisplayContext();
+    const isDark = theme === AppTheme.Dark;
+    const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());
+
     return (
         <Collapse
             in={!isCollapsed}
@@ -30,12 +38,15 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
         >
             <Paper
                 elevation={3}
+                square
                 css={css`
-                    background-color: ${isCollapsed ? teal[100] : teal[50]};
+                    background-color: ${isDark ? blueGrey[900] : teal[50]};
                     padding: 16px;
                     width: 400px;
                     height: 100%;
                     position: relative;
+                    display: flex;
+                    flex-direction: column;
                 `}
             >
                 <Collapse in={!isCollapsed} orientation="horizontal">
@@ -67,6 +78,22 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                         <LoggableEventList />
                     </Box>
                 </Collapse>
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        left: 8,
+                        bottom: 16,
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                        width: '100%'
+                    }}
+                >
+                    <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+                        <IconButton onClick={handleToggleTheme} color="inherit">
+                            {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
+                        </IconButton>
+                    </Tooltip>
+                </Box>
             </Paper>
         </Collapse>
     );
