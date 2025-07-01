@@ -17,7 +17,8 @@ import { useTheme } from '@mui/material/styles';
 import { css } from '@emotion/react';
 
 import EventCard from './EventCard';
-import { useLoggableEventsContext, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
+import { useLoggableEventsContext, EventLabel, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
+import EventLabelAutocomplete from './EventLabelAutocomplete';
 
 export const MAX_LENGTH = 25;
 export const MAX_WARNING_THRESHOLD_DAYS = 365 * 2; // 2 years
@@ -53,7 +54,8 @@ const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (new
  */
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /** Context */
-    const { loggableEvents, createLoggableEvent, updateLoggableEventDetails } = useLoggableEventsContext();
+    const { loggableEvents, createLoggableEvent, updateLoggableEventDetails, eventLabels } = useLoggableEventsContext();
+
     const theme = useTheme();
 
     const eventToEdit = loggableEvents.find(({ id }) => id === eventIdToEdit) || EVENT_DEFAULT_VALUES;
@@ -95,6 +97,15 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         setWarningThresholdInputValue(EVENT_DEFAULT_VALUES.warningThresholdInDays);
     const warningThresholdValueToSave = warningIsEnabled ? warningThresholdInputValue : 0;
 
+    /**
+     * Labels
+     */
+    const [showLabelInput, setShowLabelInput] = useState(eventToEdit.labelIds && eventToEdit.labelIds.length > 0);
+    const [selectedLabels, setSelectedLabels] = useState<EventLabel[]>(() => {
+        // If editing, pre-populate with existing labels
+        return eventToEdit.labelIds ? eventLabels.filter(({ id }) => eventToEdit.labelIds.includes(id)) : [];
+    });
+
     /** Handlers */
     const dismissForm = () => {
         resetEventNameInputValue();
@@ -121,7 +132,11 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const handleNewEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
         if (eventNameIsValid) {
-            createLoggableEvent(eventNameInputValue, warningThresholdValueToSave, []);
+            createLoggableEvent(
+                eventNameInputValue,
+                warningThresholdValueToSave,
+                selectedLabels.map(({ id }) => id)
+            );
             dismissForm();
         }
     };
@@ -132,7 +147,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
             updateLoggableEventDetails({
                 ...eventToEdit,
                 name: eventNameInputValue,
-                warningThresholdInDays: warningThresholdValueToSave
+                warningThresholdInDays: warningThresholdValueToSave,
+                labelIds: selectedLabels.map(({ id }) => id)
             });
             dismissForm();
         }
@@ -147,6 +163,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                     `}
                 >
                     <CardContent>
+                        {/* Event name */}
                         <TextField
                             autoComplete="off"
                             autoFocus
@@ -159,6 +176,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                             variant="standard"
                             margin="normal"
                         />
+
+                        {/* Warning threshold */}
                         <WarningSwitch checked={warningIsEnabled} onChange={handleWarningToggleChange} />
                         <Collapse in={warningIsEnabled}>
                             <TextField
@@ -173,7 +192,25 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                                 onChange={handleWarningThresholdInputChange}
                             />
                         </Collapse>
+
+                        {/* Labels */}
+                        {!showLabelInput ? (
+                            <Button
+                                variant="text"
+                                size="small"
+                                sx={{ mt: 2, mb: 1 }}
+                                onClick={() => setShowLabelInput(true)}
+                            >
+                                Add labels
+                            </Button>
+                        ) : (
+                            <EventLabelAutocomplete
+                                selectedLabels={selectedLabels}
+                                setSelectedLabels={setSelectedLabels}
+                            />
+                        )}
                     </CardContent>
+
                     <CardActions>
                         <Button disabled={!eventNameIsValid} type="submit" size="small">
                             {eventIdToEdit ? 'Update' : 'Create'}

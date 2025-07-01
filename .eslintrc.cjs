@@ -11,6 +11,14 @@ module.exports = {
         'plugin:@typescript-eslint/recommended',
         'plugin:jest/recommended'
     ],
+    overrides: [
+        {
+            files: ["**/*.test.js", "**/*.test.jsx", "**/*.test.ts", "**/*.test.tsx"],
+            rules: {
+                "react/prop-types": "off"
+            }
+        }
+    ],
     parser: '@typescript-eslint/parser',
     plugins: ['react', '@typescript-eslint'],
     rules: {

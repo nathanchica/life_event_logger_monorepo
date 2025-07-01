@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import invariant from 'tiny-invariant';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 export enum AppTheme {
     Light = 'light',
@@ -36,6 +37,12 @@ type Props = {
  * It provides methods to show/hide the login view, loading state, and to switch between light and dark themes.
  */
 const ComponentDisplayProvider = ({ offlineMode, children }: Props) => {
+    // Detect OS preference for dark mode
+    const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+    const [theme, setTheme] = useState<AppTheme>(prefersDarkMode ? AppTheme.Dark : AppTheme.Light);
+    const enableLightTheme = () => setTheme(AppTheme.Light);
+    const enableDarkTheme = () => setTheme(AppTheme.Dark);
+
     const [loginViewIsShowing, setLoginViewIsShowing] = useState(true);
     const showLoginView = () => setLoginViewIsShowing(true);
     const hideLoginView = () => setLoginViewIsShowing(false);
@@ -43,10 +50,6 @@ const ComponentDisplayProvider = ({ offlineMode, children }: Props) => {
     const [loadingStateIsShowing, setLoadingStateIsShowing] = useState(!offlineMode);
     const showLoadingState = () => setLoadingStateIsShowing(true);
     const hideLoadingState = () => setLoadingStateIsShowing(false);
-
-    const [theme, setTheme] = useState<AppTheme>(AppTheme.Light);
-    const enableLightTheme = () => setTheme(AppTheme.Light);
-    const enableDarkTheme = () => setTheme(AppTheme.Dark);
 
     const contextValue = {
         showLoginView,

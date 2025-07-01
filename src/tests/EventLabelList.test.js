@@ -78,7 +78,7 @@ describe('EventLabelList', () => {
         const input = screen.getByPlaceholderText('Label name');
         await userEvent.type(input, 'EnterLabel{Enter}');
         expect(await screen.findByText('EnterLabel')).toBeInTheDocument();
-        expect(screen.queryByPlaceholderText('Label name')).not.toBeInTheDocument();
+        await waitForElementToBeRemoved(() => screen.queryByPlaceholderText('Label name'));
     });
 
     it('does not create a label when pressing Enter on an empty form', async () => {

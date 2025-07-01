@@ -113,7 +113,7 @@ const EventLabel = ({ data, isShowingEditActions }: Props) => {
                             validationError === 'TooLongName'
                                 ? `Max ${MAX_LABEL_LENGTH} characters`
                                 : validationError === 'EmptyName'
-                                  ? 'Label cannot be empty'
+                                  ? 'Cannot be empty'
                                   : validationError === 'DuplicateName'
                                     ? 'Label already exists'
                                     : ''

@@ -73,7 +73,7 @@ type LoggableEventsContextType = {
     /**
      * Creates an event label.
      */
-    createEventLabel: (name: string) => void;
+    createEventLabel: (name: string) => EventLabel;
     /**
      * Update details of an event label.
      */
@@ -235,18 +235,17 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
         setLoggableEvents((prevData) => prevData.filter(({ id }) => id !== eventIdToRemove));
     };
 
-    const createEventLabel = async (name: string) => {
-        const response = await submitCreateEventLabel(name);
+    const createEventLabel = (name: string): EventLabel => {
+        const newEventLabel: EventLabel = {
+            id: `temp-${uuidv4()}`, // Temporary ID for optimistic UI update
+            name
+        };
 
         setEventLabels((prevData) => {
-            return [
-                {
-                    id: response?.data?.createEventLabel?.id || uuidv4(),
-                    name
-                },
-                ...prevData
-            ];
+            return [newEventLabel, ...prevData];
         });
+
+        return newEventLabel;
     };
 
     const updateEventLabel = async (updatedEventLabel: EventLabel) => {
@@ -270,6 +269,19 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
         await submitDeleteEventLabel(eventLabelIdToRemove);
         setEventLabels((prevData) => prevData.filter(({ id }) => id !== eventLabelIdToRemove));
     };
+
+    /**
+     * Submit all temporary event labels to the backend when the component mounts or when eventLabels changes.
+     * This is to ensure that any labels created in the UI are persisted in the backend.
+     */
+    useEffect(() => {
+        const temporaryEventLabels = eventLabels.filter((label) => label.id.startsWith('temp-'));
+        if (temporaryEventLabels.length > 0) {
+            temporaryEventLabels.forEach((label) => {
+                submitCreateEventLabel(label.name);
+            });
+        }
+    }, [eventLabels]);
 
     const contextValue: LoggableEventsContextType = {
         loggableEvents,
