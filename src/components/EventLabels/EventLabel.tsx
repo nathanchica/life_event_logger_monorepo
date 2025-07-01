@@ -12,6 +12,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/Check';
 
 import { useLoggableEventsContext, EventLabel as EventLabelType } from '../../providers/LoggableEventsProvider';
+import { useComponentDisplayContext } from '../../providers/ComponentDisplayProvider';
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
 
 type Props = {
@@ -25,6 +26,10 @@ type Props = {
 const EventLabel = ({ data, isShowingEditActions }: Props) => {
     const { updateEventLabel, deleteEventLabel, eventLabels } = useLoggableEventsContext();
     const { id, name } = data;
+
+    // Add context for active label
+    const { activeEventLabelId, setActiveEventLabelId } = useComponentDisplayContext();
+    const isActive = activeEventLabelId === id;
 
     const [isEditingName, setIsEditingName] = useState(false);
     const [editValue, setEditValue] = useState(name);
@@ -59,6 +64,10 @@ const EventLabel = ({ data, isShowingEditActions }: Props) => {
         }
     };
 
+    const handleLabelClick = () => {
+        setActiveEventLabelId(isActive ? null : id);
+    };
+
     return (
         <ListItem
             disablePadding
@@ -83,7 +92,7 @@ const EventLabel = ({ data, isShowingEditActions }: Props) => {
                 ) : null
             }
         >
-            <ListItemButton dense disableRipple>
+            <ListItemButton dense disableRipple onClick={handleLabelClick} selected={isActive}>
                 <ListItemIcon>
                     {isShowingEditActions ? (
                         isEditingName ? (

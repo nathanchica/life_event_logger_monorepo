@@ -30,7 +30,8 @@ type Props = {
  * It includes a sidebar for navigation and a loading state while data is being fetched.
  */
 const LoggableEventsView = ({ offlineMode }: Props) => {
-    const { loadingStateIsShowing, showLoadingState, hideLoadingState } = useComponentDisplayContext();
+    const { loadingStateIsShowing, showLoadingState, hideLoadingState, activeEventLabelId } =
+        useComponentDisplayContext();
     const { loggableEvents, dataIsLoaded } = useLoggableEventsContext();
     const theme = useTheme();
 
@@ -39,6 +40,10 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
     const collapseSidebar = () => setSidebarIsCollapsed(true);
 
     const isDarkMode = theme.palette.mode === AppTheme.Dark;
+
+    const filteredEvents = activeEventLabelId
+        ? loggableEvents.filter(({ active, labelIds }) => active && labelIds && labelIds.includes(activeEventLabelId))
+        : loggableEvents.filter(({ active }) => active);
 
     const mainContent = (
         <Grid
@@ -66,15 +71,13 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
                         <Grid item>
                             <CreateEventCard />
                         </Grid>
-                        {loggableEvents
-                            .filter(({ active }) => active)
-                            .map(({ id, name }) => {
-                                return (
-                                    <Grid item key={`${name}-card`}>
-                                        <LoggableEventCard eventId={id} />
-                                    </Grid>
-                                );
-                            })}
+                        {filteredEvents.map(({ id, name }) => {
+                            return (
+                                <Grid item key={`${name}-card`}>
+                                    <LoggableEventCard eventId={id} />
+                                </Grid>
+                            );
+                        })}
                     </>
                 )}
             </Grid>

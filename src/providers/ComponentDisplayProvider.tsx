@@ -17,6 +17,8 @@ type ComponentDisplayContextType = {
     theme: AppTheme;
     enableLightTheme: () => void;
     enableDarkTheme: () => void;
+    activeEventLabelId: string | null;
+    setActiveEventLabelId: (id: string | null) => void;
 };
 
 export const ComponentDisplayContext = createContext<ComponentDisplayContextType | null>(null);
@@ -51,6 +53,8 @@ const ComponentDisplayProvider = ({ offlineMode, children }: Props) => {
     const showLoadingState = () => setLoadingStateIsShowing(true);
     const hideLoadingState = () => setLoadingStateIsShowing(false);
 
+    const [activeEventLabelId, setActiveEventLabelId] = useState<string | null>(null);
+
     const contextValue = {
         showLoginView,
         hideLoginView,
@@ -60,7 +64,9 @@ const ComponentDisplayProvider = ({ offlineMode, children }: Props) => {
         loadingStateIsShowing,
         theme,
         enableLightTheme,
-        enableDarkTheme
+        enableDarkTheme,
+        activeEventLabelId,
+        setActiveEventLabelId
     };
 
     return <ComponentDisplayContext.Provider value={contextValue}>{children}</ComponentDisplayContext.Provider>;

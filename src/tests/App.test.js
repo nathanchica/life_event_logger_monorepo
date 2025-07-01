@@ -92,3 +92,23 @@ it('handles empty event name input', async () => {
 
     expect(screen.queryByRole('heading', { name: 'get haircut' })).not.toBeInTheDocument();
 });
+
+it('toggles between light mode and dark mode', async () => {
+    customRender(<App />);
+    await registerLoggableEvent();
+
+    // Should start in light mode, so button label is 'Switch to dark mode'
+    let toggleButton = await screen.findByRole('button', { name: /switch to dark mode/i });
+    expect(toggleButton).toBeInTheDocument();
+
+    // Toggle to dark mode
+    await userEvent.click(toggleButton);
+    // Now the button label should be 'Switch to light mode'
+    toggleButton = await screen.findByRole('button', { name: /switch to light mode/i });
+    expect(toggleButton).toBeInTheDocument();
+
+    // Toggle back to light mode
+    await userEvent.click(toggleButton);
+    toggleButton = await screen.findByRole('button', { name: /switch to dark mode/i });
+    expect(toggleButton).toBeInTheDocument();
+});

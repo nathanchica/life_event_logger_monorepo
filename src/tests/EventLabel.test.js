@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 
 import EventLabel from '../components/EventLabels/EventLabel';
 import { MAX_LABEL_LENGTH } from '../utils/validation';
+import ComponentDisplayProvider from '../providers/ComponentDisplayProvider';
 
 // Mock context hook for LoggableEventsProvider
 const mockUpdateEventLabel = jest.fn();
@@ -29,7 +30,7 @@ jest.mock('../providers/LoggableEventsProvider', () => {
 const defaultLabel = { id: '1', name: 'Work', color: 'blue' };
 
 function renderWithProvider(ui) {
-    return render(ui);
+    return render(<ComponentDisplayProvider>{ui}</ComponentDisplayProvider>);
 }
 
 describe('EventLabel', () => {

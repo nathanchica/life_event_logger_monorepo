@@ -4,13 +4,16 @@ import { MockedProvider } from '@apollo/client/testing';
 
 import EventLabelList from '../components/EventLabels/EventLabelList';
 import LoggableEventsProvider from '../providers/LoggableEventsProvider';
+import ComponentDisplayProvider from '../providers/ComponentDisplayProvider';
 import { MAX_LABEL_LENGTH } from '../utils/validation';
 
 describe('EventLabelList', () => {
     function renderWithProvider(ui) {
         return render(
             <MockedProvider mocks={[]} addTypename={false}>
-                <LoggableEventsProvider offlineMode={true}>{ui}</LoggableEventsProvider>
+                <LoggableEventsProvider offlineMode={true}>
+                    <ComponentDisplayProvider offlineMode={true}>{ui}</ComponentDisplayProvider>
+                </LoggableEventsProvider>
             </MockedProvider>
         );
     }

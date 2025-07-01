@@ -17,8 +17,9 @@ import { useTheme } from '@mui/material/styles';
 import { css } from '@emotion/react';
 
 import EventCard from './EventCard';
-import { useLoggableEventsContext, EventLabel, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
 import EventLabelAutocomplete from './EventLabelAutocomplete';
+import { useLoggableEventsContext, EventLabel, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
+import { useComponentDisplayContext } from '../../providers/ComponentDisplayProvider';
 
 export const MAX_LENGTH = 25;
 export const MAX_WARNING_THRESHOLD_DAYS = 365 * 2; // 2 years
@@ -55,10 +56,12 @@ const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (new
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /** Context */
     const { loggableEvents, createLoggableEvent, updateLoggableEventDetails, eventLabels } = useLoggableEventsContext();
+    const { activeEventLabelId } = useComponentDisplayContext();
 
     const theme = useTheme();
 
     const eventToEdit = loggableEvents.find(({ id }) => id === eventIdToEdit) || EVENT_DEFAULT_VALUES;
+    const isCreatingNewEvent = !eventIdToEdit;
 
     /** Event name */
     const [eventNameInputValue, setEventNameInputValue] = useState(eventToEdit.name);
@@ -100,8 +103,14 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /**
      * Labels
      */
-    const [showLabelInput, setShowLabelInput] = useState(eventToEdit.labelIds && eventToEdit.labelIds.length > 0);
+    const activeLabelObj = activeEventLabelId ? eventLabels.find((l) => l.id === activeEventLabelId) : undefined;
+    const [showLabelInput, setShowLabelInput] = useState(
+        isCreatingNewEvent ? Boolean(activeEventLabelId) : eventToEdit.labelIds && eventToEdit.labelIds.length > 0
+    );
     const [selectedLabels, setSelectedLabels] = useState<EventLabel[]>(() => {
+        if (isCreatingNewEvent && activeLabelObj) {
+            return [activeLabelObj];
+        }
         // If editing, pre-populate with existing labels
         return eventToEdit.labelIds ? eventLabels.filter(({ id }) => eventToEdit.labelIds.includes(id)) : [];
     });

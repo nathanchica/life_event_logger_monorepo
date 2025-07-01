@@ -120,12 +120,19 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                         }}
                     >
                         <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-                            <IconButton onClick={handleToggleTheme}>
+                            <IconButton
+                                onClick={handleToggleTheme}
+                                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                            >
                                 {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Manage labels">
-                            <IconButton onClick={() => setIsEditingLabels((prev) => !prev)} sx={{ ml: 1 }}>
+                            <IconButton
+                                onClick={() => setIsEditingLabels((prev) => !prev)}
+                                sx={{ ml: 1 }}
+                                aria-label="Manage labels"
+                            >
                                 <EditIcon />
                             </IconButton>
                         </Tooltip>
@@ -136,6 +143,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 sx={{ ml: 1 }}
+                                aria-label="View on GitHub"
                             >
                                 <GitHubIcon />
                             </IconButton>
