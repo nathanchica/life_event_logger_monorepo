@@ -20,11 +20,11 @@ import { css } from '@emotion/react';
 
 import EventCard from './EventCard';
 import EventLabelAutocomplete from './EventLabelAutocomplete';
+import WarningThresholdForm from './WarningThresholdForm';
 import { useLoggableEventsContext, EventLabel, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
 import { useComponentDisplayContext } from '../../providers/ComponentDisplayProvider';
 
 export const MAX_LENGTH = 25;
-export const MAX_WARNING_THRESHOLD_DAYS = 365 * 2; // 2 years
 
 type Props = {
     onDismiss: () => void;
@@ -102,10 +102,12 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const [warningIsEnabled, setWarningIsEnabled] = useState(
         eventIdToEdit ? eventToEdit.warningThresholdInDays > 0 : false
     );
-    const [warningThresholdInputValue, setWarningThresholdInputValue] = useState(eventToEdit.warningThresholdInDays);
-    const resetWarningThresholdInputValue = () =>
-        setWarningThresholdInputValue(EVENT_DEFAULT_VALUES.warningThresholdInDays);
-    const warningThresholdValueToSave = warningIsEnabled ? warningThresholdInputValue : 0;
+    const defaultWarningThreshold = isCreatingNewEvent
+        ? EVENT_DEFAULT_VALUES.warningThresholdInDays
+        : eventToEdit.warningThresholdInDays;
+    const [warningThresholdInDays, setWarningThresholdInDays] = useState(defaultWarningThreshold);
+    const resetWarningThresholdInputValue = () => setWarningThresholdInDays(defaultWarningThreshold);
+    const warningThresholdValueToSave = warningIsEnabled ? warningThresholdInDays : 0;
 
     /**
      * Labels
@@ -133,11 +135,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         setEventNameInputValue(event.currentTarget.value);
     };
 
-    const handleWarningThresholdInputChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-        const newValue = Number(event.currentTarget.value);
-        if (newValue >= 0 && newValue < MAX_WARNING_THRESHOLD_DAYS) {
-            setWarningThresholdInputValue(newValue);
-        }
+    const handleWarningThresholdChange = (thresholdInDays: number) => {
+        setWarningThresholdInDays(thresholdInDays);
     };
 
     const handleWarningToggleChange = (newCheckedValue: boolean) => {
@@ -171,7 +170,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     };
 
     return (
-        <ClickAwayListener onClickAway={dismissForm}>
+        <ClickAwayListener onClickAway={dismissForm} mouseEvent="onMouseDown" touchEvent="onTouchStart">
             <Box
                 component="form"
                 onSubmit={eventIdToEdit ? handleUpdateEventSubmit : handleNewEventSubmit}
@@ -209,22 +208,9 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                             </Typography>
                         </Box>
                         <Collapse in={warningIsEnabled}>
-                            <TextField
-                                id="warning-threshold-input"
-                                label="Warning threshold"
-                                helperText="Show warning when last update has been this many days long. Between 1 and 730 (2 years)."
-                                type="number"
-                                fullWidth
-                                variant="standard"
-                                margin="normal"
-                                value={warningThresholdInputValue}
-                                onChange={handleWarningThresholdInputChange}
-                                aria-describedby="warning-threshold-help"
-                                inputProps={{
-                                    min: 1,
-                                    max: 730,
-                                    'aria-label': 'Warning threshold in days'
-                                }}
+                            <WarningThresholdForm
+                                onChange={handleWarningThresholdChange}
+                                initialThresholdInDays={defaultWarningThreshold}
                             />
                         </Collapse>
 

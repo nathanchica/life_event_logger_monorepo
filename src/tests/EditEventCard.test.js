@@ -3,10 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { MockedProvider } from '@apollo/client/testing';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-import EditEventCard from '../components/EventCards/EditEventCard';
+import EditEventCard, { MAX_LENGTH } from '../components/EventCards/EditEventCard';
 import { LoggableEventsContext } from '../providers/LoggableEventsProvider';
 import { ComponentDisplayContext } from '../providers/ComponentDisplayProvider';
-import { MAX_LENGTH } from '../components/EventCards/EditEventCard';
 
 describe('EditEventCard', () => {
     // Default test data
@@ -131,46 +130,52 @@ describe('EditEventCard', () => {
     });
 
     describe('Warning threshold', () => {
-        async function enableWarningThreshold() {
+        it('shows/hides threshold form based on switch state', async () => {
+            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
+
+            // Form should be hidden initially
+            expect(screen.queryByLabelText('Warning threshold number')).not.toBeVisible();
+            expect(screen.queryByLabelText('Warning threshold time unit')).not.toBeVisible();
+
+            // Enable warning threshold
             const warningSwitch = screen.getByLabelText('Enable warning');
             await userEvent.click(warningSwitch);
-            return screen.getByLabelText('Warning threshold');
-        }
 
-        it('shows/hides threshold input based on switch state', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
-
-            expect(screen.queryByLabelText('Warning threshold')).not.toBeVisible();
-
-            await enableWarningThreshold();
-            expect(screen.getByLabelText('Warning threshold')).toBeVisible();
+            // Form should now be visible
+            expect(screen.getByLabelText('Warning threshold number')).toBeVisible();
+            expect(screen.getByLabelText('Warning threshold time unit')).toBeVisible();
         });
 
-        it.each([
-            ['valid value', '30', '30'],
-            ['negative value', '-5', '0'],
-            ['boundary value - under max', '729', '729']
-        ])('handles %s correctly', async (_, inputValue, expectedValue) => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
+        it('preserves existing warning threshold when editing event', () => {
+            const eventWithWarning = {
+                ...mockEvent,
+                warningThresholdInDays: 30
+            };
 
-            const thresholdInput = await enableWarningThreshold();
-            await userEvent.clear(thresholdInput);
-            await userEvent.type(thresholdInput, inputValue);
+            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
+                existingEvents: [eventWithWarning]
+            });
 
-            expect(thresholdInput.value).toBe(expectedValue);
+            // Warning should be enabled and form visible
+            const warningSwitch = screen.getByLabelText('Enable warning');
+            expect(warningSwitch).toBeChecked();
+            expect(screen.getByLabelText('Warning threshold number')).toBeVisible();
         });
 
-        it('rejects values at or over maximum', async () => {
+        it('handles warning threshold changes', async () => {
             renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
 
-            const thresholdInput = await enableWarningThreshold();
+            // Enable warning threshold
+            const warningSwitch = screen.getByLabelText('Enable warning');
+            await userEvent.click(warningSwitch);
 
-            await userEvent.clear(thresholdInput);
-            await userEvent.type(thresholdInput, '729');
-            expect(thresholdInput.value).toBe('729');
+            // Change the warning threshold value
+            const numberInput = screen.getByLabelText('Warning threshold number');
+            await userEvent.clear(numberInput);
+            await userEvent.type(numberInput, '5');
 
-            await userEvent.type(thresholdInput, '9');
-            expect(thresholdInput.value).toBe('729');
+            // Verify the value changed (this triggers handleWarningThresholdChange)
+            expect(numberInput).toHaveValue(5);
         });
     });
 
