@@ -8,6 +8,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 
 import './index.css';
 import App from './App';
+import { AuthProvider } from './providers/AuthProvider';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as Element);
 
@@ -35,9 +37,13 @@ const client = new ApolloClient({
 
 root.render(
     <React.StrictMode>
-        <ApolloProvider client={client}>
-            <CssBaseline />
-            <App />
-        </ApolloProvider>
+        <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
+            <AuthProvider>
+                <ApolloProvider client={client}>
+                    <CssBaseline />
+                    <App />
+                </ApolloProvider>
+            </AuthProvider>
+        </GoogleOAuthProvider>
     </React.StrictMode>
 );

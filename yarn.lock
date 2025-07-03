@@ -2569,6 +2569,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-oauth/google@npm:^0.12.2":
+  version: 0.12.2
+  resolution: "@react-oauth/google@npm:0.12.2"
+  peerDependencies:
+    react: ">=16.8.0"
+    react-dom: ">=16.8.0"
+  checksum: 0ee3394fcf2acc68c75c64a3abfb71f15fe52a1d7a446b1bed6197101ee5d63025c2e4334d8525abebe3da1f69ba808b660bf27e13ba08a646fb193f968d53d6
+  languageName: node
+  linkType: hard
+
 "@rollup/plugin-babel@npm:^5.2.0":
   version: 5.3.1
   resolution: "@rollup/plugin-babel@npm:5.3.1"
@@ -8896,6 +8906,7 @@ __metadata:
     "@mui/icons-material": ^5.6.2
     "@mui/lab": ^5.0.0-alpha.81
     "@mui/material": ^5.7.0
+    "@react-oauth/google": ^0.12.2
     "@testing-library/jest-dom": ^5.16.4
     "@testing-library/react": ^13.2.0
     "@testing-library/user-event": ^13.5.0
@@ -8923,7 +8934,6 @@ __metadata:
     prettier: ^3.6.2
     react: ^18.1.0
     react-dom: ^18.1.0
-    react-google-login: ^5.2.2
     react-scripts: 5.0.1
     react-transition-group: ^4.4.2
     tiny-invariant: ^1.2.0
@@ -11052,7 +11062,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.6.0, prop-types@npm:^15.6.2, prop-types@npm:^15.7.2, prop-types@npm:^15.8.1":
+"prop-types@npm:^15.6.2, prop-types@npm:^15.7.2, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -11216,19 +11226,6 @@ __metadata:
   version: 6.0.11
   resolution: "react-error-overlay@npm:6.0.11"
   checksum: ce7b44c38fadba9cedd7c095cf39192e632daeccf1d0747292ed524f17dcb056d16bc197ddee5723f9dd888f0b9b19c3b486c430319e30504289b9296f2d2c42
-  languageName: node
-  linkType: hard
-
-"react-google-login@npm:^5.2.2":
-  version: 5.2.2
-  resolution: "react-google-login@npm:5.2.2"
-  dependencies:
-    "@types/react": "*"
-    prop-types: ^15.6.0
-  peerDependencies:
-    react: ^16 || ^17
-    react-dom: ^16 || ^17
-  checksum: 29199c7035c3c1070a82241dc4063628d693f35a1736d292e3db736e52da825e8a53f9287b0b12b08a50d676973ce1349a4d8243cd849ca25fed6a4284378880
   languageName: node
   linkType: hard
 

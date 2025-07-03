@@ -4,11 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import LoggableEventsView from './LoggableEventsView';
 import LoginView from './LoginView';
 import { useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
-
-type Props = {
-    isOfflineMode: boolean;
-    isLoggedIn: boolean;
-};
+import { useAuth } from '../providers/AuthProvider';
 
 /**
  * Event Logger Page
@@ -19,8 +15,9 @@ type Props = {
  * It uses Material-UI's ThemeProvider to apply a theme based on the current mode (light or dark).
  * The theme includes custom styles for error states in form components when in dark mode.
  */
-const EventLoggerPage = ({ isOfflineMode, isLoggedIn }: Props) => {
+const EventLoggerPage = () => {
     const { theme: mode } = useComponentDisplayContext();
+    const { isAuthenticated, isOfflineMode } = useAuth();
 
     const appTheme = useMemo(
         () =>
@@ -81,7 +78,7 @@ const EventLoggerPage = ({ isOfflineMode, isLoggedIn }: Props) => {
 
     return (
         <ThemeProvider theme={appTheme}>
-            {isLoggedIn ? <LoggableEventsView offlineMode={isOfflineMode} /> : <LoginView />}
+            {isAuthenticated || isOfflineMode ? <LoggableEventsView offlineMode={isOfflineMode} /> : <LoginView />}
         </ThemeProvider>
     );
 };

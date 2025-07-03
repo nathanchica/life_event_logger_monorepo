@@ -100,7 +100,8 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
     } = useQuery(GET_USERS_EVENTS_AND_LABELS_QUERY, {
         fetchPolicy: 'no-cache',
         onError,
-        skip: offlineMode
+        skip: offlineMode,
+        variables: { userId: 'current' }
     });
 
     const onSuccessfulSubmit = () => {
@@ -200,8 +201,8 @@ const useLoggableEventsApi = (offlineMode: boolean) => {
 
     return {
         isFetchingData: !offlineMode && loading,
-        fetchedLoggableEvents: fetchEventsAndLabelsData?.loggableEvents || [],
-        fetchedEventLabels: fetchEventsAndLabelsData?.eventLabels || [],
+        fetchedLoggableEvents: fetchEventsAndLabelsData?.user?.loggableEvents || [],
+        fetchedEventLabels: fetchEventsAndLabelsData?.user?.eventLabels || [],
         refetchEventsAndLabelsData,
         submitCreateLoggableEvent,
         submitCreateEventRecord,
