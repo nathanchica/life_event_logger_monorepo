@@ -103,13 +103,13 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /**
      * Labels
      */
-    const activeLabelObj = activeEventLabelId ? eventLabels.find((l) => l.id === activeEventLabelId) : undefined;
+    const activeEventLabel = activeEventLabelId ? eventLabels.find(({ id }) => id === activeEventLabelId) : undefined;
     const [showLabelInput, setShowLabelInput] = useState(
         isCreatingNewEvent ? Boolean(activeEventLabelId) : eventToEdit.labelIds && eventToEdit.labelIds.length > 0
     );
     const [selectedLabels, setSelectedLabels] = useState<EventLabel[]>(() => {
-        if (isCreatingNewEvent && activeLabelObj) {
-            return [activeLabelObj];
+        if (isCreatingNewEvent && activeEventLabel) {
+            return [activeEventLabel];
         }
         // If editing, pre-populate with existing labels
         return eventToEdit.labelIds ? eventLabels.filter(({ id }) => eventToEdit.labelIds.includes(id)) : [];

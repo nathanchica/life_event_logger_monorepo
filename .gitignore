@@ -10,6 +10,7 @@
 /build
 
 # misc
+.claude
 .DS_Store
 .env
 .env.local

@@ -18,7 +18,13 @@ export const CARD_WIDTH = '400px';
 export const EventCardSkeleton = () => {
     return (
         <Grow in>
-            <Skeleton data-testid="event-card-shimmer" variant="rectangular" width={CARD_WIDTH} height={200} />
+            <Skeleton
+                data-testid="event-card-shimmer"
+                variant="rectangular"
+                width={CARD_WIDTH}
+                height={200}
+                aria-label="Loading event card"
+            />
         </Grow>
     );
 };
@@ -47,6 +53,8 @@ const EventCard = (props: Props) => {
                             0px 1px 10px 0px rgb(0 0 0 / 12%);
                     }
                 `}
+                role="article"
+                aria-label="Event card"
                 {...props}
             >
                 {props.children}

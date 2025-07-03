@@ -7,7 +7,6 @@ export const GET_USERS_EVENTS_AND_LABELS_QUERY = gql`
                 id
                 name
                 timestamps
-                active
                 warningThresholdInDays
                 labels {
                     id
@@ -49,7 +48,6 @@ export const UPDATE_LOGGABLE_EVENT_DETAILS_MUTATION = gql`
 type UpdateLoggableEventDetailsInput = {
     eventId: string;
     name: string;
-    active: boolean;
     warningThresholdInDays: number;
     labelIds: Array<string>;
 };

@@ -42,38 +42,46 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
     const isDarkMode = theme.palette.mode === AppTheme.Dark;
 
     const filteredEvents = activeEventLabelId
-        ? loggableEvents.filter(({ active, labelIds }) => active && labelIds && labelIds.includes(activeEventLabelId))
-        : loggableEvents.filter(({ active }) => active);
+        ? loggableEvents.filter(({ labelIds }) => labelIds && labelIds.includes(activeEventLabelId))
+        : loggableEvents;
 
     const mainContent = (
         <Grid
             item
             xs={12}
+            role="main"
+            aria-label="Loggable events main content"
             css={css`
                 padding: 64px;
             `}
         >
-            <Grid container spacing={5}>
+            <Grid
+                container
+                spacing={5}
+                role="list"
+                aria-label={activeEventLabelId ? 'Filtered loggable events' : 'All loggable events'}
+                aria-live="polite"
+            >
                 {loadingStateIsShowing ? (
                     <>
-                        <Grid item>
+                        <Grid item role="listitem">
                             <EventCardSkeleton />
                         </Grid>
-                        <Grid item>
+                        <Grid item role="listitem">
                             <EventCardSkeleton />
                         </Grid>
-                        <Grid item>
+                        <Grid item role="listitem">
                             <EventCardSkeleton />
                         </Grid>
                     </>
                 ) : (
                     <>
-                        <Grid item>
+                        <Grid item role="listitem">
                             <CreateEventCard />
                         </Grid>
                         {filteredEvents.map(({ id, name }) => {
                             return (
-                                <Grid item key={`${name}-card`}>
+                                <Grid item key={`${name}-card`} role="listitem">
                                     <LoggableEventCard eventId={id} />
                                 </Grid>
                             );
@@ -88,8 +96,9 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
     useEffect(() => {
         if (!dataIsLoaded) {
             showLoadingState();
+        } else {
+            hideLoadingState();
         }
-        hideLoadingState();
     }, [dataIsLoaded, showLoadingState, hideLoadingState]);
 
     return (
@@ -113,6 +122,8 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
                     <Tooltip title="Show sidebar">
                         <IconButton
                             onClick={expandSidebar}
+                            aria-expanded={!sidebarIsCollapsed}
+                            aria-label="Show sidebar"
                             css={css`
                                 :hover {
                                     background-color: ${isDarkMode ? blueGrey[600] : green[200]};
@@ -127,6 +138,8 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
             <Grid
                 container
                 wrap="nowrap"
+                role="application"
+                aria-label="Life event logger application"
                 css={css`
                     height: 100vh;
                     width: 100vw;

@@ -19,8 +19,6 @@ interface LoggableEvent {
     name: string;
     /** Date objects of when this event has been logged */
     timestamps: Array<Date>;
-    /** Whether this event should show */
-    active: boolean;
     /** Number of days since the last event record before a warning will show for this event */
     warningThresholdInDays: number;
     /** List of event label ids associated with this event */
@@ -31,7 +29,6 @@ export const EVENT_DEFAULT_VALUES: LoggableEvent = {
     id: '',
     name: '',
     timestamps: [],
-    active: true,
     /**
      * Default behavior is that warnings are disabled,
      * but if the warning behavior is enabled, then this is the default value to show.
@@ -136,12 +133,11 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
         if (!isFetchingData && !offlineMode) {
             setLoggableEvents(
                 fetchedLoggableEvents.map(
-                    ({ id: eventId, name, timestamps, active, warningThresholdInDays, labelIds }: any) => {
+                    ({ id: eventId, name, timestamps, warningThresholdInDays, labelIds }: any) => {
                         return {
                             id: eventId,
                             name,
                             timestamps: timestamps.map((dateTimeISO: string) => new Date(dateTimeISO)),
-                            active,
                             warningThresholdInDays,
                             labelIds
                         };

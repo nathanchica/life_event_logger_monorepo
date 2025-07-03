@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
+import { visuallyHidden } from '@mui/utils';
 import blue from '@mui/material/colors/blue';
 import grey from '@mui/material/colors/grey';
 import AddIcon from '@mui/icons-material/Add';
@@ -53,7 +54,10 @@ const CreateEventCard = () => {
                         margin: auto;
                     `}
                 >
-                    <AddIcon color="inherit" />
+                    <AddIcon color="inherit" aria-hidden="true" />
+                    <Box id="create-event-help" sx={visuallyHidden}>
+                        Click to create a new event
+                    </Box>
                 </Box>
             </ButtonBase>
         </Box>

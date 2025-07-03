@@ -76,6 +76,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                             <Tooltip title="Hide sidebar">
                                 <IconButton
                                     onClick={onCollapseSidebarClick}
+                                    aria-label="Hide sidebar"
                                     css={css`
                                         :hover {
                                             background-color: ${isDark ? blueGrey[600] : green[200]};
