@@ -10,8 +10,10 @@ import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import blueGrey from '@mui/material/colors/blueGrey';
 import { useTheme } from '@mui/material/styles';
+import { visuallyHidden } from '@mui/utils';
 
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
@@ -36,7 +38,12 @@ const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (new
 
     return (
         <FormGroup>
-            <FormControlLabel control={<Switch checked={checked} onChange={handleChange} />} label="Enable warning" />
+            <FormControlLabel
+                control={
+                    <Switch checked={checked} onChange={handleChange} aria-describedby="warning-switch-description" />
+                }
+                label="Enable warning"
+            />
         </FormGroup>
     );
 };
@@ -165,7 +172,12 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
     return (
         <ClickAwayListener onClickAway={dismissForm}>
-            <Box component="form" onSubmit={eventIdToEdit ? handleUpdateEventSubmit : handleNewEventSubmit}>
+            <Box
+                component="form"
+                onSubmit={eventIdToEdit ? handleUpdateEventSubmit : handleNewEventSubmit}
+                role="form"
+                aria-label={isCreatingNewEvent ? 'Create new event' : 'Edit event'}
+            >
                 <EventCard
                     css={css`
                         background-color: ${theme.palette.mode === 'dark' ? blueGrey[900] : blueGrey[50]};
@@ -184,10 +196,18 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                             fullWidth
                             variant="standard"
                             margin="normal"
+                            aria-required="true"
+                            aria-invalid={!eventNameIsValid}
+                            aria-describedby={textFieldErrorProps.error ? 'event-name-error' : undefined}
                         />
 
                         {/* Warning threshold */}
-                        <WarningSwitch checked={warningIsEnabled} onChange={handleWarningToggleChange} />
+                        <Box aria-describedby="warning-switch-description">
+                            <WarningSwitch checked={warningIsEnabled} onChange={handleWarningToggleChange} />
+                            <Typography id="warning-switch-description" sx={visuallyHidden}>
+                                Toggle to enable warning notifications for this event
+                            </Typography>
+                        </Box>
                         <Collapse in={warningIsEnabled}>
                             <TextField
                                 id="warning-threshold-input"
@@ -199,6 +219,12 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                                 margin="normal"
                                 value={warningThresholdInputValue}
                                 onChange={handleWarningThresholdInputChange}
+                                aria-describedby="warning-threshold-help"
+                                inputProps={{
+                                    min: 1,
+                                    max: 730,
+                                    'aria-label': 'Warning threshold in days'
+                                }}
                             />
                         </Collapse>
 
@@ -209,24 +235,43 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                                 size="small"
                                 sx={{ mt: 2, mb: 1 }}
                                 onClick={() => setShowLabelInput(true)}
+                                aria-describedby="labels-section-description"
                             >
                                 Add labels
                             </Button>
                         ) : (
-                            <EventLabelAutocomplete
-                                selectedLabels={selectedLabels}
-                                setSelectedLabels={setSelectedLabels}
-                            />
+                            <Box aria-labelledby="labels-section-label">
+                                <Typography id="labels-section-label" sx={visuallyHidden}>
+                                    Event labels
+                                </Typography>
+                                <EventLabelAutocomplete
+                                    selectedLabels={selectedLabels}
+                                    setSelectedLabels={setSelectedLabels}
+                                />
+                            </Box>
                         )}
+                        <Typography id="labels-section-description" sx={visuallyHidden}>
+                            Add labels to categorize and organize your events
+                        </Typography>
                     </CardContent>
 
                     <CardActions>
-                        <Button disabled={!eventNameIsValid} type="submit" size="small">
+                        <Button
+                            disabled={!eventNameIsValid}
+                            type="submit"
+                            size="small"
+                            aria-describedby={!eventNameIsValid ? 'submit-button-disabled-reason' : undefined}
+                        >
                             {eventIdToEdit ? 'Update' : 'Create'}
                         </Button>
-                        <Button onClick={dismissForm} size="small">
+                        <Button onClick={dismissForm} size="small" aria-label="Cancel and close form">
                             Cancel
                         </Button>
+                        {!eventNameIsValid && (
+                            <Typography id="submit-button-disabled-reason" sx={visuallyHidden}>
+                                Submit button is disabled because the event name is invalid
+                            </Typography>
+                        )}
                     </CardActions>
                 </EventCard>
             </Box>

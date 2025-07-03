@@ -133,6 +133,8 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
         if (!isFetchingData && !offlineMode) {
             setLoggableEvents(
                 fetchedLoggableEvents.map(
+                    // no gql types yet
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     ({ id: eventId, name, timestamps, warningThresholdInDays, labelIds }: any) => {
                         return {
                             id: eventId,
@@ -145,6 +147,8 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
                 )
             );
             setEventLabels(
+                // no gql types yet
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 fetchedEventLabels.map(({ id: eventLabelId, alias, color }: any) => {
                     return {
                         id: eventLabelId,

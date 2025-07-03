@@ -8,7 +8,6 @@ import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 import LoggableEventsView from '../components/LoggableEventsView';
 import { LoggableEventsContext } from '../providers/LoggableEventsProvider';
 import { ComponentDisplayContext } from '../providers/ComponentDisplayProvider';
-import { log } from 'console';
 
 describe('LoggableEventsView', () => {
     const mockEventLabels = [

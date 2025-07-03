@@ -1,4 +1,6 @@
 export const DAY_IN_MILLISECONDS = 1000 * 60 * 60 * 24;
+export const DAYS_IN_MONTH = 30;
+export const DAYS_IN_YEAR = 365;
 
 /**
  * Gets number of days between two date objects. If time difference has not passed 24 hours, but the two given

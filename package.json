@@ -33,7 +33,7 @@
         "test": "react-scripts test --watchAll=false --coverage",
         "eject": "react-scripts eject",
         "typecheck": "tsc --noEmit",
-        "lint": "eslint --fix . --ext .js,.jsx,.ts,.tsx",
+        "lint": "eslint --fix src --ext .js,.jsx,.ts,.tsx",
         "lint-staged": "lint-staged --config lint-staged.js",
         "husky-install": "husky install",
         "prepare": "husky install"

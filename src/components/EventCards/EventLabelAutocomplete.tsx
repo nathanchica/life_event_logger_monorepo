@@ -1,6 +1,7 @@
 import Autocomplete from '@mui/material/Autocomplete';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
+import { InputBaseComponentProps } from '@mui/material/InputBase';
 
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
 import { useLoggableEventsContext, EventLabel } from '../../providers/LoggableEventsProvider';
@@ -47,7 +48,7 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels }: Props) =>
                 })
             }
             renderInput={(params) => {
-                const inputValue = (params.inputProps as any).value || '';
+                const inputValue = (params.inputProps as InputBaseComponentProps).value || '';
                 let error = false;
                 let helperText = '';
                 if (inputValue) {

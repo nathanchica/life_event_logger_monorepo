@@ -86,7 +86,7 @@ describe('EditEventCard', () => {
             expect(screen.getByRole('button', { name: 'Add labels' })).toBeInTheDocument();
 
             const createButton = screen.getByRole('button', { name: 'Create' });
-            const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+            const cancelButton = screen.getByRole('button', { name: /Cancel/i });
 
             expect(createButton).toBeInTheDocument();
             expect(createButton).toBeDisabled();
@@ -230,7 +230,7 @@ describe('EditEventCard', () => {
             [
                 'Cancel button',
                 async () => {
-                    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+                    const cancelButton = screen.getByRole('button', { name: /Cancel/i });
                     await userEvent.click(cancelButton);
                 },
                 null

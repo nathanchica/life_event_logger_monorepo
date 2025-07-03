@@ -109,7 +109,14 @@ describe('LoggableEventCard', () => {
         it('displays truncation message for 5+ records', () => {
             const eventWithManyRecords = {
                 ...mockEvent,
-                timestamps: Array.from({ length: 6 }, (_, i) => new Date(2023, 0, i + 1))
+                timestamps: [
+                    new Date('2023-01-20'),
+                    new Date('2023-01-19'),
+                    new Date('2023-01-18'),
+                    new Date('2023-01-17'),
+                    new Date('2023-01-16'),
+                    new Date('2023-01-15')
+                ],
             };
             renderWithProvider(<LoggableEventCard eventId="event-1" />, {
                 loggableEvents: [eventWithManyRecords]
@@ -119,11 +126,15 @@ describe('LoggableEventCard', () => {
         });
     });
 
-    describe('Days since last event display', () => {
+    describe('Last event display', () => {
         it.each([
             ['today', 0, 'Last event: Today'],
             ['yesterday', 1, 'Last event: Yesterday'],
-            ['multiple days ago', 10, 'Last event: 10 days ago']
+            ['multiple days ago', 10, 'Last event: 10 days ago'],
+            ['1 month ago', 35, 'Last event: 1 month ago'],
+            ['multiple months ago', 75, 'Last event: 2 months ago'],
+            ['1 year ago', 400, 'Last event: 1 year ago'],
+            ['multiple years ago', 800, 'Last event: 2 years ago']
         ])('shows correct text when last event was %s', (_, daysAgo, expectedText) => {
             const eventDate = new Date();
             eventDate.setDate(eventDate.getDate() - daysAgo);
@@ -286,7 +297,7 @@ describe('LoggableEventCard', () => {
 
             expect(screen.getByLabelText('Event name')).toBeInTheDocument();
 
-            const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+            const cancelButton = screen.getByRole('button', { name: /Cancel/i });
             await userEvent.click(cancelButton);
 
             expect(screen.getByText('Test Event')).toBeInTheDocument();

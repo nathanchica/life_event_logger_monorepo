@@ -33,11 +33,11 @@ import EventCard from './EventCard';
 import EventRecord from './EventRecord';
 import EventOptionsDropdown from './EventOptionsDropdown';
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
-import { getNumberOfDaysBetweenDates } from '../../utils/time';
+import { getNumberOfDaysBetweenDates, DAYS_IN_YEAR, DAYS_IN_MONTH } from '../../utils/time';
 
 const MAX_RECORDS_TO_DISPLAY = 5;
 
-const DaysSinceLastEventDisplay = ({
+const LastEventDisplay = ({
     daysSinceLastEvent,
     warningThresholdInDays
 }: {
@@ -50,11 +50,19 @@ const DaysSinceLastEventDisplay = ({
     const theme = useTheme();
     const isDarkMode = theme.palette.mode === 'dark';
 
-    let textToDisplay = `Last event: ${daysSinceLastEvent} days ago`;
+    let textToDisplay;
     if (daysSinceLastEvent === 0) {
         textToDisplay = `Last event: Today`;
     } else if (daysSinceLastEvent === 1) {
         textToDisplay = `Last event: Yesterday`;
+    } else if (daysSinceLastEvent >= DAYS_IN_YEAR) {
+        const years = Math.floor(daysSinceLastEvent / DAYS_IN_YEAR);
+        textToDisplay = `Last event: ${years} ${years === 1 ? 'year' : 'years'} ago`;
+    } else if (daysSinceLastEvent >= DAYS_IN_MONTH) {
+        const months = Math.floor(daysSinceLastEvent / DAYS_IN_MONTH);
+        textToDisplay = `Last event: ${months} ${months === 1 ? 'month' : 'months'} ago`;
+    } else {
+        textToDisplay = `Last event: ${daysSinceLastEvent} days ago`;
     }
 
     // Use orange[500] in dark mode, red[500] otherwise
@@ -234,7 +242,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
                 </Stack>
 
                 {typeof daysSinceLastEvent === 'number' && (
-                    <DaysSinceLastEventDisplay
+                    <LastEventDisplay
                         daysSinceLastEvent={daysSinceLastEvent}
                         warningThresholdInDays={warningThresholdInDays}
                     />
