@@ -128,7 +128,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
         setDatepickerInputValue(undefined);
     };
 
-    const { loggableEvents, addTimestampToEvent, removeLoggableEvent, eventLabels } = useLoggableEventsContext();
+    const { loggableEvents, addTimestampToEvent, deleteLoggableEvent, eventLabels } = useLoggableEventsContext();
     const currentLoggableEvent = loggableEvents.find(({ id }) => id === eventId);
 
     invariant(currentLoggableEvent, 'Must be a valid loggable event');
@@ -152,7 +152,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
     };
 
     const handleDeleteEventClick = () => {
-        removeLoggableEvent(id);
+        deleteLoggableEvent(id);
         hideEventOptionsDropdown();
     };
 

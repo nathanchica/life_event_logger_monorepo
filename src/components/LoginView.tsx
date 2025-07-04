@@ -26,6 +26,12 @@ const LOGIN_MUTATION = gql`
     }
 `;
 
+/**
+ * LoginView component
+ * This component handles user login using Google One Tap.
+ * It displays a welcome message, a loading indicator during login,
+ * and options to sign in with Google or continue in offline mode.
+ */
 const LoginView = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [loginMutation] = useMutation(LOGIN_MUTATION);

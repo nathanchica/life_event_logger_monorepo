@@ -11,24 +11,23 @@ import TextField from '@mui/material/TextField';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/Check';
 
-import { useLoggableEventsContext, EventLabel as EventLabelType } from '../../providers/LoggableEventsProvider';
-import { useComponentDisplayContext } from '../../providers/ComponentDisplayProvider';
+import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { useViewOptions } from '../../providers/ViewOptionsProvider';
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
+import { EventLabel as EventLabelType } from '../../utils/types';
 
-type Props = {
-    data: EventLabelType;
+type Props = EventLabelType & {
     isShowingEditActions: boolean;
 };
 
 /**
  * EventLabel component for displaying and editing event labels.
  */
-const EventLabel = ({ data, isShowingEditActions }: Props) => {
+const EventLabel = ({ id, name, isShowingEditActions, ...eventLabelData }: Props) => {
     const { updateEventLabel, deleteEventLabel, eventLabels } = useLoggableEventsContext();
-    const { id, name } = data;
 
     // Add context for active label
-    const { activeEventLabelId, setActiveEventLabelId } = useComponentDisplayContext();
+    const { activeEventLabelId, setActiveEventLabelId } = useViewOptions();
     const isActive = activeEventLabelId === id;
 
     const [isEditingName, setIsEditingName] = useState(false);
@@ -53,7 +52,7 @@ const EventLabel = ({ data, isShowingEditActions }: Props) => {
 
     const handleEditSave = () => {
         setIsEditingName(false);
-        updateEventLabel({ ...data, name: editValue.trim() });
+        updateEventLabel({ ...eventLabelData, id, name: editValue.trim() });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

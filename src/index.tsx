@@ -5,10 +5,11 @@ import ReactDOM from 'react-dom/client';
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import CssBaseline from '@mui/material/CssBaseline';
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import './index.css';
 import App from './App';
-import { AuthProvider } from './providers/AuthProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as Element);
@@ -38,12 +39,12 @@ const client = new ApolloClient({
 root.render(
     <React.StrictMode>
         <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
-            <AuthProvider>
-                <ApolloProvider client={client}>
+            <ApolloProvider client={client}>
+                <LocalizationProvider dateAdapter={AdapterMoment}>
                     <CssBaseline />
                     <App />
-                </ApolloProvider>
-            </AuthProvider>
+                </LocalizationProvider>
+            </ApolloProvider>
         </GoogleOAuthProvider>
     </React.StrictMode>
 );

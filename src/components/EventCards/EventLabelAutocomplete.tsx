@@ -3,8 +3,9 @@ import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import { InputBaseComponentProps } from '@mui/material/InputBase';
 
+import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { EventLabel } from '../../utils/types';
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
-import { useLoggableEventsContext, EventLabel } from '../../providers/LoggableEventsProvider';
 
 type Props = {
     selectedLabels: EventLabel[];

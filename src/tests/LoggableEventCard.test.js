@@ -7,7 +7,7 @@ import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 
 import LoggableEventCard from '../components/EventCards/LoggableEventCard';
 import { LoggableEventsContext } from '../providers/LoggableEventsProvider';
-import { ComponentDisplayContext } from '../providers/ComponentDisplayProvider';
+import { ViewOptionsContext } from '../providers/ComponentDisplayProvider';
 
 describe('LoggableEventCard', () => {
     const mockEventLabels = [
@@ -44,7 +44,7 @@ describe('LoggableEventCard', () => {
             offlineMode: true
         };
 
-        const mockComponentDisplayContextValue = {
+        const mockViewOptionsContextValue = {
             activeEventLabelId: activeEventLabelId,
             setActiveEventLabelId: jest.fn(),
             offlineMode: true
@@ -53,9 +53,9 @@ describe('LoggableEventCard', () => {
         return render(
             <MockedProvider mocks={[]} addTypename={false}>
                 <LoggableEventsContext.Provider value={mockLoggableEventsContextValue}>
-                    <ComponentDisplayContext.Provider value={mockComponentDisplayContextValue}>
+                    <ViewOptionsContext.Provider value={mockViewOptionsContextValue}>
                         <LocalizationProvider dateAdapter={AdapterMoment}>{ui}</LocalizationProvider>
-                    </ComponentDisplayContext.Provider>
+                    </ViewOptionsContext.Provider>
                 </LoggableEventsContext.Provider>
             </MockedProvider>
         );
@@ -116,7 +116,7 @@ describe('LoggableEventCard', () => {
                     new Date('2023-01-17'),
                     new Date('2023-01-16'),
                     new Date('2023-01-15')
-                ],
+                ]
             };
             renderWithProvider(<LoggableEventCard eventId="event-1" />, {
                 loggableEvents: [eventWithManyRecords]

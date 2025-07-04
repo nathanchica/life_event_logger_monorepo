@@ -21,8 +21,9 @@ import { css } from '@emotion/react';
 import EventCard from './EventCard';
 import EventLabelAutocomplete from './EventLabelAutocomplete';
 import WarningThresholdForm from './WarningThresholdForm';
-import { useLoggableEventsContext, EventLabel, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
-import { useComponentDisplayContext } from '../../providers/ComponentDisplayProvider';
+import { useLoggableEventsContext, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
+import { useViewOptions } from '../../providers/ViewOptionsProvider';
+import { EventLabel } from '../../utils/types';
 
 export const MAX_LENGTH = 25;
 
@@ -63,7 +64,7 @@ const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (new
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     /** Context */
     const { loggableEvents, createLoggableEvent, updateLoggableEventDetails, eventLabels } = useLoggableEventsContext();
-    const { activeEventLabelId } = useComponentDisplayContext();
+    const { activeEventLabelId } = useViewOptions();
 
     const theme = useTheme();
 

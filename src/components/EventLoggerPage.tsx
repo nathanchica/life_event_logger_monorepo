@@ -3,7 +3,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import LoggableEventsView from './LoggableEventsView';
 import LoginView from './LoginView';
-import { useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
+import { useViewOptions } from '../providers/ViewOptionsProvider';
 import { useAuth } from '../providers/AuthProvider';
 
 /**
@@ -16,7 +16,7 @@ import { useAuth } from '../providers/AuthProvider';
  * The theme includes custom styles for error states in form components when in dark mode.
  */
 const EventLoggerPage = () => {
-    const { theme: mode } = useComponentDisplayContext();
+    const { theme: mode } = useViewOptions();
     const { isAuthenticated, isOfflineMode } = useAuth();
 
     const appTheme = useMemo(

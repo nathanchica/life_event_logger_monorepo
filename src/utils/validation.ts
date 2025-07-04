@@ -1,5 +1,7 @@
 // Validation utilities
 
+import { EventLabel } from '../utils/types';
+
 export enum EventLabelNameValidationError {
     EmptyName = 'EmptyName',
     /** The event label name is too long */
@@ -9,8 +11,6 @@ export enum EventLabelNameValidationError {
 }
 
 export const MAX_LABEL_LENGTH = 24;
-
-import { EventLabel } from '../providers/LoggableEventsProvider';
 
 /**
  * Validates an event label name against constraints: non-empty, max length, uniqueness.

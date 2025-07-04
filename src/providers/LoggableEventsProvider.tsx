@@ -1,62 +1,54 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import invariant from 'tiny-invariant';
 import { v4 as uuidv4 } from 'uuid';
 
-import useLoggableEventsApi from '../utils/useLoggableEventsApi';
+import { EventLabel, LoggableEvent } from '../utils/types';
 import { sortDateObjectsByNewestFirst } from '../utils/time';
-
-export interface EventLabel {
-    /** id of the event label */
-    id: string;
-    /** Displayable name of the event label */
-    name: string;
-}
-
-interface LoggableEvent {
-    /** id of the event */
-    id: string;
-    /** Name of the event */
-    name: string;
-    /** Date objects of when this event has been logged */
-    timestamps: Array<Date>;
-    /** Number of days since the last event record before a warning will show for this event */
-    warningThresholdInDays: number;
-    /** List of event label ids associated with this event */
-    labelIds: Array<string>;
-}
 
 export const EVENT_DEFAULT_VALUES: LoggableEvent = {
     id: '',
     name: '',
     timestamps: [],
+    createdAt: new Date(),
     /**
      * Default behavior is that warnings are disabled,
      * but if the warning behavior is enabled, then this is the default value to show.
      */
     warningThresholdInDays: 7,
-    labelIds: []
+    labelIds: [],
+    isSynced: false
 };
 
 type LoggableEventsContextType = {
     /**
-     * List of loggable events. A loggable event can be logged and maintain timestamp records of its own logs.
+     * List of loggable events. A loggable event is a repeatable action that can be logged.
      */
     loggableEvents: Array<LoggableEvent>;
     /**
-     * List of event labels. Loggable events can be associated with and organized by event labels.
+     * List of event labels. Loggable events can be organized by event labels.
      */
     eventLabels: Array<EventLabel>;
     /**
-     * Whether or not we have finished loading fetched data into states
+     * Whether or not we have finished loading data into states
      */
     dataIsLoaded: boolean;
     /**
-     * Create a new loggable event. Inserts the new event into the beginning of the list of loggable events.
+     * Create a new loggable event and returns it.
+     * Inserts the new event into the beginning of the list of loggable events.
+     * Returns the newly created loggable event.
      */
-    createLoggableEvent: (newEventName: string, warningThresholdInDays: number, labelIds: Array<string>) => void;
+    createLoggableEvent: (
+        newEventName: string,
+        warningThresholdInDays: number,
+        labelIds: Array<string>
+    ) => LoggableEvent;
     /**
-     * Adds a timestamp in ISO string format to a loggable event. Sorts log records by datetime in descending
-     * order (newest first).
+     * Loads loggable events into the context.
+     * This is used to load initial data or to update the context with new data.
+     */
+    loadLoggableEvents: (loggableEvents: Array<LoggableEvent>) => void;
+    /**
+     * Adds a timestamp record to a loggable event. Sorts log records by datetime in descending order (newest first).
      */
     addTimestampToEvent: (eventId: string, dateToAdd: Date) => void;
     /**
@@ -66,9 +58,11 @@ type LoggableEventsContextType = {
     /**
      * Deletes a loggable event.
      */
-    removeLoggableEvent: (eventIdToRemove: string) => void;
+    deleteLoggableEvent: (eventIdToRemove: string) => void;
     /**
      * Creates an event label.
+     * Inserts the new event label into the beginning of the list of event labels.
+     * Returns the newly created event label.
      */
     createEventLabel: (name: string) => EventLabel;
     /**
@@ -90,16 +84,13 @@ export const useLoggableEventsContext = () => {
 };
 
 type Props = {
-    offlineMode: boolean;
     children: ReactNode;
 };
 
 /**
  * LoggableEventsProvider is a context provider that manages loggable events and event labels.
- * It fetches data from the backend and provides methods to create, update, and delete loggable events and event labels.
- * In offline mode, it only updates local states without making backend calls.
  */
-const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
+const LoggableEventsProvider = ({ children }: Props) => {
     /**
      * States
      */
@@ -108,91 +99,34 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
     const [dataIsLoaded, setDataIsLoaded] = useState<boolean>(false);
 
     /**
-     * API methods
-     */
-    const {
-        isFetchingData,
-        fetchedLoggableEvents,
-        fetchedEventLabels,
-        submitCreateLoggableEvent,
-        submitCreateEventRecord,
-        submitUpdateLoggableEventDetails,
-        submitDeleteLoggableEvent,
-        submitCreateEventLabel,
-        submitUpdateEventLabel,
-        submitDeleteEventLabel
-    } = useLoggableEventsApi(offlineMode);
-
-    /**
-     * Effects
-     */
-    useEffect(() => {
-        /**
-         * Load fetched data into states
-         */
-        if (!isFetchingData && !offlineMode) {
-            setLoggableEvents(
-                fetchedLoggableEvents.map(
-                    // no gql types yet
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    ({ id: eventId, name, timestamps, warningThresholdInDays, labelIds }: any) => {
-                        return {
-                            id: eventId,
-                            name,
-                            timestamps: timestamps.map((dateTimeISO: string) => new Date(dateTimeISO)),
-                            warningThresholdInDays,
-                            labelIds
-                        };
-                    }
-                )
-            );
-            setEventLabels(
-                // no gql types yet
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                fetchedEventLabels.map(({ id: eventLabelId, alias, color }: any) => {
-                    return {
-                        id: eventLabelId,
-                        alias,
-                        color
-                    };
-                })
-            );
-            setDataIsLoaded(true);
-        } else if (offlineMode) {
-            setDataIsLoaded(true);
-        } else if (isFetchingData) {
-            setDataIsLoaded(false);
-        }
-    }, [isFetchingData, offlineMode]);
-
-    /**
-     * Exported methods that update states and values in backend. If in offline mode, only states will be updated (the
-     * submit calls will resolve to null data).
+     * Methods
      */
 
-    const createLoggableEvent = async (
-        newEventName: string,
-        warningThresholdInDays: number,
-        labelIds: Array<string>
-    ) => {
-        const response = await submitCreateLoggableEvent(newEventName, warningThresholdInDays, labelIds);
+    const createLoggableEvent = (newEventName: string, warningThresholdInDays: number, labelIds: Array<string>) => {
+        const newLoggableEvent: LoggableEvent = {
+            ...EVENT_DEFAULT_VALUES,
+            id: `temp-${uuidv4()}`, // Temporary ID for optimistic UI update
+            name: newEventName,
+            warningThresholdInDays,
+            createdAt: new Date(),
+            labelIds,
+            isSynced: false // Initially not synced until confirmed by backend
+        };
 
         setLoggableEvents((prevData) => {
-            return [
-                {
-                    ...EVENT_DEFAULT_VALUES,
-                    id: response?.data?.createLoggableEvent?.id || uuidv4(),
-                    name: newEventName,
-                    warningThresholdInDays,
-                    labelIds
-                },
-                ...prevData
-            ];
+            return [newLoggableEvent, ...prevData];
         });
+
+        return newLoggableEvent;
     };
 
-    const addTimestampToEvent = async (eventId: string, dateToAdd: Date) => {
-        const newEventDateTimeISOString = dateToAdd.toISOString();
+    const loadLoggableEvents = (loggableEvents: Array<LoggableEvent>) => {
+        setLoggableEvents(loggableEvents);
+        setDataIsLoaded(true);
+    };
+
+    const addTimestampToEvent = (eventId: string, dateToAdd: Date) => {
+        // const newEventDateTimeISOString = dateToAdd.toISOString();
 
         setLoggableEvents((prevData) =>
             prevData.map((eventData: LoggableEvent) => {
@@ -206,11 +140,9 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
                 };
             })
         );
-
-        await submitCreateEventRecord(eventId, newEventDateTimeISOString);
     };
 
-    const updateLoggableEventDetails = async (updatedLoggableEvent: LoggableEvent) => {
+    const updateLoggableEventDetails = (updatedLoggableEvent: LoggableEvent) => {
         setLoggableEvents((prevData) =>
             prevData.map((eventData) => {
                 if (eventData.id !== updatedLoggableEvent.id) {
@@ -223,22 +155,18 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
                 };
             })
         );
-
-        await submitUpdateLoggableEventDetails({
-            eventId: updatedLoggableEvent.id,
-            ...updatedLoggableEvent
-        });
     };
 
-    const removeLoggableEvent = async (eventIdToRemove: string) => {
-        await submitDeleteLoggableEvent(eventIdToRemove);
+    const deleteLoggableEvent = (eventIdToRemove: string) => {
         setLoggableEvents((prevData) => prevData.filter(({ id }) => id !== eventIdToRemove));
     };
 
     const createEventLabel = (name: string): EventLabel => {
         const newEventLabel: EventLabel = {
             id: `temp-${uuidv4()}`, // Temporary ID for optimistic UI update
-            name
+            name,
+            createdAt: new Date(),
+            isSynced: false // Initially not synced until confirmed by backend
         };
 
         setEventLabels((prevData) => {
@@ -248,7 +176,7 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
         return newEventLabel;
     };
 
-    const updateEventLabel = async (updatedEventLabel: EventLabel) => {
+    const updateEventLabel = (updatedEventLabel: EventLabel) => {
         setEventLabels((prevData) =>
             prevData.map((eventLabelData) => {
                 if (eventLabelData.id !== updatedEventLabel.id) {
@@ -261,36 +189,21 @@ const LoggableEventsProvider = ({ offlineMode, children }: Props) => {
                 };
             })
         );
-
-        await submitUpdateEventLabel(updatedEventLabel.id, updatedEventLabel.name);
     };
 
-    const deleteEventLabel = async (eventLabelIdToRemove: string) => {
-        await submitDeleteEventLabel(eventLabelIdToRemove);
+    const deleteEventLabel = (eventLabelIdToRemove: string) => {
         setEventLabels((prevData) => prevData.filter(({ id }) => id !== eventLabelIdToRemove));
     };
-
-    /**
-     * Submit all temporary event labels to the backend when the component mounts or when eventLabels changes.
-     * This is to ensure that any labels created in the UI are persisted in the backend.
-     */
-    useEffect(() => {
-        const temporaryEventLabels = eventLabels.filter((label) => label.id.startsWith('temp-'));
-        if (temporaryEventLabels.length > 0) {
-            temporaryEventLabels.forEach((label) => {
-                submitCreateEventLabel(label.name);
-            });
-        }
-    }, [eventLabels]);
 
     const contextValue: LoggableEventsContextType = {
         loggableEvents,
         eventLabels,
         dataIsLoaded,
         createLoggableEvent,
+        loadLoggableEvents,
         addTimestampToEvent,
         updateLoggableEventDetails,
-        removeLoggableEvent,
+        deleteLoggableEvent,
         createEventLabel,
         updateEventLabel,
         deleteEventLabel

@@ -17,7 +17,7 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
-import { useComponentDisplayContext, AppTheme } from '../providers/ComponentDisplayProvider';
+import { useViewOptions, AppTheme } from '../providers/ViewOptionsProvider';
 import EventLabelList from './EventLabels/EventLabelList';
 
 type Props = {
@@ -33,7 +33,7 @@ type Props = {
  */
 const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
     const [isEditingLabels, setIsEditingLabels] = useState(false);
-    const { theme, enableDarkTheme, enableLightTheme } = useComponentDisplayContext();
+    const { theme, enableDarkTheme, enableLightTheme } = useViewOptions();
 
     const isDark = theme === AppTheme.Dark;
     const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());

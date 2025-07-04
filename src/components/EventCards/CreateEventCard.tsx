@@ -44,6 +44,7 @@ const CreateEventCard = () => {
             <ButtonBase
                 onClick={handleAddEventCardClick}
                 aria-label="Add event"
+                aria-describedby="create-event-help"
                 css={css`
                     width: 400px;
                     height: 200px;

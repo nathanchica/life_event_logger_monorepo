@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
@@ -13,12 +13,11 @@ import { useTheme } from '@mui/material/styles';
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
-import { AppTheme, useComponentDisplayContext } from '../providers/ComponentDisplayProvider';
-import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
+import { AppTheme } from '../providers/ViewOptionsProvider';
 import CreateEventCard from './EventCards/CreateEventCard';
-import { EventCardSkeleton } from './EventCards/EventCard';
-import LoggableEventCard from './EventCards/LoggableEventCard';
 import Sidebar from './Sidebar';
+import LoggableEventsGQL from './LoggableEventsGQL';
+import LoggableEventsList from './LoggableEventsList';
 
 type Props = {
     offlineMode: boolean;
@@ -30,9 +29,6 @@ type Props = {
  * It includes a sidebar for navigation and a loading state while data is being fetched.
  */
 const LoggableEventsView = ({ offlineMode }: Props) => {
-    const { loadingStateIsShowing, showLoadingState, hideLoadingState, activeEventLabelId } =
-        useComponentDisplayContext();
-    const { loggableEvents, dataIsLoaded } = useLoggableEventsContext();
     const theme = useTheme();
 
     const [sidebarIsCollapsed, setSidebarIsCollapsed] = useState(false);
@@ -40,10 +36,6 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
     const collapseSidebar = () => setSidebarIsCollapsed(true);
 
     const isDarkMode = theme.palette.mode === AppTheme.Dark;
-
-    const filteredEvents = activeEventLabelId
-        ? loggableEvents.filter(({ labelIds }) => labelIds && labelIds.includes(activeEventLabelId))
-        : loggableEvents;
 
     const mainContent = (
         <Grid
@@ -55,51 +47,14 @@ const LoggableEventsView = ({ offlineMode }: Props) => {
                 padding: 64px;
             `}
         >
-            <Grid
-                container
-                spacing={5}
-                role="list"
-                aria-label={activeEventLabelId ? 'Filtered loggable events' : 'All loggable events'}
-                aria-live="polite"
-            >
-                {loadingStateIsShowing ? (
-                    <>
-                        <Grid item role="listitem">
-                            <EventCardSkeleton />
-                        </Grid>
-                        <Grid item role="listitem">
-                            <EventCardSkeleton />
-                        </Grid>
-                        <Grid item role="listitem">
-                            <EventCardSkeleton />
-                        </Grid>
-                    </>
-                ) : (
-                    <>
-                        <Grid item role="listitem">
-                            <CreateEventCard />
-                        </Grid>
-                        {filteredEvents.map(({ id, name }) => {
-                            return (
-                                <Grid item key={`${name}-card`} role="listitem">
-                                    <LoggableEventCard eventId={id} />
-                                </Grid>
-                            );
-                        })}
-                    </>
-                )}
+            <Grid container spacing={5} role="list" aria-label="List of loggable events" aria-live="polite">
+                <Grid item role="listitem">
+                    <CreateEventCard />
+                </Grid>
+                {offlineMode ? <LoggableEventsList offlineMode /> : <LoggableEventsGQL />}
             </Grid>
         </Grid>
     );
-
-    // Show loading state when data is not loaded
-    useEffect(() => {
-        if (!dataIsLoaded) {
-            showLoadingState();
-        } else {
-            hideLoadingState();
-        }
-    }, [dataIsLoaded, showLoadingState, hideLoadingState]);
 
     return (
         <Paper

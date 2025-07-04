@@ -5,7 +5,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import EditEventCard, { MAX_LENGTH } from '../components/EventCards/EditEventCard';
 import { LoggableEventsContext } from '../providers/LoggableEventsProvider';
-import { ComponentDisplayContext } from '../providers/ComponentDisplayProvider';
+import { ViewOptionsContext } from '../providers/ComponentDisplayProvider';
 
 describe('EditEventCard', () => {
     // Default test data
@@ -42,7 +42,7 @@ describe('EditEventCard', () => {
             offlineMode: true
         };
 
-        const mockComponentDisplayContextValue = {
+        const mockViewOptionsContextValue = {
             activeEventLabelId: activeEventLabelId,
             setActiveEventLabelId: jest.fn(),
             offlineMode: true
@@ -51,9 +51,7 @@ describe('EditEventCard', () => {
         return render(
             <MockedProvider mocks={[]} addTypename={false}>
                 <LoggableEventsContext.Provider value={mockLoggableEventsContextValue}>
-                    <ComponentDisplayContext.Provider value={mockComponentDisplayContextValue}>
-                        {ui}
-                    </ComponentDisplayContext.Provider>
+                    <ViewOptionsContext.Provider value={mockViewOptionsContextValue}>{ui}</ViewOptionsContext.Provider>
                 </LoggableEventsContext.Provider>
             </MockedProvider>
         );

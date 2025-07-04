@@ -111,7 +111,7 @@ const EventLabelList = ({ isEditing }: Props) => {
                 </ListItem>
 
                 {eventLabels.map((eventLabelData) => (
-                    <EventLabel key={eventLabelData.id} data={eventLabelData} isShowingEditActions={isEditing} />
+                    <EventLabel key={eventLabelData.id} {...eventLabelData} isShowingEditActions={isEditing} />
                 ))}
             </List>
         </Box>
