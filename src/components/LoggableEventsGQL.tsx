@@ -1,31 +1,33 @@
 import { useEffect } from 'react';
 import { gql, useQuery } from '@apollo/client';
 
-import LoggableEventsList from './LoggableEventsList';
+import EventLabel, { createEventLabelFromFragment } from './EventLabels/EventLabel';
+import LoggableEventCard, { createLoggableEventFromFragment } from './EventCards/LoggableEventCard';
+import LoggableEventsView from './LoggableEventsView';
 import { useAuth } from '../providers/AuthProvider';
 import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
-import { LoggableEvent, LoggableEventGQL } from '../utils/types';
+import { EventLabel as EventLabelType, EventLabelFragment, LoggableEvent, LoggableEventFragment } from '../utils/types';
 
 export const GET_LOGGABLE_EVENTS_FOR_USER = gql`
     query GetLoggableEventsForUser($userId: String!) {
         user(userId: $userId) {
             loggableEvents {
                 id
-                name
-                timestamps
-                warningThresholdInDays
-                labels {
-                    id
-                    name
-                }
+                ...LoggableEventFragment
+            }
+            eventLabels {
+                id
+                ...EventLabelFragment
             }
         }
     }
+    ${EventLabel.fragments.eventLabel}
+    ${LoggableEventCard.fragments.loggableEvent}
 `;
 
 const LoggableEventsGQL = () => {
     const { user } = useAuth();
-    const { loadLoggableEvents } = useLoggableEventsContext();
+    const { loadLoggableEvents, loadEventLabels } = useLoggableEventsContext();
 
     if (!user) throw new Error('User is not authenticated, please log in.');
 
@@ -36,28 +38,27 @@ const LoggableEventsGQL = () => {
     const dataIsFetched = data && !loading && !error;
 
     let fetchedLoggableEvents: Array<LoggableEvent> = [];
+    let fetchedEventLabels: Array<EventLabelType> = [];
     if (dataIsFetched) {
-        const loggableEvents: Array<LoggableEventGQL> = data.user.loggableEvents;
-        fetchedLoggableEvents = loggableEvents.map((event) => ({
-            id: event.id,
-            name: event.name,
-            timestamps: event.timestamps.map((timestampIsoString) => new Date(timestampIsoString)),
-            createdAt: new Date(event.createdAt),
-            warningThresholdInDays: event.warningThresholdInDays,
-            labelIds: event.labels ? event.labels.map(({ id }) => id) : [],
-            isSynced: true
-        }));
+        const loggableEvents: Array<LoggableEventFragment> = data.user.loggableEvents;
+        fetchedLoggableEvents = loggableEvents.map((loggableEventFragment) =>
+            createLoggableEventFromFragment(loggableEventFragment)
+        );
+
+        const eventLabels: Array<EventLabelFragment> = data.user.eventLabels;
+        fetchedEventLabels = eventLabels.map((eventLabelFragment) => createEventLabelFromFragment(eventLabelFragment));
     }
 
     useEffect(() => {
         if (dataIsFetched) {
             loadLoggableEvents(fetchedLoggableEvents);
+            loadEventLabels(fetchedEventLabels);
         }
     }, [dataIsFetched]);
 
     if (error) throw new Error(`Error fetching loggable events: ${error.message}`);
 
-    return <LoggableEventsList />;
+    return <LoggableEventsView />;
 };
 
 export default LoggableEventsGQL;

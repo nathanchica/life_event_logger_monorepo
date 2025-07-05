@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
+import LoggableEventsGQL from './LoggableEventsGQL';
 import LoggableEventsView from './LoggableEventsView';
 import LoginView from './LoginView';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
@@ -76,11 +77,14 @@ const EventLoggerPage = () => {
         [mode]
     );
 
-    return (
-        <ThemeProvider theme={appTheme}>
-            {isAuthenticated || isOfflineMode ? <LoggableEventsView offlineMode={isOfflineMode} /> : <LoginView />}
-        </ThemeProvider>
-    );
+    let content = <LoginView />;
+    if (isOfflineMode) {
+        content = <LoggableEventsView offlineMode />;
+    } else if (isAuthenticated) {
+        content = <LoggableEventsGQL />;
+    }
+
+    return <ThemeProvider theme={appTheme}>{content}</ThemeProvider>;
 };
 
 export default EventLoggerPage;

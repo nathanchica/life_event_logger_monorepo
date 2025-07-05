@@ -2,7 +2,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import invariant from 'tiny-invariant';
 
 import { User } from '../utils/types';
-interface AuthContextType {
+
+export type AuthContextType = {
     user: User | null;
     token: string | null;
     isAuthenticated: boolean;
@@ -10,7 +11,7 @@ interface AuthContextType {
     login: (token: string, user: User) => void;
     logout: () => void;
     setOfflineMode: (isOffline: boolean) => void;
-}
+};
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

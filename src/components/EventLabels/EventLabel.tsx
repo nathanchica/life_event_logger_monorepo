@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { gql } from '@apollo/client';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -14,7 +15,23 @@ import CheckIcon from '@mui/icons-material/Check';
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { useViewOptions } from '../../providers/ViewOptionsProvider';
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
-import { EventLabel as EventLabelType } from '../../utils/types';
+import { EventLabel as EventLabelType, EventLabelFragment } from '../../utils/types';
+
+const EVENT_LABEL_FRAGMENT = gql`
+    fragment EventLabelFragment on EventLabel {
+        name
+        createdAt
+    }
+`;
+
+export const createEventLabelFromFragment = ({ id, name, createdAt }: EventLabelFragment): EventLabelType => {
+    return {
+        id,
+        name,
+        createdAt: new Date(createdAt),
+        isSynced: true
+    };
+};
 
 type Props = EventLabelType & {
     isShowingEditActions: boolean;
@@ -133,6 +150,10 @@ const EventLabel = ({ id, name, isShowingEditActions, ...eventLabelData }: Props
             </ListItemButton>
         </ListItem>
     );
+};
+
+EventLabel.fragments = {
+    eventLabel: EVENT_LABEL_FRAGMENT
 };
 
 export default EventLabel;

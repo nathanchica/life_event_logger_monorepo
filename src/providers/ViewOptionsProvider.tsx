@@ -2,12 +2,9 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import invariant from 'tiny-invariant';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
-export enum AppTheme {
-    Light = 'light',
-    Dark = 'dark'
-}
+export type AppTheme = 'light' | 'dark';
 
-type ViewOptionsContextType = {
+export type ViewOptionsContextType = {
     theme: AppTheme;
     enableLightTheme: () => void;
     enableDarkTheme: () => void;
@@ -33,9 +30,9 @@ type Props = {
 const ViewOptionsProvider = ({ children }: Props) => {
     // Detect OS preference for dark mode
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-    const [theme, setTheme] = useState<AppTheme>(prefersDarkMode ? AppTheme.Dark : AppTheme.Light);
-    const enableLightTheme = () => setTheme(AppTheme.Light);
-    const enableDarkTheme = () => setTheme(AppTheme.Dark);
+    const [theme, setTheme] = useState<AppTheme>(prefersDarkMode ? 'dark' : 'light');
+    const enableLightTheme = () => setTheme('light');
+    const enableDarkTheme = () => setTheme('dark');
 
     const [activeEventLabelId, setActiveEventLabelId] = useState<string | null>(null);
 

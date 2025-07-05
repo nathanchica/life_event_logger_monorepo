@@ -1,13 +1,13 @@
 import { GET_LOGGABLE_EVENTS_FOR_USER } from '../components/LoggableEventsGQL';
 import { createMockUser } from './user';
-import { createMockLoggableEventGQL } from './loggableEvent';
-import { LoggableEventGQL } from '../utils/types';
+import { createMockLoggableEventFragment } from './loggableEvent';
+import { LoggableEventFragment } from '../utils/types';
 
 export const createGetLoggableEventsForUserMock = (
     userId: string = createMockUser().id,
-    loggableEvents: Array<LoggableEventGQL> = [
-        createMockLoggableEventGQL(),
-        createMockLoggableEventGQL({ id: 'event-2', name: 'Test Event 2' })
+    loggableEvents: Array<LoggableEventFragment> = [
+        createMockLoggableEventFragment(),
+        createMockLoggableEventFragment({ id: 'event-2', name: 'Test Event 2' })
     ]
 ) => {
     return {

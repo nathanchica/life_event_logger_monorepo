@@ -6,7 +6,7 @@ import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 
 import CreateEventCard from '../components/EventCards/CreateEventCard';
 import { LoggableEventsContext } from '../providers/LoggableEventsProvider';
-import { ViewOptionsContext } from '../providers/ComponentDisplayProvider';
+import { ViewOptionsContext } from '../providers/ViewOptionsProvider';
 
 describe('CreateEventCard', () => {
     const mockEventLabels = [

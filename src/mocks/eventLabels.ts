@@ -1,4 +1,4 @@
-import { EventLabel, EventLabelGQL } from '../utils/types';
+import { EventLabel, EventLabelFragment } from '../utils/types';
 
 const mockEventLabel: EventLabel = {
     id: 'label-1',
@@ -14,15 +14,15 @@ export const createMockEventLabel = (overrides: Partial<EventLabel> = {}): Event
     };
 };
 
-const mockEventLabelGQL: EventLabelGQL = {
+const mockEventLabelFragment: EventLabelFragment = {
     id: 'label-1',
     name: 'Work',
     createdAt: '2023-01-01T00:00:00Z'
 };
 
-export const createMockEventLabelGQL = (overrides: Partial<EventLabelGQL> = {}): EventLabelGQL => {
+export const createMockEventLabelFragment = (overrides: Partial<EventLabelFragment> = {}): EventLabelFragment => {
     return {
-        ...mockEventLabelGQL,
+        ...mockEventLabelFragment,
         ...overrides
     };
 };

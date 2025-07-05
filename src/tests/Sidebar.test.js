@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { createTheme } from '@mui/material/styles';
 import Sidebar from '../components/Sidebar';
-import { ViewOptionsContext, AppTheme } from '../providers/ViewOptionsProvider';
+import { ViewOptionsContext } from '../providers/ViewOptionsProvider';
 import { LoggableEventsContext } from '../providers/LoggableEventsProvider';
 
 // Mock ClickAwayListener
@@ -48,7 +48,7 @@ const mockEventLabels = [
     { id: 'label-3', name: 'Health' }
 ];
 
-const createMockContext = (theme = AppTheme.Light) => ({
+const createMockContext = (theme = 'light') => ({
     theme,
     enableDarkTheme: mockEnableDarkTheme,
     enableLightTheme: mockEnableLightTheme,
@@ -63,11 +63,11 @@ const createMockContext = (theme = AppTheme.Light) => ({
 });
 
 function renderWithProviders(ui, options = {}) {
-    const { theme = AppTheme.Light, eventLabels = [] } = options;
+    const { theme = 'light', eventLabels = [] } = options;
     const contextValue = createMockContext(theme);
     const muiTheme = createTheme({
         palette: {
-            mode: theme === AppTheme.Dark ? 'dark' : 'light'
+            mode: theme
         }
     });
 
@@ -114,8 +114,8 @@ describe('Sidebar', () => {
         });
 
         it.each([
-            [AppTheme.Light, 'Switch to dark mode', 'Brightness4Icon'],
-            [AppTheme.Dark, 'Switch to light mode', 'Brightness7Icon']
+            ['light', 'Switch to dark mode', 'Brightness4Icon'],
+            ['dark', 'Switch to light mode', 'Brightness7Icon']
         ])('renders sidebar in %s mode with correct theme elements', (theme, buttonLabel, iconTestId) => {
             renderWithProviders(<Sidebar {...defaultProps} />, { theme });
 
@@ -151,7 +151,7 @@ describe('Sidebar', () => {
 
     describe('Theme Toggle', () => {
         it('calls enableDarkTheme when switching from light to dark', async () => {
-            renderWithProviders(<Sidebar {...defaultProps} />, { theme: AppTheme.Light });
+            renderWithProviders(<Sidebar {...defaultProps} />, { theme: 'light' });
 
             await userEvent.click(screen.getByLabelText('Switch to dark mode'));
 
@@ -159,7 +159,7 @@ describe('Sidebar', () => {
         });
 
         it('calls enableLightTheme when switching from dark to light', async () => {
-            renderWithProviders(<Sidebar {...defaultProps} />, { theme: AppTheme.Dark });
+            renderWithProviders(<Sidebar {...defaultProps} />, { theme: 'dark' });
 
             await userEvent.click(screen.getByLabelText('Switch to light mode'));
 

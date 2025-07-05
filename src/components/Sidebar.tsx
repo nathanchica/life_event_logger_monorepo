@@ -17,7 +17,7 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react';
 
-import { useViewOptions, AppTheme } from '../providers/ViewOptionsProvider';
+import { useViewOptions } from '../providers/ViewOptionsProvider';
 import EventLabelList from './EventLabels/EventLabelList';
 
 type Props = {
@@ -35,7 +35,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
     const [isEditingLabels, setIsEditingLabels] = useState(false);
     const { theme, enableDarkTheme, enableLightTheme } = useViewOptions();
 
-    const isDark = theme === AppTheme.Dark;
+    const isDark = theme === 'dark';
     const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());
 
     const handleClickAway = () => {
@@ -106,10 +106,11 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                     overflow-y: auto;
                                 `}
                             >
-                                <EventLabelList isEditing={isEditingLabels} />
+                                <EventLabelList isShowingEditActions={isEditingLabels} />
                             </Box>
                         </Box>
                     </Collapse>
+
                     <Box
                         sx={{
                             position: 'absolute',

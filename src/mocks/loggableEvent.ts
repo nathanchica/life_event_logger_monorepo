@@ -1,5 +1,5 @@
-import { LoggableEvent, LoggableEventGQL } from '../utils/types';
-import { createMockEventLabel, createMockEventLabelGQL } from './eventLabels';
+import { LoggableEvent, LoggableEventFragment } from '../utils/types';
+import { createMockEventLabel, createMockEventLabelFragment } from './eventLabels';
 
 const mockLoggableEvent: LoggableEvent = {
     id: 'event-1',
@@ -21,21 +21,23 @@ export const createMockLoggableEvent = (overrides: Partial<LoggableEvent> = {}):
     };
 };
 
-const mockLoggableEventGQL: LoggableEventGQL = {
+const mockLoggableEventFragment: LoggableEventFragment = {
     id: 'event-1',
     name: 'Test Event 1',
     timestamps: ['2023-01-01T00:00:00Z'],
     createdAt: '2023-01-01T00:00:00Z',
     warningThresholdInDays: 7,
     labels: [
-        createMockEventLabelGQL({ id: 'label-1', name: 'Work' }),
-        createMockEventLabelGQL({ id: 'label-2', name: 'Personal' })
+        createMockEventLabelFragment({ id: 'label-1', name: 'Work' }),
+        createMockEventLabelFragment({ id: 'label-2', name: 'Personal' })
     ]
 };
 
-export const createMockLoggableEventGQL = (overrides: Partial<LoggableEventGQL> = {}): LoggableEventGQL => {
+export const createMockLoggableEventFragment = (
+    overrides: Partial<LoggableEventFragment> = {}
+): LoggableEventFragment => {
     return {
-        ...mockLoggableEventGQL,
+        ...mockLoggableEventFragment,
         ...overrides
     };
 };

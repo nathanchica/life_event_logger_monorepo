@@ -44,3 +44,16 @@ export const convertDaysToUnitAndNumber = (days: number): { number: number; unit
 
     return { number: days, unit: 'days' };
 };
+
+/**
+ * Gets the number of days since the last event record that has occurred (not future dates).
+ * Returns undefined if no past event records exist.
+ */
+export const getDaysSinceLastEventRecord = (eventRecords: Date[], currentDate: Date): number | undefined => {
+    // Find the most recent event record that has happened (not future dates)
+    const lastEventRecord = eventRecords.find((eventDate) => {
+        return getNumberOfDaysBetweenDates(eventDate, currentDate) >= 0;
+    });
+
+    return lastEventRecord ? getNumberOfDaysBetweenDates(lastEventRecord, currentDate) : undefined;
+};

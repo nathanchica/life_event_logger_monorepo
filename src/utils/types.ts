@@ -36,7 +36,7 @@ export interface LoggableEvent {
 }
 
 /**
- * GQL types
+ * GQL Fragment types
  */
 
 export type UserGQL = {
@@ -48,7 +48,7 @@ export type UserGQL = {
     name: string;
 };
 
-export type EventLabelGQL = {
+export type EventLabelFragment = {
     /** id of the event label */
     id: string;
     /** Displayable name of the event label */
@@ -57,7 +57,7 @@ export type EventLabelGQL = {
     createdAt: string;
 };
 
-export type LoggableEventGQL = {
+export type LoggableEventFragment = {
     /** id of the event */
     id: string;
     /** Name of the event */
@@ -69,5 +69,5 @@ export type LoggableEventGQL = {
     /** Number of days since the last event record before a warning will show for this event */
     warningThresholdInDays: number;
     /** List of event labels associated with this event */
-    labels: Array<EventLabelGQL>;
+    labels: Array<EventLabelFragment>;
 };
