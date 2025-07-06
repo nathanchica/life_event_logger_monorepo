@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import EventOptionsDropdown from '../components/EventCards/EventOptionsDropdown';
+import EventOptionsDropdown from '../EventOptionsDropdown';
 
 describe('EventOptionsDropdown', () => {
     const mockOnDismiss = jest.fn();

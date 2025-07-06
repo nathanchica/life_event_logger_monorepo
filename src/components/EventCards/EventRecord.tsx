@@ -1,16 +1,17 @@
+/** @jsxImportSource @emotion/react */
+
 import { useState } from 'react';
+
+import { css } from '@emotion/react';
+import CancelIcon from '@mui/icons-material/Cancel';
 import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
-import CancelIcon from '@mui/icons-material/Cancel';
 import ListItemText from '@mui/material/ListItemText';
 import { grey } from '@mui/material/colors';
-
-/** @jsxImportSource @emotion/react */
-import { css } from '@emotion/react';
+import invariant from 'tiny-invariant';
 
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { getNumberOfDaysBetweenDates } from '../../utils/time';
-import invariant from 'tiny-invariant';
 
 type Props = {
     eventId: string;

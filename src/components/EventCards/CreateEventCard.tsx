@@ -1,16 +1,17 @@
+/** @jsxImportSource @emotion/react */
+
 import { useState } from 'react';
 
+import { css } from '@emotion/react';
+import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
-import { visuallyHidden } from '@mui/utils';
 import blue from '@mui/material/colors/blue';
 import grey from '@mui/material/colors/grey';
-import AddIcon from '@mui/icons-material/Add';
-
-/** @jsxImportSource @emotion/react */
-import { css } from '@emotion/react';
+import { visuallyHidden } from '@mui/utils';
 
 import EditEventCard from './EditEventCard';
+import { CARD_WIDTH } from './EventCard';
 
 /**
  * CreateEventCard component for displaying a card that allows users to create a new event.
@@ -46,7 +47,7 @@ const CreateEventCard = () => {
                 aria-label="Add event"
                 aria-describedby="create-event-help"
                 css={css`
-                    width: 400px;
+                    width: ${CARD_WIDTH};
                     height: 200px;
                 `}
             >

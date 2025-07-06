@@ -1,19 +1,20 @@
-import { useState } from 'react';
-import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oauth/google';
-import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
-import CircularProgress from '@mui/material/CircularProgress';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import { gql, useMutation } from '@apollo/client';
-import { useTheme } from '@mui/material/styles';
-
 /** @jsxImportSource @emotion/react */
+
+import { useState } from 'react';
+
+import { gql, useMutation } from '@apollo/client';
 import { css } from '@emotion/react';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import { useTheme } from '@mui/material/styles';
+import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oauth/google';
 
 import { useAuth } from '../providers/AuthProvider';
 
-const LOGIN_MUTATION = gql`
+export const LOGIN_MUTATION = gql`
     mutation Login($googleToken: String!) {
         login(googleToken: $googleToken) {
             token

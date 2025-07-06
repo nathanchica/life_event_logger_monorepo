@@ -1,13 +1,14 @@
+/** @jsxImportSource @emotion/react */
+
+import { css } from '@emotion/react';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-
-/** @jsxImportSource @emotion/react */
-import { css } from '@emotion/react';
 
 import EventOptionsDropdown from './EventOptionsDropdown';
+
 import { useToggle } from '../../utils/useToggle';
 
 type Props = {

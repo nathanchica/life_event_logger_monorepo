@@ -1,14 +1,14 @@
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
 
-import LoggableEventCard from '../LoggableEventCard';
-import { LoggableEventsContext } from '../../../providers/LoggableEventsProvider';
-import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import { createMockEventLabel } from '../../../mocks/eventLabels';
 import { createMockLoggableEvent } from '../../../mocks/loggableEvent';
 import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../../mocks/providers';
+import { LoggableEventsContext } from '../../../providers/LoggableEventsProvider';
+import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
+import LoggableEventCard from '../LoggableEventCard';
 
 describe('LoggableEventCard', () => {
     let mockContextValue;
@@ -178,5 +178,25 @@ describe('LoggableEventCard', () => {
         jest.setSystemTime(new Date(dateString));
         renderWithProviders();
         expect(screen.getByText(expectedText)).toBeInTheDocument();
+    });
+
+    it('handles logging custom date', async () => {
+        renderWithProviders({
+            loggableEvents: [
+                createMockLoggableEvent({
+                    id: 'event-1',
+                    name: 'Exercise',
+                    timestamps: [],
+                    labelIds: []
+                })
+            ]
+        });
+        expect(screen.queryByText(/Records/)).not.toBeInTheDocument();
+        userEvent.click(screen.getByRole('button', { name: 'Log custom date' }));
+        const dateInput = screen.getByLabelText(/event date/i);
+        await userEvent.click(dateInput);
+        const okButton = await screen.findByRole('button', { name: /ok/i });
+        await userEvent.click(okButton);
+        expect(mockAddTimestampToEvent).toHaveBeenCalledWith('event-1', expect.any(Date));
     });
 });

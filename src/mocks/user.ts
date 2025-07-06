@@ -1,4 +1,4 @@
-import { User, UserGQL } from '../utils/types';
+import { User, UserFragment } from '../utils/types';
 
 const mockUser: User = {
     id: 'user-1',
@@ -13,15 +13,16 @@ export const createMockUser = (overrides: Partial<User> = {}): User => {
     };
 };
 
-const mockUserGQL: UserGQL = {
+const mockUserFragment: UserFragment = {
+    __typename: 'User',
     id: 'user-1',
     email: 'test@example.com',
     name: 'Test User'
 };
 
-export const createMockUserGQL = (overrides: Partial<UserGQL> = {}): UserGQL => {
+export const createMockUserFragment = (overrides: Partial<UserFragment> = {}): UserFragment => {
     return {
-        ...mockUserGQL,
+        ...mockUserFragment,
         ...overrides
     };
 };

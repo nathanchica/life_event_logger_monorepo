@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import WarningThresholdForm from '../components/EventCards/WarningThresholdForm';
+import WarningThresholdForm from '../WarningThresholdForm';
 
 describe('WarningThresholdForm', () => {
     const mockOnChange = jest.fn();

@@ -1,25 +1,26 @@
 import { gql } from '@apollo/client';
-import invariant from 'tiny-invariant';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
 import List from '@mui/material/List';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Chip from '@mui/material/Chip';
 import { visuallyHidden } from '@mui/utils';
+import invariant from 'tiny-invariant';
 
 import EditEventCard from './EditEventCard';
 import EventCard from './EventCard';
 import EventCardHeader from './EventCardHeader';
 import EventDatepicker from './EventDatepicker';
-import EventLabel from '../EventLabels/EventLabel';
 import EventRecord from './EventRecord';
 import LastEventDisplay from './LastEventDisplay';
+
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { getDaysSinceLastEventRecord } from '../../utils/time';
 import { LoggableEvent, LoggableEventFragment } from '../../utils/types';
 import { useToggle } from '../../utils/useToggle';
+import EventLabel from '../EventLabels/EventLabel';
 
 const MAX_RECORDS_TO_DISPLAY = 5;
 
@@ -50,7 +51,7 @@ export const createLoggableEventFromFragment = ({
         timestamps: timestamps.map((timestampIsoString) => new Date(timestampIsoString)),
         createdAt: new Date(createdAt),
         warningThresholdInDays,
-        labelIds: labels ? labels.map(({ id }) => id) : [],
+        labelIds: labels.map(({ id }) => id),
         isSynced: true
     };
 };

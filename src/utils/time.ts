@@ -1,29 +1,17 @@
-export const DAY_IN_MILLISECONDS = 1000 * 60 * 60 * 24;
+const DAY_IN_MILLISECONDS = 1000 * 60 * 60 * 24;
 export const DAYS_IN_MONTH = 30;
 export const DAYS_IN_YEAR = 365;
-export const MONTHS_IN_YEAR = 12;
 
 export type TimeUnit = 'days' | 'months' | 'years';
 
 /**
- * Gets number of days between two date objects. If time difference has not passed 24 hours, but the two given
- * dates are on different dates, then we'll consider it a 1 day difference.
+ * Sorts two date objects in descending order (newest first).
+ * This is to be used with array sort methods to order dates from newest to oldest.
+ *
+ * for example:
+ * [new Date('2023-10-01'), new Date('2023-09-30')].sort(sortDateObjectsByNewestFirst)
+ * will result in [new Date('2023-10-01'), new Date('2023-09-30')].
  */
-export const getNumberOfDaysBetweenDates = (start: Date, end: Date): number => {
-    const diffInTime = end.getTime() - start.getTime();
-    const daysDiff = Math.round(diffInTime / DAY_IN_MILLISECONDS);
-
-    if (daysDiff === 0) {
-        /**
-         * If given dates are different dates, consider it a 1 day difference
-         * even if the difference is less than 24 hrs.
-         */
-        return start.getDate() !== end.getDate() ? 1 : 0;
-    }
-
-    return daysDiff;
-};
-
 export const sortDateObjectsByNewestFirst = (currDate: Date, nextDate: Date) => {
     return nextDate.getTime() - currDate.getTime();
 };
@@ -46,8 +34,35 @@ export const convertDaysToUnitAndNumber = (days: number): { number: number; unit
 };
 
 /**
+ * Gets number of days between two date objects. If time difference has not passed 24 hours, but the two given
+ * dates are on different dates, then we'll consider it a 1 day difference.
+ */
+export const getNumberOfDaysBetweenDates = (start: Date, end: Date): number => {
+    const diffInTime = end.getTime() - start.getTime();
+    const daysDiff = Math.round(diffInTime / DAY_IN_MILLISECONDS);
+
+    // If dates are on the same day, return 0
+    if (
+        start.getDate() === end.getDate() &&
+        start.getMonth() === end.getMonth() &&
+        start.getFullYear() === end.getFullYear()
+    ) {
+        return 0;
+    }
+
+    // If dates are on different days but less than 24 hours apart, return 1
+    if (daysDiff === 0) {
+        return 1;
+    }
+
+    return daysDiff;
+};
+
+/**
  * Gets the number of days since the last event record that has occurred (not future dates).
  * Returns undefined if no past event records exist.
+ *
+ * eventRecords is assumed to be sorted in descending order (newest first).
  */
 export const getDaysSinceLastEventRecord = (eventRecords: Date[], currentDate: Date): number | undefined => {
     // Find the most recent event record that has happened (not future dates)

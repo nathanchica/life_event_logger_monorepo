@@ -1,24 +1,26 @@
 import { useState } from 'react';
+
 import { gql } from '@apollo/client';
+import CancelIcon from '@mui/icons-material/Cancel';
+import CheckIcon from '@mui/icons-material/Check';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import LabelIcon from '@mui/icons-material/Label';
+import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import IconButton from '@mui/material/IconButton';
-import LabelIcon from '@mui/icons-material/Label';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import TextField from '@mui/material/TextField';
-import CancelIcon from '@mui/icons-material/Cancel';
-import CheckIcon from '@mui/icons-material/Check';
 
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { useViewOptions } from '../../providers/ViewOptionsProvider';
-import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
 import { EventLabel as EventLabelType, EventLabelFragment } from '../../utils/types';
+import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
 
 const EVENT_LABEL_FRAGMENT = gql`
     fragment EventLabelFragment on EventLabel {
+        id
         name
         createdAt
     }

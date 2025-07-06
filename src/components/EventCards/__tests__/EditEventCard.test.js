@@ -1,82 +1,73 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MockedProvider } from '@apollo/client/testing';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-import EditEventCard, { MAX_LENGTH } from '../components/EventCards/EditEventCard';
-import { LoggableEventsContext } from '../providers/LoggableEventsProvider';
-import { ViewOptionsContext } from '../providers/ViewOptionsProvider';
+import { createMockEventLabel } from '../../../mocks/eventLabels';
+import { createMockLoggableEvent } from '../../../mocks/loggableEvent';
+import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../../mocks/providers';
+import { LoggableEventsContext } from '../../../providers/LoggableEventsProvider';
+import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
+import { MAX_EVENT_NAME_LENGTH } from '../../../utils/validation';
+import EditEventCard from '../EditEventCard';
 
 describe('EditEventCard', () => {
-    // Default test data
+    const mockOnDismiss = jest.fn();
+    const mockCreateLoggableEvent = jest.fn();
+    const mockUpdateLoggableEventDetails = jest.fn();
+
     const mockEventLabels = [
-        { id: 'label-1', name: 'Work' },
-        { id: 'label-2', name: 'Personal' }
+        createMockEventLabel({ id: 'label-1', name: 'Work' }),
+        createMockEventLabel({ id: 'label-2', name: 'Personal' })
     ];
 
-    const mockEvent = {
+    const mockEvent = createMockLoggableEvent({
         id: 'event-1',
         name: 'Existing Event',
         timestamps: [],
         warningThresholdInDays: 14,
         labelIds: ['label-1']
-    };
+    });
 
-    const mockOnDismiss = jest.fn();
-    const mockCreateLoggableEvent = jest.fn();
-    const mockUpdateLoggableEventDetails = jest.fn();
-
-    function renderWithProvider(ui, options = {}) {
-        const { existingEvents = [], eventLabels = [], activeEventLabelId = null } = options;
-
-        const mockLoggableEventsContextValue = {
-            loggableEvents: existingEvents,
-            createLoggableEvent: mockCreateLoggableEvent,
-            updateLoggableEventDetails: mockUpdateLoggableEventDetails,
-            deleteLoggableEvent: jest.fn(),
-            logEvent: jest.fn(),
-            deleteEventTimestamp: jest.fn(),
-            eventLabels: eventLabels,
-            createEventLabel: jest.fn(),
-            deleteEventLabel: jest.fn(),
-            offlineMode: true
-        };
-
-        const mockViewOptionsContextValue = {
-            activeEventLabelId: activeEventLabelId,
-            setActiveEventLabelId: jest.fn(),
-            offlineMode: true
-        };
-
-        return render(
-            <MockedProvider mocks={[]} addTypename={false}>
-                <LoggableEventsContext.Provider value={mockLoggableEventsContextValue}>
-                    <ViewOptionsContext.Provider value={mockViewOptionsContextValue}>{ui}</ViewOptionsContext.Provider>
-                </LoggableEventsContext.Provider>
-            </MockedProvider>
-        );
-    }
-
-    afterEach(() => {
+    beforeEach(() => {
         jest.clearAllMocks();
     });
+
+    const renderWithProviders = (component, options = {}) => {
+        const { existingEvents = [], eventLabels = [], activeEventLabelId = null, theme = 'light' } = options;
+
+        const mockLoggableEventsValue = createMockLoggableEventsContextValue({
+            loggableEvents: existingEvents,
+            eventLabels,
+            createLoggableEvent: mockCreateLoggableEvent,
+            updateLoggableEventDetails: mockUpdateLoggableEventDetails
+        });
+
+        const mockViewOptionsValue = createMockViewOptionsContextValue({
+            activeEventLabelId,
+            theme
+        });
+
+        const muiTheme = createTheme({
+            palette: {
+                mode: theme
+            }
+        });
+
+        return render(
+            <ThemeProvider theme={muiTheme}>
+                <LoggableEventsContext.Provider value={mockLoggableEventsValue}>
+                    <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
+                </LoggableEventsContext.Provider>
+            </ThemeProvider>
+        );
+    };
 
     describe('Rendering', () => {
         it.each([
             ['light', 'light'],
             ['dark', 'dark']
         ])('renders form with correct elements and theme styling in %s mode', (_, themeMode) => {
-            const theme = createTheme({
-                palette: {
-                    mode: themeMode
-                }
-            });
-
-            renderWithProvider(
-                <ThemeProvider theme={theme}>
-                    <EditEventCard onDismiss={mockOnDismiss} />
-                </ThemeProvider>
-            );
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />, { theme: themeMode });
 
             expect(screen.getByLabelText('Event name')).toBeInTheDocument();
             expect(screen.getByLabelText('Enable warning')).toBeInTheDocument();
@@ -94,17 +85,17 @@ describe('EditEventCard', () => {
             ['Create mode', null, 'Create'],
             ['Edit mode', 'event-1', 'Update']
         ])('renders correct button in %s', (_, eventIdToEdit, expectedButtonText) => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit={eventIdToEdit} />);
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit={eventIdToEdit} />);
             expect(screen.getByRole('button', { name: expectedButtonText })).toBeInTheDocument();
         });
     });
 
     describe('Event name validation', () => {
         it.each([
-            ['too long', 'a'.repeat(MAX_LENGTH + 1), 'Event name is too long', null],
+            ['too long', 'a'.repeat(MAX_EVENT_NAME_LENGTH + 1), 'Event name is too long', null],
             ['duplicate', 'Existing Event', 'That event name already exists', mockEvent]
         ])('shows error and disables button for name %s', async (_, inputValue, expectedError, existingEvent) => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />, {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />, {
                 existingEvents: existingEvent ? [existingEvent] : []
             });
 
@@ -117,7 +108,7 @@ describe('EditEventCard', () => {
         });
 
         it('enables button when valid name is entered', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />);
 
             const input = screen.getByLabelText('Event name');
             await userEvent.type(input, 'Test Event');
@@ -129,7 +120,7 @@ describe('EditEventCard', () => {
 
     describe('Warning threshold', () => {
         it('shows/hides threshold form based on switch state', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />);
 
             // Form should be hidden initially
             expect(screen.queryByLabelText('Warning threshold number')).not.toBeVisible();
@@ -145,12 +136,12 @@ describe('EditEventCard', () => {
         });
 
         it('preserves existing warning threshold when editing event', () => {
-            const eventWithWarning = {
+            const eventWithWarning = createMockLoggableEvent({
                 ...mockEvent,
                 warningThresholdInDays: 30
-            };
+            });
 
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
                 existingEvents: [eventWithWarning]
             });
 
@@ -161,7 +152,7 @@ describe('EditEventCard', () => {
         });
 
         it('handles warning threshold changes', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />);
 
             // Enable warning threshold
             const warningSwitch = screen.getByLabelText('Enable warning');
@@ -172,14 +163,14 @@ describe('EditEventCard', () => {
             await userEvent.clear(numberInput);
             await userEvent.type(numberInput, '5');
 
-            // Verify the value changed (this triggers handleWarningThresholdChange)
+            // Verify the value changed
             expect(numberInput).toHaveValue(5);
         });
     });
 
     describe('Labels', () => {
         it('shows label input when Add labels is clicked', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />);
 
             const addLabelsButton = screen.getByRole('button', { name: 'Add labels' });
             await userEvent.click(addLabelsButton);
@@ -188,7 +179,7 @@ describe('EditEventCard', () => {
         });
 
         it('pre-populates selected labels when creating new event with active label', () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />, {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />, {
                 eventLabels: mockEventLabels,
                 activeEventLabelId: 'label-1'
             });
@@ -198,12 +189,12 @@ describe('EditEventCard', () => {
         });
 
         it('filters and pre-populates labels when editing event with existing labels', () => {
-            const existingEvent = {
+            const existingEvent = createMockLoggableEvent({
                 ...mockEvent,
                 labelIds: ['label-1']
-            };
+            });
 
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
                 existingEvents: [existingEvent],
                 eventLabels: mockEventLabels
             });
@@ -213,12 +204,12 @@ describe('EditEventCard', () => {
         });
 
         it('handles event with no labelIds when editing', () => {
-            const existingEvent = {
+            const existingEvent = createMockLoggableEvent({
                 ...mockEvent,
                 labelIds: null
-            };
+            });
 
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
                 existingEvents: [existingEvent],
                 eventLabels: mockEventLabels
             });
@@ -229,55 +220,56 @@ describe('EditEventCard', () => {
     });
 
     describe('Form submission', () => {
-        it.each([
-            [
-                'Cancel button',
-                async () => {
-                    const cancelButton = screen.getByRole('button', { name: /Cancel/i });
-                    await userEvent.click(cancelButton);
-                },
-                null
-            ],
-            [
-                'Create button with valid name',
-                async () => {
-                    const input = screen.getByLabelText('Event name');
-                    await userEvent.type(input, 'Test Event');
-                    const createButton = screen.getByRole('button', { name: 'Create' });
-                    await userEvent.click(createButton);
-                },
-                null
-            ],
-            [
-                'Enter key with valid name',
-                async () => {
-                    const input = screen.getByLabelText('Event name');
-                    await userEvent.type(input, 'Test Event{enter}');
-                },
-                null
-            ],
-            [
-                'Create with selected labels',
-                async () => {
-                    const input = screen.getByLabelText('Event name');
-                    await userEvent.type(input, 'Test Event');
-                    const createButton = screen.getByRole('button', { name: 'Create' });
-                    await userEvent.click(createButton);
-                },
-                'label-1'
-            ]
-        ])('dismisses form when %s is used', async (_, action, activeLabel) => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />, {
-                eventLabels: activeLabel ? mockEventLabels : [],
-                activeEventLabelId: activeLabel
+        it('dismisses form when Cancel button is clicked', async () => {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />);
+
+            const cancelButton = screen.getByRole('button', { name: /Cancel/i });
+            await userEvent.click(cancelButton);
+
+            expect(mockOnDismiss).toHaveBeenCalledTimes(1);
+        });
+
+        it('creates event and dismisses form when Create button is clicked with valid name', async () => {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />);
+
+            const input = screen.getByLabelText('Event name');
+            await userEvent.type(input, 'Test Event');
+
+            const createButton = screen.getByRole('button', { name: 'Create' });
+            await userEvent.click(createButton);
+
+            expect(mockCreateLoggableEvent).toHaveBeenCalledWith('Test Event', 0, []);
+            expect(mockOnDismiss).toHaveBeenCalledTimes(1);
+        });
+
+        it('creates event and dismisses form when Enter key is pressed with valid name', async () => {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />);
+
+            const input = screen.getByLabelText('Event name');
+            await userEvent.type(input, 'Test Event{enter}');
+
+            expect(mockCreateLoggableEvent).toHaveBeenCalledWith('Test Event', 0, []);
+            expect(mockOnDismiss).toHaveBeenCalledTimes(1);
+        });
+
+        it('creates event with selected labels', async () => {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />, {
+                eventLabels: mockEventLabels,
+                activeEventLabelId: 'label-1'
             });
 
-            await action();
+            const input = screen.getByLabelText('Event name');
+            await userEvent.type(input, 'Test Event');
+
+            const createButton = screen.getByRole('button', { name: 'Create' });
+            await userEvent.click(createButton);
+
+            expect(mockCreateLoggableEvent).toHaveBeenCalledWith('Test Event', 0, ['label-1']);
             expect(mockOnDismiss).toHaveBeenCalledTimes(1);
         });
 
         it('does not create event when Enter is pressed with invalid name', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} />);
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} />);
 
             const input = screen.getByLabelText('Event name');
             await userEvent.type(input, '{enter}');
@@ -289,7 +281,7 @@ describe('EditEventCard', () => {
 
     describe('Edit mode', () => {
         it('updates existing event with labels', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
                 existingEvents: [mockEvent],
                 eventLabels: mockEventLabels
             });
@@ -304,12 +296,17 @@ describe('EditEventCard', () => {
             const updateButton = screen.getByRole('button', { name: 'Update' });
             await userEvent.click(updateButton);
 
-            expect(mockUpdateLoggableEventDetails).toHaveBeenCalledTimes(1);
+            expect(mockUpdateLoggableEventDetails).toHaveBeenCalledWith({
+                ...mockEvent,
+                name: 'Updated Event Name',
+                warningThresholdInDays: 14,
+                labelIds: ['label-1']
+            });
             expect(mockOnDismiss).toHaveBeenCalledTimes(1);
         });
 
         it('only updates event when event name is valid', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
                 existingEvents: [{ ...mockEvent, labelIds: [] }]
             });
 
@@ -328,7 +325,7 @@ describe('EditEventCard', () => {
         });
 
         it('does not update event when Enter is pressed with invalid name', async () => {
-            renderWithProvider(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
+            renderWithProviders(<EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />, {
                 existingEvents: [{ ...mockEvent, labelIds: [] }]
             });
 

@@ -1,9 +1,10 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+
 import invariant from 'tiny-invariant';
 import { v4 as uuidv4 } from 'uuid';
 
-import { EventLabel, LoggableEvent } from '../utils/types';
 import { sortDateObjectsByNewestFirst } from '../utils/time';
+import { EventLabel, LoggableEvent } from '../utils/types';
 
 export const EVENT_DEFAULT_VALUES: LoggableEvent = {
     id: '',
@@ -138,8 +139,6 @@ const LoggableEventsProvider = ({ children }: Props) => {
     };
 
     const addTimestampToEvent = (eventId: string, dateToAdd: Date) => {
-        // const newEventDateTimeISOString = dateToAdd.toISOString();
-
         setLoggableEvents((prevData) =>
             prevData.map((eventData: LoggableEvent) => {
                 if (eventData.id !== eventId) {

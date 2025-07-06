@@ -1,24 +1,28 @@
-import { useState } from 'react';
+/** @jsxImportSource @emotion/react */
 
+import { css } from '@emotion/react';
+import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import blueGrey from '@mui/material/colors/blueGrey';
 import green from '@mui/material/colors/green';
-import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
 import { useTheme } from '@mui/material/styles';
 
-/** @jsxImportSource @emotion/react */
-import { css } from '@emotion/react';
-
 import CreateEventCard from './EventCards/CreateEventCard';
-import Sidebar from './Sidebar';
+import { EventCardSkeleton } from './EventCards/EventCard';
 import LoggableEventsList from './LoggableEventsList';
+import Sidebar from './Sidebar';
+
+import { useToggle } from '../utils/useToggle';
 
 type Props = {
+    isLoading?: boolean;
     offlineMode?: boolean;
+    isShowingFetchError?: boolean;
 };
 
 /**
@@ -26,14 +30,12 @@ type Props = {
  * It shows a list of loggable events and allows users to create new events.
  * It includes a sidebar for navigation and a loading state while data is being fetched.
  */
-const LoggableEventsView = ({ offlineMode = false }: Props) => {
+const LoggableEventsView = ({ isLoading = false, offlineMode = false, isShowingFetchError = false }: Props) => {
     const theme = useTheme();
-
-    const [sidebarIsCollapsed, setSidebarIsCollapsed] = useState(false);
-    const expandSidebar = () => setSidebarIsCollapsed(false);
-    const collapseSidebar = () => setSidebarIsCollapsed(true);
+    const { value: sidebarIsCollapsed, setTrue: collapseSidebar, setFalse: expandSidebar } = useToggle(false);
 
     const isDarkMode = theme.palette.mode === 'dark';
+    const shouldShowLoadingState = isLoading && !offlineMode;
 
     const mainContent = (
         <Grid
@@ -46,10 +48,42 @@ const LoggableEventsView = ({ offlineMode = false }: Props) => {
             `}
         >
             <Grid container spacing={5} role="list" aria-label="List of loggable events" aria-live="polite">
-                <Grid item role="listitem">
-                    <CreateEventCard />
-                </Grid>
-                <LoggableEventsList offlineMode={offlineMode} />
+                {isShowingFetchError ? (
+                    <Grid
+                        item
+                        xs={12}
+                        css={css`
+                            text-align: center;
+                            padding: 48px;
+                        `}
+                    >
+                        <Typography variant="h5" gutterBottom>
+                            Sorry, something went wrong
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            Please try again later
+                        </Typography>
+                    </Grid>
+                ) : shouldShowLoadingState ? (
+                    <>
+                        <Grid item role="listitem">
+                            <EventCardSkeleton />
+                        </Grid>
+                        <Grid item role="listitem">
+                            <EventCardSkeleton />
+                        </Grid>
+                        <Grid item role="listitem">
+                            <EventCardSkeleton />
+                        </Grid>
+                    </>
+                ) : (
+                    <>
+                        <Grid item role="listitem">
+                            <CreateEventCard />
+                        </Grid>
+                        <LoggableEventsList />
+                    </>
+                )}
             </Grid>
         </Grid>
     );

@@ -15,6 +15,7 @@ export const createMockEventLabel = (overrides: Partial<EventLabel> = {}): Event
 };
 
 const mockEventLabelFragment: EventLabelFragment = {
+    __typename: 'EventLabel',
     id: 'label-1',
     name: 'Work',
     createdAt: '2023-01-01T00:00:00Z'

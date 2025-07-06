@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
 import invariant from 'tiny-invariant';
 
 import { User } from '../utils/types';
@@ -32,6 +33,7 @@ const AuthProvider = ({ children }: Props) => {
 
     useEffect(() => {
         // Check for offline URL parameter
+        // istanbul ignore next - window is always defined in browser environment
         const hasOfflineInUrlParam = window ? new URLSearchParams(window.location.search).has('offline') : false;
         if (hasOfflineInUrlParam) {
             setIsOfflineMode(true);

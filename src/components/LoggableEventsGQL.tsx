@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
+
 import { gql, useQuery } from '@apollo/client';
 
-import EventLabel, { createEventLabelFromFragment } from './EventLabels/EventLabel';
 import LoggableEventCard, { createLoggableEventFromFragment } from './EventCards/LoggableEventCard';
+import EventLabel, { createEventLabelFromFragment } from './EventLabels/EventLabel';
 import LoggableEventsView from './LoggableEventsView';
+
 import { useAuth } from '../providers/AuthProvider';
 import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
 import { EventLabel as EventLabelType, EventLabelFragment, LoggableEvent, LoggableEventFragment } from '../utils/types';
@@ -56,9 +58,7 @@ const LoggableEventsGQL = () => {
         }
     }, [dataIsFetched]);
 
-    if (error) throw new Error(`Error fetching loggable events: ${error.message}`);
-
-    return <LoggableEventsView />;
+    return <LoggableEventsView isLoading={loading} isShowingFetchError={Boolean(error)} />;
 };
 
 export default LoggableEventsGQL;

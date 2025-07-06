@@ -1,9 +1,10 @@
+import { useState } from 'react';
+
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/Check';
 import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
-import { useState } from 'react';
+import TextField from '@mui/material/TextField';
 
 import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';

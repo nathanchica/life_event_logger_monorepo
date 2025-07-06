@@ -1,6 +1,7 @@
 import { createMockEventLabel } from './eventLabels';
 import { createMockLoggableEvent } from './loggableEvent';
 import { createMockUser } from './user';
+
 import { AuthContextType } from '../providers/AuthProvider';
 import { LoggableEventsContextType } from '../providers/LoggableEventsProvider';
 import { ViewOptionsContextType } from '../providers/ViewOptionsProvider';

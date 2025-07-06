@@ -1,10 +1,12 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider } from '@mui/material/styles';
-import { createTheme } from '@mui/material/styles';
-import Sidebar from '../components/Sidebar';
-import { ViewOptionsContext } from '../providers/ViewOptionsProvider';
-import { LoggableEventsContext } from '../providers/LoggableEventsProvider';
+
+import { createMockEventLabel } from '../../mocks/eventLabels';
+import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
+import { LoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
+import Sidebar from '../Sidebar';
 
 // Mock ClickAwayListener
 jest.mock('@mui/material/ClickAwayListener', () => {
@@ -20,83 +22,58 @@ jest.mock('@mui/material/ClickAwayListener', () => {
     };
 });
 
-const mockOnCollapseSidebarClick = jest.fn();
-const mockEnableDarkTheme = jest.fn();
-const mockEnableLightTheme = jest.fn();
-const mockShowLoginView = jest.fn();
-const mockHideLoginView = jest.fn();
-const mockShowLoadingState = jest.fn();
-const mockHideLoadingState = jest.fn();
-const mockSetActiveEventLabelId = jest.fn();
-const mockCreateLoggableEvent = jest.fn();
-const mockUpdateLoggableEventDetails = jest.fn();
-const mockDeleteLoggableEvent = jest.fn();
-const mockLogEvent = jest.fn();
-const mockDeleteEventTimestamp = jest.fn();
-const mockCreateEventLabel = jest.fn();
-const mockDeleteEventLabel = jest.fn();
+describe('Sidebar', () => {
+    const mockOnCollapseSidebarClick = jest.fn();
+    const mockEnableDarkTheme = jest.fn();
+    const mockEnableLightTheme = jest.fn();
+    const mockSetActiveEventLabelId = jest.fn();
+    const mockDeleteEventLabel = jest.fn();
 
-const defaultProps = {
-    isCollapsed: false,
-    onCollapseSidebarClick: mockOnCollapseSidebarClick,
-    isOfflineMode: false
-};
-
-const mockEventLabels = [
-    { id: 'label-1', name: 'Work' },
-    { id: 'label-2', name: 'Personal' },
-    { id: 'label-3', name: 'Health' }
-];
-
-const createMockContext = (theme = 'light') => ({
-    theme,
-    enableDarkTheme: mockEnableDarkTheme,
-    enableLightTheme: mockEnableLightTheme,
-    showLoginView: mockShowLoginView,
-    hideLoginView: mockHideLoginView,
-    loginViewIsShowing: false,
-    showLoadingState: mockShowLoadingState,
-    hideLoadingState: mockHideLoadingState,
-    loadingStateIsShowing: false,
-    activeEventLabelId: null,
-    setActiveEventLabelId: mockSetActiveEventLabelId
-});
-
-function renderWithProviders(ui, options = {}) {
-    const { theme = 'light', eventLabels = [] } = options;
-    const contextValue = createMockContext(theme);
-    const muiTheme = createTheme({
-        palette: {
-            mode: theme
-        }
-    });
-
-    const loggableEventsContextValue = {
-        loggableEvents: [],
-        eventLabels: eventLabels,
-        createLoggableEvent: mockCreateLoggableEvent,
-        updateLoggableEventDetails: mockUpdateLoggableEventDetails,
-        deleteLoggableEvent: mockDeleteLoggableEvent,
-        logEvent: mockLogEvent,
-        deleteEventTimestamp: mockDeleteEventTimestamp,
-        createEventLabel: mockCreateEventLabel,
-        deleteEventLabel: mockDeleteEventLabel,
-        offlineMode: false
+    const defaultProps = {
+        isCollapsed: false,
+        onCollapseSidebarClick: mockOnCollapseSidebarClick,
+        isOfflineMode: false
     };
 
-    return render(
-        <ThemeProvider theme={muiTheme}>
-            <LoggableEventsContext.Provider value={loggableEventsContextValue}>
-                <ViewOptionsContext.Provider value={contextValue}>{ui}</ViewOptionsContext.Provider>
-            </LoggableEventsContext.Provider>
-        </ThemeProvider>
-    );
-}
+    const mockEventLabels = [
+        createMockEventLabel({ id: 'label-1', name: 'Work' }),
+        createMockEventLabel({ id: 'label-2', name: 'Personal' }),
+        createMockEventLabel({ id: 'label-3', name: 'Health' })
+    ];
 
-describe('Sidebar', () => {
-    afterEach(() => {
+    beforeEach(() => {
         jest.clearAllMocks();
     });
+
+    const renderWithProviders = (component, options = {}) => {
+        const { theme = 'light', eventLabels = [] } = options;
+
+        const mockViewOptionsValue = createMockViewOptionsContextValue({
+            theme,
+            enableDarkTheme: mockEnableDarkTheme,
+            enableLightTheme: mockEnableLightTheme,
+            setActiveEventLabelId: mockSetActiveEventLabelId
+        });
+
+        const mockLoggableEventsValue = createMockLoggableEventsContextValue({
+            eventLabels,
+            deleteEventLabel: mockDeleteEventLabel
+        });
+
+        const muiTheme = createTheme({
+            palette: {
+                mode: theme
+            }
+        });
+
+        return render(
+            <ThemeProvider theme={muiTheme}>
+                <LoggableEventsContext.Provider value={mockLoggableEventsValue}>
+                    <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
+                </LoggableEventsContext.Provider>
+            </ThemeProvider>
+        );
+    };
 
     describe('Rendering', () => {
         it('renders sidebar with title when not collapsed', () => {

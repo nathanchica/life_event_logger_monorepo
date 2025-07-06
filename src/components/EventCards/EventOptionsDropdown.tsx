@@ -1,4 +1,10 @@
+/** @jsxImportSource @emotion/react */
+
 import { ReactNode } from 'react';
+
+import { css } from '@emotion/react';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -7,11 +13,6 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Paper from '@mui/material/Paper';
 import blue from '@mui/material/colors/blue';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-
-/** @jsxImportSource @emotion/react */
-import { css } from '@emotion/react';
 
 const DropdownItem = ({ name, icon, onClick }: { name: string; icon: ReactNode; onClick: () => void }) => (
     <ListItem disablePadding>
