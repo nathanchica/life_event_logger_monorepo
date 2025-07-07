@@ -2,7 +2,7 @@ import { createMockEventLabelFragment } from './eventLabels';
 import { createMockLoggableEventFragment } from './loggableEvent';
 import { createMockUser } from './user';
 
-import { GET_LOGGABLE_EVENTS_FOR_USER } from '../components/LoggableEventsGQL';
+import { GET_LOGGABLE_EVENTS_FOR_USER } from '../hooks/useLoggableEventsForUser';
 import { LoggableEventFragment, EventLabelFragment } from '../utils/types';
 
 export const createGetLoggableEventsForUserMock = (

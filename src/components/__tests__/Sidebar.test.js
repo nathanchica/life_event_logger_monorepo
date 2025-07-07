@@ -3,8 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { createMockEventLabel } from '../../mocks/eventLabels';
-import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
-import { LoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { createMockViewOptionsContextValue } from '../../mocks/providers';
 import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import Sidebar from '../Sidebar';
 
@@ -27,7 +26,6 @@ describe('Sidebar', () => {
     const mockEnableDarkTheme = jest.fn();
     const mockEnableLightTheme = jest.fn();
     const mockSetActiveEventLabelId = jest.fn();
-    const mockDeleteEventLabel = jest.fn();
 
     const defaultProps = {
         isCollapsed: false,
@@ -46,18 +44,13 @@ describe('Sidebar', () => {
     });
 
     const renderWithProviders = (component, options = {}) => {
-        const { theme = 'light', eventLabels = [] } = options;
+        const { theme = 'light' } = options;
 
         const mockViewOptionsValue = createMockViewOptionsContextValue({
             theme,
             enableDarkTheme: mockEnableDarkTheme,
             enableLightTheme: mockEnableLightTheme,
             setActiveEventLabelId: mockSetActiveEventLabelId
-        });
-
-        const mockLoggableEventsValue = createMockLoggableEventsContextValue({
-            eventLabels,
-            deleteEventLabel: mockDeleteEventLabel
         });
 
         const muiTheme = createTheme({
@@ -68,9 +61,7 @@ describe('Sidebar', () => {
 
         return render(
             <ThemeProvider theme={muiTheme}>
-                <LoggableEventsContext.Provider value={mockLoggableEventsValue}>
-                    <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
-                </LoggableEventsContext.Provider>
+                <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
             </ThemeProvider>
         );
     };
@@ -144,6 +135,30 @@ describe('Sidebar', () => {
         });
     });
 
+    describe('Edit Labels Toggle', () => {
+        it('toggles between edit and non-edit mode', async () => {
+            renderWithProviders(<Sidebar {...defaultProps} />, { eventLabels: mockEventLabels });
+
+            // Initially should show "Manage labels"
+            const manageButton = screen.getByLabelText('Manage labels');
+            expect(manageButton).toBeInTheDocument();
+
+            // Click to enter edit mode
+            await userEvent.click(manageButton);
+
+            // Should now show "Stop editing labels"
+            expect(screen.getByLabelText('Stop editing labels')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Manage labels')).not.toBeInTheDocument();
+
+            // Click again to exit edit mode
+            await userEvent.click(screen.getByLabelText('Stop editing labels'));
+
+            // Should be back to "Manage labels"
+            expect(screen.getByLabelText('Manage labels')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Stop editing labels')).not.toBeInTheDocument();
+        });
+    });
+
     describe('Click Away Behavior', () => {
         it('handles click away', async () => {
             renderWithProviders(<Sidebar {...defaultProps} />);
@@ -161,6 +176,10 @@ describe('Sidebar', () => {
             const manageButton = screen.getByLabelText('Manage labels');
             await userEvent.click(manageButton);
 
+            // Verify button changed to "Stop editing labels"
+            expect(screen.getByLabelText('Stop editing labels')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Manage labels')).not.toBeInTheDocument();
+
             // Verify we're in editing mode - should see edit icons for each label
             const editButtons = screen.getAllByLabelText('edit');
             expect(editButtons).toHaveLength(3); // One for each mock label
@@ -170,6 +189,8 @@ describe('Sidebar', () => {
 
             await waitFor(() => {
                 expect(screen.queryAllByLabelText('edit')).toHaveLength(0); // Edit icons should be removed
+                expect(screen.getByLabelText('Manage labels')).toBeInTheDocument();
+                expect(screen.queryByLabelText('Stop editing labels')).not.toBeInTheDocument();
             });
         });
     });

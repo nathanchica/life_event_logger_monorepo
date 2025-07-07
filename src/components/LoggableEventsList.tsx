@@ -1,29 +1,37 @@
 import Grid from '@mui/material/Grid';
+import invariant from 'tiny-invariant';
 
 import LoggableEventCard from './EventCards/LoggableEventCard';
 
-import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
+import { useLoggableEventsForUser } from '../hooks/useLoggableEventsForUser';
+import { useAuth } from '../providers/AuthProvider';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
-import { LoggableEvent } from '../utils/types';
+import { LoggableEventFragment } from '../utils/types';
 
 /**
  * LoggableEventsList component for displaying a list of loggable events.
  * It filters events based on the active event label.
  */
 const LoggableEventsList = () => {
+    const { user } = useAuth();
     const { activeEventLabelId } = useViewOptions();
-    const { loggableEvents } = useLoggableEventsContext();
 
-    const filteredEvents: Array<LoggableEvent> = activeEventLabelId
-        ? loggableEvents.filter(({ labelIds }) => labelIds && labelIds.includes(activeEventLabelId))
-        : loggableEvents;
+    invariant(user, 'User is not authenticated');
+
+    const { loggableEventsFragments } = useLoggableEventsForUser(user);
+
+    const filteredEventFragments: Array<LoggableEventFragment> = activeEventLabelId
+        ? loggableEventsFragments.filter(
+              ({ labels }) => labels && labels.some((label) => label.id === activeEventLabelId)
+          )
+        : loggableEventsFragments;
 
     return (
         <>
-            {filteredEvents.map(({ id }) => {
+            {filteredEventFragments.map((loggableEventFragment) => {
                 return (
-                    <Grid item key={id} role="listitem">
-                        <LoggableEventCard eventId={id} />
+                    <Grid item key={loggableEventFragment.id} role="listitem">
+                        <LoggableEventCard loggableEventFragment={loggableEventFragment} />
                     </Grid>
                 );
             })}

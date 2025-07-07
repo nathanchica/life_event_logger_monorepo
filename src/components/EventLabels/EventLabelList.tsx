@@ -7,11 +7,13 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import invariant from 'tiny-invariant';
 
 import CreateEventLabelForm from './CreateEventLabelForm';
 import EventLabel from './EventLabel';
 
-import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { useLoggableEventsForUser } from '../../hooks/useLoggableEventsForUser';
+import { useAuth } from '../../providers/AuthProvider';
 
 type Props = {
     isShowingEditActions: boolean;
@@ -21,7 +23,12 @@ type Props = {
  * EventLabelList component for displaying and managing a list of event labels.
  */
 const EventLabelList = ({ isShowingEditActions }: Props) => {
-    const { eventLabels } = useLoggableEventsContext();
+    const { user } = useAuth();
+
+    invariant(user, 'User is not authenticated');
+
+    const { eventLabelsFragments } = useLoggableEventsForUser(user);
+    const existingLabelNames = eventLabelsFragments.map((fragment) => fragment.name);
     const [createLabelFormIsShowing, setCreateLabelFormIsShowing] = useState(false);
 
     const showCreateLabelForm = () => {
@@ -36,7 +43,11 @@ const EventLabelList = ({ isShowingEditActions }: Props) => {
             <List disablePadding>
                 <ListItem disablePadding>
                     {createLabelFormIsShowing ? (
-                        <CreateEventLabelForm onCancel={hideCreateLabelForm} onSuccess={hideCreateLabelForm} />
+                        <CreateEventLabelForm
+                            onCancel={hideCreateLabelForm}
+                            onSuccess={hideCreateLabelForm}
+                            existingLabelNames={existingLabelNames}
+                        />
                     ) : (
                         <ListItemButton dense disableRipple onClick={showCreateLabelForm}>
                             <ListItemIcon>
@@ -47,13 +58,16 @@ const EventLabelList = ({ isShowingEditActions }: Props) => {
                     )}
                 </ListItem>
 
-                {eventLabels.map((eventLabelData) => (
-                    <EventLabel
-                        key={eventLabelData.id}
-                        {...eventLabelData}
-                        isShowingEditActions={isShowingEditActions}
-                    />
-                ))}
+                {eventLabelsFragments.map((eventLabelFragment) => {
+                    return (
+                        <EventLabel
+                            key={eventLabelFragment.id}
+                            eventLabelFragment={eventLabelFragment}
+                            isShowingEditActions={isShowingEditActions}
+                            existingLabelNames={existingLabelNames}
+                        />
+                    );
+                })}
             </List>
         </Box>
     );

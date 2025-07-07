@@ -35,7 +35,6 @@ const LoggableEventsView = ({ isLoading = false, offlineMode = false, isShowingF
     const { value: sidebarIsCollapsed, setTrue: collapseSidebar, setFalse: expandSidebar } = useToggle(false);
 
     const isDarkMode = theme.palette.mode === 'dark';
-    const shouldShowLoadingState = isLoading && !offlineMode;
 
     const mainContent = (
         <Grid
@@ -64,7 +63,7 @@ const LoggableEventsView = ({ isLoading = false, offlineMode = false, isShowingF
                             Please try again later
                         </Typography>
                     </Grid>
-                ) : shouldShowLoadingState ? (
+                ) : isLoading ? (
                     <>
                         <Grid item role="listitem">
                             <EventCardSkeleton />

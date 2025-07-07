@@ -39,7 +39,7 @@ const EventDatepicker = ({ eventId, isShowing, disabledDates, onAccept, onClose 
     };
 
     return (
-        <Collapse in={isShowing} orientation="vertical">
+        <Collapse in={isShowing} orientation="vertical" sx={{ mt: 2 }}>
             <ListItem disablePadding>
                 <Stack
                     mt={1}

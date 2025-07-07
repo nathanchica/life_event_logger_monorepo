@@ -6,10 +6,9 @@ import {
     createGetLoggableEventsForUserErrorMock
 } from '../../mocks/getLoggableEventsForUserMocks';
 import { createMockLoggableEventFragment } from '../../mocks/loggableEvent';
-import { createMockAuthContextValue, createMockLoggableEventsContextValue } from '../../mocks/providers';
+import { createMockAuthContextValue } from '../../mocks/providers';
 import { createMockUser } from '../../mocks/user';
 import { AuthContext } from '../../providers/AuthProvider';
-import { LoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import LoggableEventsGQL from '../LoggableEventsGQL';
 
 jest.mock('../LoggableEventsView', () => {
@@ -36,22 +35,11 @@ describe('LoggableEventsGQL', () => {
 
     const renderWithProviders = (
         component,
-        {
-            authContextValue = createMockAuthContextValue(),
-            loggableEventsContextValue = createMockLoggableEventsContextValue({
-                loadLoggableEvents: mockLoadLoggableEvents,
-                loadEventLabels: mockLoadEventLabels
-            }),
-            apolloMocks = []
-        } = {}
+        { authContextValue = createMockAuthContextValue(), apolloMocks = [] } = {}
     ) => {
         return render(
             <MockedProvider mocks={apolloMocks} addTypename={false}>
-                <AuthContext.Provider value={authContextValue}>
-                    <LoggableEventsContext.Provider value={loggableEventsContextValue}>
-                        {component}
-                    </LoggableEventsContext.Provider>
-                </AuthContext.Provider>
+                <AuthContext.Provider value={authContextValue}>{component}</AuthContext.Provider>
             </MockedProvider>
         );
     };

@@ -1,11 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
+import { ApolloProvider, ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import LoggableEventsGQL from './LoggableEventsGQL';
-import LoggableEventsView from './LoggableEventsView';
 import LoginView from './LoginView';
 
+import { createApolloClient } from '../apollo/client';
 import { useAuth } from '../providers/AuthProvider';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
 
@@ -21,6 +22,12 @@ import { useViewOptions } from '../providers/ViewOptionsProvider';
 const EventLoggerPage = () => {
     const { theme: mode } = useViewOptions();
     const { isAuthenticated, isOfflineMode } = useAuth();
+    const [apolloClient, setApolloClient] = useState<ApolloClient<NormalizedCacheObject> | null>(null);
+
+    // Initialize Apollo Client when offline mode is determined
+    useEffect(() => {
+        createApolloClient(isOfflineMode).then(setApolloClient);
+    }, [isOfflineMode]);
 
     const appTheme = useMemo(
         () =>
@@ -79,14 +86,18 @@ const EventLoggerPage = () => {
         [mode]
     );
 
-    let content = <LoginView />;
-    if (isOfflineMode) {
-        content = <LoggableEventsView offlineMode />;
-    } else if (isAuthenticated) {
-        content = <LoggableEventsGQL />;
+    // Don't render anything while Apollo Client is being initialized
+    if (!apolloClient) {
+        return null;
     }
 
-    return <ThemeProvider theme={appTheme}>{content}</ThemeProvider>;
+    return (
+        <ThemeProvider theme={appTheme}>
+            <ApolloProvider client={apolloClient}>
+                {isAuthenticated ? <LoggableEventsGQL /> : <LoginView />}
+            </ApolloProvider>
+        </ThemeProvider>
+    );
 };
 
 export default EventLoggerPage;

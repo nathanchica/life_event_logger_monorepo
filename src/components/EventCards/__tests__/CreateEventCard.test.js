@@ -4,40 +4,23 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { createMockEventLabel } from '../../../mocks/eventLabels';
-import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../../mocks/providers';
-import { LoggableEventsContext } from '../../../providers/LoggableEventsProvider';
+import { createMockViewOptionsContextValue } from '../../../mocks/providers';
 import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import CreateEventCard from '../CreateEventCard';
 
 describe('CreateEventCard', () => {
-    const mockCreateLoggableEvent = jest.fn();
-    const mockEventLabels = [
-        createMockEventLabel({ id: 'label-1', name: 'Work' }),
-        createMockEventLabel({ id: 'label-2', name: 'Personal' })
-    ];
-
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    const renderWithProviders = (component, options = {}) => {
-        const { eventLabels = mockEventLabels } = options;
-
-        const mockLoggableEventsValue = createMockLoggableEventsContextValue({
-            eventLabels,
-            createLoggableEvent: mockCreateLoggableEvent
-        });
-
+    const renderWithProviders = (component) => {
         const mockViewOptionsValue = createMockViewOptionsContextValue();
 
         return render(
             <MockedProvider mocks={[]} addTypename={false}>
-                <LoggableEventsContext.Provider value={mockLoggableEventsValue}>
-                    <ViewOptionsContext.Provider value={mockViewOptionsValue}>
-                        <LocalizationProvider dateAdapter={AdapterMoment}>{component}</LocalizationProvider>
-                    </ViewOptionsContext.Provider>
-                </LoggableEventsContext.Provider>
+                <ViewOptionsContext.Provider value={mockViewOptionsValue}>
+                    <LocalizationProvider dateAdapter={AdapterMoment}>{component}</LocalizationProvider>
+                </ViewOptionsContext.Provider>
             </MockedProvider>
         );
     };

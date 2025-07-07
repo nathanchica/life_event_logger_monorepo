@@ -3,18 +3,26 @@ import Chip from '@mui/material/Chip';
 import { InputBaseComponentProps } from '@mui/material/InputBase';
 import TextField from '@mui/material/TextField';
 
-import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { useEventLabels } from '../../hooks/useEventLabels';
 import { EventLabel } from '../../utils/types';
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
 
 type Props = {
     selectedLabels: EventLabel[];
     setSelectedLabels: React.Dispatch<React.SetStateAction<EventLabel[]>>;
+    existingLabels: EventLabel[];
 };
 
-const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels }: Props) => {
-    const { eventLabels, createEventLabel } = useLoggableEventsContext();
-    const labelOptions = eventLabels.filter((label) => !selectedLabels.some(({ id }) => id === label.id));
+/**
+ * EventLabelAutocomplete component for selecting and creating event labels.
+ * It allows users to search for existing labels or create new ones.
+ * The component uses an Autocomplete input with multiple selection enabled.
+ */
+const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels, existingLabels }: Props) => {
+    const { createEventLabel } = useEventLabels();
+
+    const labelOptions = existingLabels.filter((label) => !selectedLabels.some(({ id }) => id === label.id));
+    const existingLabelNames = existingLabels.map((label) => label.name);
 
     return (
         <Autocomplete
@@ -29,13 +37,20 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels }: Props) =>
                         // Skip if the label already exists in the selected labels
                         if (prevLabels.some((label: EventLabel) => label.name === val)) return;
                         // Create new label if it doesn't exist
-                        if (reason === 'createOption' && !eventLabels.some((label) => label.name === val)) {
-                            const validationError = validateEventLabelName(val, eventLabels);
+                        if (reason === 'createOption' && !existingLabelNames.includes(val)) {
+                            const validationError = validateEventLabelName(val, existingLabelNames);
                             if (validationError === null) {
-                                newLabel = createEventLabel(val);
+                                // Create the label asynchronously
+                                createEventLabel({ name: val }).then((createdLabel) => {
+                                    if (createdLabel) {
+                                        setSelectedLabels((prev) => [...prev, createdLabel]);
+                                    }
+                                });
+                                // Don't add to newLabel since it's async
+                                return;
                             }
                         } else {
-                            newLabel = eventLabels.find((label: EventLabel) => label.name === val);
+                            newLabel = existingLabels.find((label: EventLabel) => label.name === val);
                         }
                     });
                     const filteredLabels = prevLabels.filter((label: EventLabel) => values.includes(label.name));
@@ -44,8 +59,9 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels }: Props) =>
             }}
             renderTags={(value, getTagProps) =>
                 value.map((option, index) => {
-                    const { id, name } = eventLabels.find(({ name }) => name === option) as EventLabel;
-                    return <Chip label={name} size="small" {...getTagProps({ index })} key={id} />;
+                    const label = existingLabels.find((label) => label.name === option);
+                    if (!label) return null;
+                    return <Chip label={label.name} size="small" {...getTagProps({ index })} key={label.id} />;
                 })
             }
             renderInput={(params) => {
@@ -53,7 +69,7 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels }: Props) =>
                 let error = false;
                 let helperText = '';
                 if (inputValue) {
-                    const validationError = validateEventLabelName(inputValue, eventLabels);
+                    const validationError = validateEventLabelName(inputValue, existingLabelNames);
                     if (validationError === 'TooLongName') {
                         error = true;
                         helperText = `Max ${MAX_LABEL_LENGTH} characters`;

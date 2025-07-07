@@ -2,8 +2,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
-import { LoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { createMockViewOptionsContextValue } from '../../mocks/providers';
 import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import LoggableEventsView from '../LoggableEventsView';
 
@@ -32,17 +31,9 @@ jest.mock('../Sidebar', () => {
 });
 
 describe('LoggableEventsView', () => {
-    const renderWithProviders = (
-        component,
-        {
-            loggableEventsContextValue = createMockLoggableEventsContextValue(),
-            viewOptionsContextValue = createMockViewOptionsContextValue()
-        } = {}
-    ) => {
+    const renderWithProviders = (component, { viewOptionsContextValue = createMockViewOptionsContextValue() } = {}) => {
         return render(
-            <LoggableEventsContext.Provider value={loggableEventsContextValue}>
-                <ViewOptionsContext.Provider value={viewOptionsContextValue}>{component}</ViewOptionsContext.Provider>
-            </LoggableEventsContext.Provider>
+            <ViewOptionsContext.Provider value={viewOptionsContextValue}>{component}</ViewOptionsContext.Provider>
         );
     };
 

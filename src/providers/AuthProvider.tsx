@@ -22,6 +22,12 @@ export const useAuth = () => {
     return context;
 };
 
+export const offlineUser: User = {
+    id: 'offline',
+    name: 'Offline User',
+    email: 'offline@user.com'
+};
+
 type Props = {
     children: ReactNode;
 };
@@ -30,31 +36,6 @@ const AuthProvider = ({ children }: Props) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isOfflineMode, setIsOfflineMode] = useState(false);
-
-    useEffect(() => {
-        // Check for offline URL parameter
-        // istanbul ignore next - window is always defined in browser environment
-        const hasOfflineInUrlParam = window ? new URLSearchParams(window.location.search).has('offline') : false;
-        if (hasOfflineInUrlParam) {
-            setIsOfflineMode(true);
-            console.info('Application is in offline mode.');
-        }
-
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (storedToken && storedUser) {
-            try {
-                const parsedUser = JSON.parse(storedUser);
-                setToken(storedToken);
-                setUser(parsedUser);
-            } catch (error) {
-                console.error('Error parsing stored user data:', error);
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-            }
-        }
-    }, []);
 
     const login = (newToken: string, newUser: User) => {
         setToken(newToken);
@@ -73,9 +54,36 @@ const AuthProvider = ({ children }: Props) => {
     const setOfflineMode = (isOffline: boolean) => {
         setIsOfflineMode(isOffline);
         if (isOffline) {
+            setUser(offlineUser);
+            setToken('offline-token'); // Simulate an offline token
             console.info('Application switched to offline mode.');
         }
     };
+
+    useEffect(() => {
+        // Check for offline URL parameter
+        // istanbul ignore next - window is always defined in browser environment
+        const hasOfflineInUrlParam = window ? new URLSearchParams(window.location.search).has('offline') : false;
+        if (hasOfflineInUrlParam) {
+            setOfflineMode(true);
+            console.info('Application is in offline mode.');
+        }
+
+        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+
+        if (storedToken && storedUser) {
+            try {
+                const parsedUser = JSON.parse(storedUser);
+                setToken(storedToken);
+                setUser(parsedUser);
+            } catch (error) {
+                console.error('Error parsing stored user data:', error);
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+        }
+    }, []);
 
     const value = {
         user,

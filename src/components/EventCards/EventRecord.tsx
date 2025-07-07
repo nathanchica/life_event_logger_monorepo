@@ -8,9 +8,8 @@ import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import { grey } from '@mui/material/colors';
-import invariant from 'tiny-invariant';
 
-import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { useLoggableEvents } from '../../hooks/useLoggableEvents';
 import { getNumberOfDaysBetweenDates } from '../../utils/time';
 
 type Props = {
@@ -26,25 +25,12 @@ type Props = {
  */
 const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
     const [isHovered, setIsHovered] = useState(false);
-    const { loggableEvents, updateLoggableEventDetails } = useLoggableEventsContext();
+    const { removeTimestampFromEvent, removeTimestampIsLoading } = useLoggableEvents();
 
     const isFutureDate = getNumberOfDaysBetweenDates(recordDate, currentDate) < 0;
 
-    const onDeleteRecord = () => {
-        const currentLoggableEvent = loggableEvents.find(({ id }) => id === eventId);
-
-        invariant(currentLoggableEvent, 'Must be a valid loggable event');
-
-        // Remove the record from the event's timestamps
-        const updatedTimestamps = currentLoggableEvent.timestamps.filter(
-            (record: Date) => record.toDateString() !== recordDate.toDateString()
-        );
-
-        // Update the event with the new timestamps
-        updateLoggableEventDetails({
-            ...currentLoggableEvent,
-            timestamps: updatedTimestamps
-        });
+    const onDeleteRecord = async () => {
+        await removeTimestampFromEvent(eventId, recordDate);
     };
 
     return (
@@ -73,6 +59,7 @@ const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
                         edge="end"
                         aria-label="Dismiss record"
                         size="small"
+                        disabled={removeTimestampIsLoading}
                         sx={{
                             marginLeft: 1,
                             padding: '0px'

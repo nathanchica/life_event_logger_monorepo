@@ -1,64 +1,25 @@
-import { useEffect } from 'react';
+import invariant from 'tiny-invariant';
 
-import { gql, useQuery } from '@apollo/client';
-
-import LoggableEventCard, { createLoggableEventFromFragment } from './EventCards/LoggableEventCard';
-import EventLabel, { createEventLabelFromFragment } from './EventLabels/EventLabel';
 import LoggableEventsView from './LoggableEventsView';
 
+import { useLoggableEventsForUser } from '../hooks/useLoggableEventsForUser';
 import { useAuth } from '../providers/AuthProvider';
-import { useLoggableEventsContext } from '../providers/LoggableEventsProvider';
-import { EventLabel as EventLabelType, EventLabelFragment, LoggableEvent, LoggableEventFragment } from '../utils/types';
 
-export const GET_LOGGABLE_EVENTS_FOR_USER = gql`
-    query GetLoggableEventsForUser($userId: String!) {
-        user(userId: $userId) {
-            loggableEvents {
-                id
-                ...LoggableEventFragment
-            }
-            eventLabels {
-                id
-                ...EventLabelFragment
-            }
-        }
-    }
-    ${EventLabel.fragments.eventLabel}
-    ${LoggableEventCard.fragments.loggableEvent}
-`;
-
+/**
+ * LoggableEventsGQL component that fetches and displays loggable events and event labels for the authenticated user.
+ * This component controls the loading state and error state of the main view based on the fetch status.
+ */
 const LoggableEventsGQL = () => {
-    const { user } = useAuth();
-    const { loadLoggableEvents, loadEventLabels } = useLoggableEventsContext();
+    const { user, isOfflineMode } = useAuth();
 
-    if (!user) throw new Error('User is not authenticated, please log in.');
+    invariant(user, 'User is not authenticated');
 
-    const { data, loading, error } = useQuery(GET_LOGGABLE_EVENTS_FOR_USER, {
-        variables: { userId: user.id }
+    const { loading, error } = useLoggableEventsForUser(user, {
+        // In offline mode, only read from cache, don't try network
+        fetchPolicy: isOfflineMode ? 'cache-only' : 'cache-and-network'
     });
 
-    const dataIsFetched = data && !loading && !error;
-
-    let fetchedLoggableEvents: Array<LoggableEvent> = [];
-    let fetchedEventLabels: Array<EventLabelType> = [];
-    if (dataIsFetched) {
-        const loggableEvents: Array<LoggableEventFragment> = data.user.loggableEvents;
-        fetchedLoggableEvents = loggableEvents.map((loggableEventFragment) =>
-            createLoggableEventFromFragment(loggableEventFragment)
-        );
-
-        const eventLabels: Array<EventLabelFragment> = data.user.eventLabels;
-        fetchedEventLabels = eventLabels.map((eventLabelFragment) => createEventLabelFromFragment(eventLabelFragment));
-    }
-
-    useEffect(() => {
-        if (dataIsFetched) {
-            loadLoggableEvents(fetchedLoggableEvents);
-            loadEventLabels(fetchedEventLabels);
-        }
-    }, [dataIsFetched]);
-
-    return <LoggableEventsView isLoading={loading} isShowingFetchError={Boolean(error)} />;
+    return <LoggableEventsView isLoading={loading} isShowingFetchError={Boolean(error && !isOfflineMode)} />;
 };
 
 export default LoggableEventsGQL;

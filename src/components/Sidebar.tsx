@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 
-import { useState } from 'react';
-
 import { css } from '@emotion/react';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import EditIcon from '@mui/icons-material/Edit';
+import EditIconOutlined from '@mui/icons-material/EditOutlined';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 import Box from '@mui/material/Box';
@@ -13,6 +12,7 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
+import ToggleButton from '@mui/material/ToggleButton';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import blueGrey from '@mui/material/colors/blueGrey';
@@ -21,6 +21,7 @@ import green from '@mui/material/colors/green';
 import EventLabelList from './EventLabels/EventLabelList';
 
 import { useViewOptions } from '../providers/ViewOptionsProvider';
+import { useToggle } from '../utils/useToggle';
 
 type Props = {
     isCollapsed: boolean;
@@ -34,14 +35,14 @@ type Props = {
  * and a link to the GitHub repository.
  */
 const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
-    const [isEditingLabels, setIsEditingLabels] = useState(false);
+    const { value: isEditingLabels, setTrue: startEditingLabels, setFalse: stopEditingLabels } = useToggle(false);
     const { theme, enableDarkTheme, enableLightTheme } = useViewOptions();
 
     const isDark = theme === 'dark';
     const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());
 
     const handleClickAway = () => {
-        if (isEditingLabels) setIsEditingLabels(false);
+        if (isEditingLabels) stopEditingLabels();
     };
 
     return (
@@ -106,6 +107,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                 css={css`
                                     max-height: 80vh;
                                     overflow-y: auto;
+                                    width: 350px;
                                 `}
                             >
                                 <EventLabelList isShowingEditActions={isEditingLabels} />
@@ -131,14 +133,24 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                 {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="Manage labels">
-                            <IconButton
-                                onClick={() => setIsEditingLabels((prev) => !prev)}
-                                sx={{ ml: 1 }}
-                                aria-label="Manage labels"
+                        <Tooltip title={isEditingLabels ? 'Stop editing labels' : 'Manage labels'}>
+                            <ToggleButton
+                                value="edit"
+                                selected={isEditingLabels}
+                                onChange={() => (isEditingLabels ? stopEditingLabels() : startEditingLabels())}
+                                sx={{
+                                    ml: 1,
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    '&:hover': {
+                                        border: 'none'
+                                    }
+                                }}
+                                size="small"
+                                aria-label={isEditingLabels ? 'Stop editing labels' : 'Manage labels'}
                             >
-                                <EditIcon />
-                            </IconButton>
+                                {isEditingLabels ? <EditIcon color="action" /> : <EditIconOutlined />}
+                            </ToggleButton>
                         </Tooltip>
                         <Tooltip title="View on GitHub">
                             <IconButton

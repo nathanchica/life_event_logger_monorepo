@@ -17,44 +17,40 @@ import Typography from '@mui/material/Typography';
 import blueGrey from '@mui/material/colors/blueGrey';
 import { useTheme } from '@mui/material/styles';
 import { visuallyHidden } from '@mui/utils';
+import invariant from 'tiny-invariant';
 
 import EventCard from './EventCard';
 import EventLabelAutocomplete from './EventLabelAutocomplete';
+import { createLoggableEventFromFragment } from './LoggableEventCard';
 import WarningThresholdForm from './WarningThresholdForm';
 
-import { useLoggableEventsContext, EVENT_DEFAULT_VALUES } from '../../providers/LoggableEventsProvider';
+import { useLoggableEvents } from '../../hooks/useLoggableEvents';
+import { useLoggableEventsForUser } from '../../hooks/useLoggableEventsForUser';
+import { useAuth } from '../../providers/AuthProvider';
 import { useViewOptions } from '../../providers/ViewOptionsProvider';
-import { EventLabel } from '../../utils/types';
+import { EventLabel, LoggableEvent } from '../../utils/types';
 import { isEventNameValid, getEventNameValidationErrorText } from '../../utils/validation';
+import { createEventLabelFromFragment } from '../EventLabels/EventLabel';
+
+const EVENT_DEFAULT_VALUES: LoggableEvent = {
+    id: '',
+    name: '',
+    warningThresholdInDays: 0,
+    labelIds: [],
+    isSynced: false,
+    createdAt: new Date(),
+    timestamps: []
+};
 
 type Props = {
     onDismiss: () => void;
     eventIdToEdit?: string;
 };
 
-const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (newCheckedValue: boolean) => void }) => {
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        onChange(event.target.checked);
-    };
-
-    return (
-        <FormGroup>
-            <FormControlLabel
-                control={
-                    <Switch checked={checked} onChange={handleChange} aria-describedby="warning-switch-description" />
-                }
-                label="Enable warning"
-            />
-        </FormGroup>
-    );
-};
-
 /**
- * EditEventCard component for editing an existing event.
+ * EditEventCard component for editing an existing event or creating a new one.
  *
  * It allows users to change the event name and set a warning threshold.
- *
- * It also provides a form to create a new event if no eventIdToEdit is provided.
  *
  * It includes validation for the event name and warning threshold.
  *
@@ -62,12 +58,19 @@ const WarningSwitch = ({ checked, onChange }: { checked: boolean; onChange: (new
  * and buttons to submit or cancel the changes.
  */
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
-    /** Context */
-    const { loggableEvents, createLoggableEvent, updateLoggableEventDetails, eventLabels } = useLoggableEventsContext();
+    const { user } = useAuth();
+    const theme = useTheme();
+    const { createLoggableEvent, updateLoggableEvent, createIsLoading, updateIsLoading } = useLoggableEvents();
     const { activeEventLabelId } = useViewOptions();
 
-    const theme = useTheme();
+    invariant(user, 'User is not authenticated');
 
+    const { loggableEventsFragments, eventLabelsFragments } = useLoggableEventsForUser(user);
+
+    const loggableEvents = loggableEventsFragments.map(createLoggableEventFromFragment);
+    const eventLabels = eventLabelsFragments.map(createEventLabelFromFragment);
+
+    const existingEventNames = loggableEvents.map((event) => event.name);
     const eventToEdit = loggableEvents.find(({ id }) => id === eventIdToEdit) || EVENT_DEFAULT_VALUES;
     const isCreatingNewEvent = !eventIdToEdit;
 
@@ -75,10 +78,13 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const [eventNameInputValue, setEventNameInputValue] = useState(eventToEdit.name);
     const resetEventNameInputValue = () => setEventNameInputValue(EVENT_DEFAULT_VALUES.name);
 
-    const eventNameIsValid = isEventNameValid(eventNameInputValue, loggableEvents, eventIdToEdit);
+    const shouldValidate = eventNameInputValue !== eventToEdit.name;
+    const eventNameIsValid = shouldValidate ? isEventNameValid(eventNameInputValue, existingEventNames) : true;
 
     /** Event name validation error display */
-    const validationErrorText = getEventNameValidationErrorText(eventNameInputValue, loggableEvents, eventIdToEdit);
+    const validationErrorText = shouldValidate
+        ? getEventNameValidationErrorText(eventNameInputValue, existingEventNames)
+        : null;
     const textFieldErrorProps: { error?: boolean; helperText?: string } = validationErrorText
         ? {
               error: true,
@@ -102,9 +108,11 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
     /**
      * Labels
+     * If creating a new event, pre-populate with the active event label if it exists.
+     * If editing an existing event, pre-populate with existing labels from the event being edited.
      */
     const activeEventLabel = activeEventLabelId ? eventLabels.find(({ id }) => id === activeEventLabelId) : undefined;
-    const [showLabelInput, setShowLabelInput] = useState(
+    const [labelInputIsVisible, setLabelInputIsVisible] = useState(
         isCreatingNewEvent ? Boolean(activeEventLabelId) : eventToEdit.labelIds && eventToEdit.labelIds.length > 0
     );
     const [selectedLabels, setSelectedLabels] = useState<EventLabel[]>(() => {
@@ -130,32 +138,29 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         setWarningThresholdInDays(thresholdInDays);
     };
 
-    const handleWarningToggleChange = (newCheckedValue: boolean) => {
-        setWarningIsEnabled(newCheckedValue);
+    const handleWarningToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setWarningIsEnabled(event.target.checked);
     };
 
     /** Save handlers */
-    const handleNewEventSubmit = (event: SyntheticEvent) => {
+    const formValues = {
+        name: eventNameInputValue,
+        warningThresholdInDays: warningThresholdValueToSave,
+        labelIds: selectedLabels.map(({ id }) => id)
+    };
+
+    const handleNewEventSubmit = async (event: SyntheticEvent) => {
         event.preventDefault();
         if (eventNameIsValid) {
-            createLoggableEvent(
-                eventNameInputValue,
-                warningThresholdValueToSave,
-                selectedLabels.map(({ id }) => id)
-            );
+            await createLoggableEvent(formValues.name, formValues.warningThresholdInDays, formValues.labelIds);
             dismissForm();
         }
     };
 
-    const handleUpdateEventSubmit = (event: SyntheticEvent) => {
+    const handleUpdateEventSubmit = async (event: SyntheticEvent) => {
         event.preventDefault();
-        if (eventNameIsValid) {
-            updateLoggableEventDetails({
-                ...eventToEdit,
-                name: eventNameInputValue,
-                warningThresholdInDays: warningThresholdValueToSave,
-                labelIds: selectedLabels.map(({ id }) => id)
-            });
+        if (eventNameIsValid && eventIdToEdit) {
+            await updateLoggableEvent(eventIdToEdit, formValues);
             dismissForm();
         }
     };
@@ -193,7 +198,18 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
                         {/* Warning threshold */}
                         <Box aria-describedby="warning-switch-description">
-                            <WarningSwitch checked={warningIsEnabled} onChange={handleWarningToggleChange} />
+                            <FormGroup>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={warningIsEnabled}
+                                            onChange={handleWarningToggleChange}
+                                            aria-describedby="warning-switch-description"
+                                        />
+                                    }
+                                    label="Enable warning"
+                                />
+                            </FormGroup>
                             <Typography id="warning-switch-description" sx={visuallyHidden}>
                                 Toggle to enable warning notifications for this event
                             </Typography>
@@ -206,12 +222,12 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                         </Collapse>
 
                         {/* Labels */}
-                        {!showLabelInput ? (
+                        {!labelInputIsVisible ? (
                             <Button
                                 variant="text"
                                 size="small"
                                 sx={{ mt: 2, mb: 1 }}
-                                onClick={() => setShowLabelInput(true)}
+                                onClick={() => setLabelInputIsVisible(true)}
                                 aria-describedby="labels-section-description"
                             >
                                 Add labels
@@ -224,6 +240,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                                 <EventLabelAutocomplete
                                     selectedLabels={selectedLabels}
                                     setSelectedLabels={setSelectedLabels}
+                                    existingLabels={eventLabels}
                                 />
                             </Box>
                         )}
@@ -234,7 +251,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
                     <CardActions>
                         <Button
-                            disabled={!eventNameIsValid}
+                            disabled={!eventNameIsValid || createIsLoading || updateIsLoading}
                             type="submit"
                             size="small"
                             aria-describedby={!eventNameIsValid ? 'submit-button-disabled-reason' : undefined}

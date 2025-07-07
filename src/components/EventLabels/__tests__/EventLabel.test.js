@@ -2,8 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { createMockEventLabel } from '../../../mocks/eventLabels';
-import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../../mocks/providers';
-import { LoggableEventsContext } from '../../../providers/LoggableEventsProvider';
+import { createMockViewOptionsContextValue } from '../../../mocks/providers';
 import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import { MAX_LABEL_LENGTH } from '../../../utils/validation';
 import EventLabel from '../EventLabel';
@@ -20,14 +19,6 @@ describe('EventLabel', () => {
         isSynced: true
     });
 
-    const mockEventLabels = [defaultLabel, createMockEventLabel({ id: 'label-2', name: 'Duplicate' })];
-
-    const mockLoggableEventsContext = createMockLoggableEventsContextValue({
-        updateEventLabel: mockUpdateEventLabel,
-        deleteEventLabel: mockDeleteEventLabel,
-        eventLabels: mockEventLabels
-    });
-
     const mockViewOptionsContext = createMockViewOptionsContextValue({
         activeEventLabelId: null,
         setActiveEventLabelId: mockSetActiveEventLabelId
@@ -35,11 +26,9 @@ describe('EventLabel', () => {
 
     const renderWithProviders = (component, viewOptionsOverrides = {}) => {
         return render(
-            <LoggableEventsContext.Provider value={mockLoggableEventsContext}>
-                <ViewOptionsContext.Provider value={{ ...mockViewOptionsContext, ...viewOptionsOverrides }}>
-                    {component}
-                </ViewOptionsContext.Provider>
-            </LoggableEventsContext.Provider>
+            <ViewOptionsContext.Provider value={{ ...mockViewOptionsContext, ...viewOptionsOverrides }}>
+                {component}
+            </ViewOptionsContext.Provider>
         );
     };
 

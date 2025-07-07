@@ -1,24 +1,20 @@
 import { gql } from '@apollo/client';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import List from '@mui/material/List';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { visuallyHidden } from '@mui/utils';
-import invariant from 'tiny-invariant';
 
 import EditEventCard from './EditEventCard';
 import EventCard from './EventCard';
 import EventCardHeader from './EventCardHeader';
-import EventDatepicker from './EventDatepicker';
+import EventCardLogActions from './EventCardLogActions';
 import EventRecord from './EventRecord';
 import LastEventDisplay from './LastEventDisplay';
 
-import { useLoggableEventsContext } from '../../providers/LoggableEventsProvider';
+import { useLoggableEvents } from '../../hooks/useLoggableEvents';
 import { getDaysSinceLastEventRecord } from '../../utils/time';
-import { LoggableEvent, LoggableEventFragment } from '../../utils/types';
+import { LoggableEvent, LoggableEventFragment, EventLabelFragment } from '../../utils/types';
 import { useToggle } from '../../utils/useToggle';
 import EventLabel from '../EventLabels/EventLabel';
 
@@ -57,7 +53,7 @@ export const createLoggableEventFromFragment = ({
 };
 
 type Props = {
-    eventId: string;
+    loggableEventFragment: LoggableEventFragment;
 };
 
 /**
@@ -67,23 +63,15 @@ type Props = {
  * It also provides options to edit or delete the event.
  * If the event has not been logged for a certain number of days, it displays a warning.
  */
-const LoggableEventCard = ({ eventId }: Props) => {
-    const { loggableEvents, addTimestampToEvent, deleteLoggableEvent, eventLabels } = useLoggableEventsContext();
-    const currentLoggableEvent = loggableEvents.find(({ id }) => id === eventId);
-
-    invariant(currentLoggableEvent, 'Must be a valid loggable event');
+const LoggableEventCard = ({ loggableEventFragment }: Props) => {
+    const { deleteLoggableEvent } = useLoggableEvents();
+    const { id, name, timestamps, warningThresholdInDays } = createLoggableEventFromFragment(loggableEventFragment);
 
     const { value: editEventFormIsShowing, setTrue: showEditEventForm, setFalse: hideEditEventForm } = useToggle();
-    const { value: datepickerIsShowing, setTrue: showDatepicker, setFalse: hideDatepicker } = useToggle();
 
-    const { id, name, timestamps, warningThresholdInDays, labelIds } = currentLoggableEvent;
-    const eventLabelObjects = eventLabels.filter(({ id }) => labelIds.includes(id));
+    const eventLabelFragments: Array<EventLabelFragment> = loggableEventFragment.labels;
 
     const currDate = new Date();
-
-    const handleLogEventClick = async (dateToAdd?: Date | null) => {
-        addTimestampToEvent(id, dateToAdd || currDate);
-    };
 
     const handleEditEventClick = () => {
         showEditEventForm();
@@ -91,11 +79,6 @@ const LoggableEventCard = ({ eventId }: Props) => {
 
     const handleDeleteEventClick = () => {
         deleteLoggableEvent(id);
-    };
-
-    const handleDatepickerAccept = (date: Date) => {
-        handleLogEventClick(date);
-        hideDatepicker();
     };
 
     const daysSinceLastEvent = getDaysSinceLastEventRecord(timestamps, currDate);
@@ -111,34 +94,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
                     onEditEvent={handleEditEventClick}
                     onDeleteEvent={handleDeleteEventClick}
                 />
-                <Stack direction="row" spacing={2} role="group" aria-label="Event logging actions">
-                    <Button
-                        size="small"
-                        disabled={daysSinceLastEvent === 0}
-                        onClick={() => {
-                            handleLogEventClick();
-                        }}
-                        variant="contained"
-                        aria-describedby={daysSinceLastEvent === 0 ? `today-disabled-${id}` : undefined}
-                    >
-                        Log Today
-                    </Button>
-                    {daysSinceLastEvent === 0 && (
-                        <Box id={`today-disabled-${id}`} sx={visuallyHidden}>
-                            Already logged today
-                        </Box>
-                    )}
-
-                    <Button
-                        size="small"
-                        disableRipple
-                        onClick={showDatepicker}
-                        aria-expanded={datepickerIsShowing}
-                        aria-controls={datepickerIsShowing ? `datepicker-${id}` : undefined}
-                    >
-                        Log custom date
-                    </Button>
-                </Stack>
+                <EventCardLogActions eventId={id} daysSinceLastEvent={daysSinceLastEvent} timestamps={timestamps} />
 
                 {typeof daysSinceLastEvent === 'number' && (
                     <LastEventDisplay
@@ -147,25 +103,16 @@ const LoggableEventCard = ({ eventId }: Props) => {
                     />
                 )}
 
-                <List>
-                    <EventDatepicker
-                        eventId={id}
-                        isShowing={datepickerIsShowing}
-                        disabledDates={timestamps}
-                        onAccept={handleDatepickerAccept}
-                        onClose={hideDatepicker}
-                    />
-
-                    {timestamps.length > 0 && (
-                        <Typography variant="subtitle2" id={`records-heading-${id}`} role="heading" aria-level={3}>
-                            Records {timestamps.length >= MAX_RECORDS_TO_DISPLAY ? ' (Up to 5 most recent)' : ''}
-                        </Typography>
-                    )}
-                    <Box
-                        role="list"
-                        aria-labelledby={`records-heading-${id}`}
-                        aria-label={timestamps.length === 0 ? 'No event records' : `${timestamps.length} event records`}
-                    >
+                {timestamps.length > 0 && (
+                    <Typography variant="subtitle2" id={`records-heading-${id}`} role="heading" aria-level={3}>
+                        Records {timestamps.length >= MAX_RECORDS_TO_DISPLAY ? ' (Up to 5 most recent)' : ''}
+                    </Typography>
+                )}
+                <List
+                    aria-labelledby={timestamps.length > 0 ? `records-heading-${id}` : undefined}
+                    aria-label={timestamps.length === 0 ? 'No event records' : undefined}
+                >
+                    <Box>
                         {timestamps.slice(0, MAX_RECORDS_TO_DISPLAY).map((record: Date) => (
                             <EventRecord
                                 key={`${id}-${record.toISOString()}`}
@@ -178,9 +125,9 @@ const LoggableEventCard = ({ eventId }: Props) => {
                 </List>
 
                 {/* Event labels */}
-                {eventLabelObjects.length > 0 && (
+                {eventLabelFragments.length > 0 && (
                     <Box mt={1} display="flex" flexWrap="wrap" gap={1} role="group" aria-label="Event labels">
-                        {eventLabelObjects.map(({ id: labelId, name: labelName }) => (
+                        {eventLabelFragments.map(({ id: labelId, name: labelName }) => (
                             <Chip
                                 key={labelId}
                                 label={labelName}

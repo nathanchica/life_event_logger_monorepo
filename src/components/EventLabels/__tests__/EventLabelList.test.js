@@ -1,18 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import LoggableEventsProvider from '../../../providers/LoggableEventsProvider';
 import ViewOptionsProvider from '../../../providers/ViewOptionsProvider';
 import { MAX_LABEL_LENGTH } from '../../../utils/validation';
 import EventLabelList from '../EventLabelList';
 
 describe('EventLabelList', () => {
     function renderWithProvider(ui) {
-        return render(
-            <LoggableEventsProvider offlineMode={true}>
-                <ViewOptionsProvider>{ui}</ViewOptionsProvider>
-            </LoggableEventsProvider>
-        );
+        return render(<ViewOptionsProvider>{ui}</ViewOptionsProvider>);
     }
 
     it('shows the label creation form when clicking create new label', async () => {

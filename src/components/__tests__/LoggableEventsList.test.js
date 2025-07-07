@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 
 import { createMockLoggableEvent } from '../../mocks/loggableEvent';
 import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
-import { LoggableEventsContext } from '../../providers/LoggableEventsProvider';
 import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import LoggableEventsList from '../LoggableEventsList';
 
@@ -24,16 +23,13 @@ describe('LoggableEventsList', () => {
         jest.clearAllMocks();
     });
 
-    const renderWithProviders = (component, { eventsValue, viewOptionsValue } = {}) => {
-        const defaultEventsValue = createMockLoggableEventsContextValue();
+    const renderWithProviders = (component, { viewOptionsValue } = {}) => {
         const defaultViewOptionsValue = createMockViewOptionsContextValue();
 
         return render(
-            <LoggableEventsContext.Provider value={eventsValue || defaultEventsValue}>
-                <ViewOptionsContext.Provider value={viewOptionsValue || defaultViewOptionsValue}>
-                    {component}
-                </ViewOptionsContext.Provider>
-            </LoggableEventsContext.Provider>
+            <ViewOptionsContext.Provider value={viewOptionsValue || defaultViewOptionsValue}>
+                {component}
+            </ViewOptionsContext.Provider>
         );
     };
 

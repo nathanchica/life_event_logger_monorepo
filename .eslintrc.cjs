@@ -53,7 +53,7 @@ module.exports = {
             }
         ],
         'import/no-duplicates': 'error',
-        'import/no-unused-modules': ['warn', { unusedExports: true }]
+        'import/no-unused-modules': 'off'
     },
     settings: {
         react: {

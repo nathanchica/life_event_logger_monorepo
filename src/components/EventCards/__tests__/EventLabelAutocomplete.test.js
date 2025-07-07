@@ -4,8 +4,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { createMockEventLabel } from '../../../mocks/eventLabels';
-import { createMockLoggableEventsContextValue } from '../../../mocks/providers';
-import { LoggableEventsContext } from '../../../providers/LoggableEventsProvider';
 import { MAX_LABEL_LENGTH } from '../../../utils/validation';
 import EventLabelAutocomplete from '../EventLabelAutocomplete';
 
@@ -22,40 +20,26 @@ describe('EventLabelAutocomplete', () => {
         mockCreateEventLabel.mockImplementation((name) => createMockEventLabel({ name }));
     });
 
-    const renderWithProviders = (component, contextOverrides = {}) => {
-        const mockContextValue = createMockLoggableEventsContextValue({
-            eventLabels: mockEventLabels,
-            createEventLabel: mockCreateEventLabel,
-            ...contextOverrides
-        });
-
-        return render(
-            <LoggableEventsContext.Provider value={mockContextValue}>{component}</LoggableEventsContext.Provider>
-        );
-    };
-
     function TestEventLabelAutocomplete({ initialSelectedLabels = [] }) {
         const [selectedLabels, setSelectedLabels] = useState(initialSelectedLabels);
         return <EventLabelAutocomplete selectedLabels={selectedLabels} setSelectedLabels={setSelectedLabels} />;
     }
 
     it('renders label chips for selected labels', () => {
-        renderWithProviders(
-            <TestEventLabelAutocomplete initialSelectedLabels={[mockEventLabels[0], mockEventLabels[1]]} />
-        );
+        render(<TestEventLabelAutocomplete initialSelectedLabels={[mockEventLabels[0], mockEventLabels[1]]} />);
         expect(screen.getByText('Work')).toBeInTheDocument();
         expect(screen.getByText('Personal')).toBeInTheDocument();
     });
 
     it('shows suggestions when typing', async () => {
-        renderWithProviders(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
+        render(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
         const input = screen.getByLabelText('Labels');
         await userEvent.type(input, 'F');
         expect(await screen.findByText('Fitness')).toBeInTheDocument();
     });
 
     it('calls createEventLabel for new label', async () => {
-        renderWithProviders(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
+        render(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
         const input = screen.getByLabelText('Labels');
         await userEvent.type(input, 'NewLabel');
         await userEvent.keyboard('{Enter}');
@@ -65,7 +49,7 @@ describe('EventLabelAutocomplete', () => {
     });
 
     it('selects a suggestion from the autocomplete', async () => {
-        renderWithProviders(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
+        render(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
         const input = screen.getByLabelText('Labels');
         await userEvent.type(input, 'Fit');
         const suggestion = await screen.findByText('Fitness');
@@ -74,7 +58,7 @@ describe('EventLabelAutocomplete', () => {
     });
 
     it('shows error when label name is too long', async () => {
-        renderWithProviders(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
+        render(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
         const input = screen.getByLabelText('Labels');
         const longLabel = 'A'.repeat(MAX_LABEL_LENGTH + 1);
         await userEvent.type(input, longLabel);
@@ -82,7 +66,7 @@ describe('EventLabelAutocomplete', () => {
     });
 
     it('does not add a label that is already selected when pressing enter', async () => {
-        renderWithProviders(<TestEventLabelAutocomplete initialSelectedLabels={[mockEventLabels[0]]} />);
+        render(<TestEventLabelAutocomplete initialSelectedLabels={[mockEventLabels[0]]} />);
         const input = screen.getByLabelText('Labels');
         await userEvent.type(input, 'Work');
         await userEvent.keyboard('{Enter}');
@@ -90,7 +74,7 @@ describe('EventLabelAutocomplete', () => {
     });
 
     it('does not add a label with invalid name when pressing enter', async () => {
-        renderWithProviders(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
+        render(<TestEventLabelAutocomplete initialSelectedLabels={[]} />);
         const input = screen.getByLabelText('Labels');
         const invalidLabel = 'A'.repeat(MAX_LABEL_LENGTH + 1);
         await userEvent.type(input, invalidLabel);
@@ -100,7 +84,7 @@ describe('EventLabelAutocomplete', () => {
     });
 
     it('skips adding already selected labels when multiple are selected', async () => {
-        renderWithProviders(<TestEventLabelAutocomplete initialSelectedLabels={[mockEventLabels[0]]} />);
+        render(<TestEventLabelAutocomplete initialSelectedLabels={[mockEventLabels[0]]} />);
         const input = screen.getByLabelText('Labels');
         await userEvent.type(input, 'Personal');
         const suggestion = await screen.findByText('Personal');

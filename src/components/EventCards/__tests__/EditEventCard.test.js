@@ -4,8 +4,7 @@ import userEvent from '@testing-library/user-event';
 
 import { createMockEventLabel } from '../../../mocks/eventLabels';
 import { createMockLoggableEvent } from '../../../mocks/loggableEvent';
-import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../../mocks/providers';
-import { LoggableEventsContext } from '../../../providers/LoggableEventsProvider';
+import { createMockViewOptionsContextValue } from '../../../mocks/providers';
 import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import { MAX_EVENT_NAME_LENGTH } from '../../../utils/validation';
 import EditEventCard from '../EditEventCard';
@@ -33,15 +32,7 @@ describe('EditEventCard', () => {
     });
 
     const renderWithProviders = (component, options = {}) => {
-        const { existingEvents = [], eventLabels = [], activeEventLabelId = null, theme = 'light' } = options;
-
-        const mockLoggableEventsValue = createMockLoggableEventsContextValue({
-            loggableEvents: existingEvents,
-            eventLabels,
-            createLoggableEvent: mockCreateLoggableEvent,
-            updateLoggableEventDetails: mockUpdateLoggableEventDetails
-        });
-
+        const { activeEventLabelId = null, theme = 'light' } = options;
         const mockViewOptionsValue = createMockViewOptionsContextValue({
             activeEventLabelId,
             theme
@@ -55,9 +46,7 @@ describe('EditEventCard', () => {
 
         return render(
             <ThemeProvider theme={muiTheme}>
-                <LoggableEventsContext.Provider value={mockLoggableEventsValue}>
-                    <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
-                </LoggableEventsContext.Provider>
+                <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
             </ThemeProvider>
         );
     };

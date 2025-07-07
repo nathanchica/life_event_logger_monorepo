@@ -3,24 +3,14 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { createMockEventLabel } from '../../../mocks/eventLabels';
 import { createMockLoggableEvent } from '../../../mocks/loggableEvent';
-import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../../mocks/providers';
-import { LoggableEventsContext } from '../../../providers/LoggableEventsProvider';
+import { createMockViewOptionsContextValue } from '../../../mocks/providers';
 import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import LoggableEventCard from '../LoggableEventCard';
 
 describe('LoggableEventCard', () => {
-    let mockContextValue;
     let mockAddTimestampToEvent;
     let mockDeleteLoggableEvent;
-    let mockUpdateLoggableEventDetails;
-
-    const mockEventLabels = [
-        createMockEventLabel({ id: 'label-1', name: 'Health' }),
-        createMockEventLabel({ id: 'label-2', name: 'Personal' }),
-        createMockEventLabel({ id: 'label-3', name: 'Work' })
-    ];
 
     afterEach(() => {
         jest.clearAllMocks();
@@ -30,39 +20,15 @@ describe('LoggableEventCard', () => {
     beforeEach(() => {
         mockAddTimestampToEvent = jest.fn();
         mockDeleteLoggableEvent = jest.fn();
-        mockUpdateLoggableEventDetails = jest.fn();
-
-        mockContextValue = createMockLoggableEventsContextValue({
-            loggableEvents: [
-                createMockLoggableEvent({
-                    id: 'event-1',
-                    name: 'Exercise',
-                    timestamps: [
-                        new Date('2023-06-10T10:00:00Z'),
-                        new Date('2023-06-05T10:00:00Z'),
-                        new Date('2023-06-01T10:00:00Z')
-                    ],
-                    warningThresholdInDays: 7,
-                    labelIds: ['label-1', 'label-2']
-                })
-            ],
-            eventLabels: mockEventLabels,
-            addTimestampToEvent: mockAddTimestampToEvent,
-            deleteLoggableEvent: mockDeleteLoggableEvent,
-            updateLoggableEventDetails: mockUpdateLoggableEventDetails
-        });
     });
 
-    const renderWithProviders = (loggableEventsContextOverrides = {}) => {
-        const loggableEventsContext = { ...mockContextValue, ...loggableEventsContextOverrides };
+    const renderWithProviders = () => {
         const viewOptionsContext = createMockViewOptionsContextValue();
 
         return render(
             <LocalizationProvider dateAdapter={AdapterMoment}>
                 <ViewOptionsContext.Provider value={viewOptionsContext}>
-                    <LoggableEventsContext.Provider value={loggableEventsContext}>
-                        <LoggableEventCard eventId="event-1" />
-                    </LoggableEventsContext.Provider>
+                    <LoggableEventCard eventId="event-1" />
                 </ViewOptionsContext.Provider>
             </LocalizationProvider>
         );

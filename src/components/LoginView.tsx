@@ -14,9 +14,14 @@ import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oa
 
 import { useAuth } from '../providers/AuthProvider';
 
+// Types for mutation inputs
+export interface LoginInput {
+    googleToken: string;
+}
+
 export const LOGIN_MUTATION = gql`
-    mutation Login($googleToken: String!) {
-        login(googleToken: $googleToken) {
+    mutation Login($input: LoginInput!) {
+        login(input: $input) {
             token
             user {
                 id
@@ -36,7 +41,7 @@ export const LOGIN_MUTATION = gql`
 const LoginView = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [loginMutation] = useMutation(LOGIN_MUTATION);
-    const { login, setOfflineMode } = useAuth();
+    const { login } = useAuth();
     const theme = useTheme();
 
     const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
@@ -44,7 +49,9 @@ const LoginView = () => {
         try {
             const { data } = await loginMutation({
                 variables: {
-                    googleToken: credentialResponse.credential
+                    input: {
+                        googleToken: credentialResponse.credential
+                    }
                 }
             });
 
@@ -64,7 +71,10 @@ const LoginView = () => {
     };
 
     const handleOfflineMode = () => {
-        setOfflineMode(true);
+        // Add the offline parameter to the URL and reload
+        const url = new URL(window.location.href);
+        url.searchParams.set('offline', 'true');
+        window.location.href = url.toString();
     };
 
     // Enable Google One Tap login
