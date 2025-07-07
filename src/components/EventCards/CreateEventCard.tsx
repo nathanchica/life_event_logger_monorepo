@@ -6,8 +6,7 @@ import { css } from '@emotion/react';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
-import blue from '@mui/material/colors/blue';
-import grey from '@mui/material/colors/grey';
+import { blue, grey } from '@mui/material/colors';
 import { visuallyHidden } from '@mui/utils';
 
 import EditEventCard from './EditEventCard';

@@ -6,8 +6,7 @@ import { css } from '@emotion/react';
 import Card from '@mui/material/Card';
 import Grow from '@mui/material/Grow';
 import Skeleton from '@mui/material/Skeleton';
-import amber from '@mui/material/colors/amber';
-import grey from '@mui/material/colors/grey';
+import { amber, grey } from '@mui/material/colors';
 import { useTheme } from '@mui/material/styles';
 
 export const CARD_WIDTH = '400px';

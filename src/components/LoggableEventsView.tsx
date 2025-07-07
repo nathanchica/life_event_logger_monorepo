@@ -8,8 +8,7 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import blueGrey from '@mui/material/colors/blueGrey';
-import green from '@mui/material/colors/green';
+import { blueGrey, green } from '@mui/material/colors';
 import { useTheme } from '@mui/material/styles';
 
 import CreateEventCard from './EventCards/CreateEventCard';
@@ -38,23 +37,22 @@ const LoggableEventsView = ({ isLoading = false, offlineMode = false, isShowingF
 
     const mainContent = (
         <Grid
-            item
-            xs={12}
             role="main"
             aria-label="Loggable events main content"
             css={css`
                 padding: 64px;
+                overflow-y: scroll;
             `}
+            size="grow"
         >
             <Grid container spacing={5} role="list" aria-label="List of loggable events" aria-live="polite">
                 {isShowingFetchError ? (
                     <Grid
-                        item
-                        xs={12}
                         css={css`
                             text-align: center;
                             padding: 48px;
                         `}
+                        size={12}
                     >
                         <Typography variant="h5" gutterBottom>
                             Sorry, something went wrong
@@ -65,19 +63,19 @@ const LoggableEventsView = ({ isLoading = false, offlineMode = false, isShowingF
                     </Grid>
                 ) : isLoading ? (
                     <>
-                        <Grid item role="listitem">
+                        <Grid role="listitem">
                             <EventCardSkeleton />
                         </Grid>
-                        <Grid item role="listitem">
+                        <Grid role="listitem">
                             <EventCardSkeleton />
                         </Grid>
-                        <Grid item role="listitem">
+                        <Grid role="listitem">
                             <EventCardSkeleton />
                         </Grid>
                     </>
                 ) : (
                     <>
-                        <Grid item role="listitem">
+                        <Grid role="listitem">
                             <CreateEventCard />
                         </Grid>
                         <LoggableEventsList />
@@ -131,7 +129,7 @@ const LoggableEventsView = ({ isLoading = false, offlineMode = false, isShowingF
                     width: 100vw;
                 `}
             >
-                <Grid item>
+                <Grid size="auto">
                     <Sidebar
                         isCollapsed={sidebarIsCollapsed}
                         onCollapseSidebarClick={collapseSidebar}

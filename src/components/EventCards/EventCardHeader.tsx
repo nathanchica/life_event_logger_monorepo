@@ -33,12 +33,12 @@ const EventCardHeader = ({ eventId, name, onEditEvent, onDeleteEvent }: Props) =
 
     return (
         <Grid container alignItems="baseline">
-            <Grid item xs={11}>
+            <Grid size={11}>
                 <Typography gutterBottom variant="h5" id={`event-title-${eventId}`} component="h2">
                     {name}
                 </Typography>
             </Grid>
-            <Grid item xs={1}>
+            <Grid size={1}>
                 <Box
                     css={css`
                         position: relative;

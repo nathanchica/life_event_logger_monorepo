@@ -14,7 +14,7 @@ import FormGroup from '@mui/material/FormGroup';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import blueGrey from '@mui/material/colors/blueGrey';
+import { blueGrey } from '@mui/material/colors';
 import { useTheme } from '@mui/material/styles';
 import { visuallyHidden } from '@mui/utils';
 import invariant from 'tiny-invariant';

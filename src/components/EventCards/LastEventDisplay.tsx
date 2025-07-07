@@ -2,8 +2,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import orange from '@mui/material/colors/orange';
-import red from '@mui/material/colors/red';
+import { orange, red } from '@mui/material/colors';
 import { useTheme } from '@mui/material/styles';
 
 import { DAYS_IN_YEAR, DAYS_IN_MONTH } from '../../utils/time';
@@ -38,7 +37,7 @@ const LastEventDisplay = ({ daysSinceLastEvent, warningThresholdInDays }: Props)
 
     return (
         <Box
-            sx={{ mb: 1, color: isViolatingThreshold ? warningColor : 'inherit' }}
+            sx={{ mt: 1, mb: 1, color: isViolatingThreshold ? warningColor : 'text.secondary' }}
             role="status"
             aria-live={isViolatingThreshold ? 'polite' : 'off'}
             aria-label={isViolatingThreshold ? `Warning: ${textToDisplay}` : textToDisplay}

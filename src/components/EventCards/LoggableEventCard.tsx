@@ -13,7 +13,7 @@ import EventRecord from './EventRecord';
 import LastEventDisplay from './LastEventDisplay';
 
 import { useLoggableEvents } from '../../hooks/useLoggableEvents';
-import { getDaysSinceLastEventRecord } from '../../utils/time';
+import { getDaysSinceLastEventRecord, sortDateObjectsByNewestFirst } from '../../utils/time';
 import { LoggableEvent, LoggableEventFragment, EventLabelFragment } from '../../utils/types';
 import { useToggle } from '../../utils/useToggle';
 import EventLabel from '../EventLabels/EventLabel';
@@ -71,8 +71,6 @@ const LoggableEventCard = ({ loggableEventFragment }: Props) => {
 
     const eventLabelFragments: Array<EventLabelFragment> = loggableEventFragment.labels;
 
-    const currDate = new Date();
-
     const handleEditEventClick = () => {
         showEditEventForm();
     };
@@ -81,7 +79,10 @@ const LoggableEventCard = ({ loggableEventFragment }: Props) => {
         deleteLoggableEvent(id);
     };
 
-    const daysSinceLastEvent = getDaysSinceLastEventRecord(timestamps, currDate);
+    const currDate = new Date();
+    const sortedTimestamps = [...timestamps].sort(sortDateObjectsByNewestFirst);
+    const daysSinceLastEvent = getDaysSinceLastEventRecord(sortedTimestamps, currDate);
+    const lastEventDisplayIsShowing = typeof daysSinceLastEvent === 'number';
 
     return editEventFormIsShowing ? (
         <EditEventCard onDismiss={hideEditEventForm} eventIdToEdit={id} />
@@ -94,26 +95,32 @@ const LoggableEventCard = ({ loggableEventFragment }: Props) => {
                     onEditEvent={handleEditEventClick}
                     onDeleteEvent={handleDeleteEventClick}
                 />
-                <EventCardLogActions eventId={id} daysSinceLastEvent={daysSinceLastEvent} timestamps={timestamps} />
+                <EventCardLogActions
+                    eventId={id}
+                    daysSinceLastEvent={daysSinceLastEvent}
+                    timestamps={sortedTimestamps}
+                />
 
-                {typeof daysSinceLastEvent === 'number' && (
+                {lastEventDisplayIsShowing && (
                     <LastEventDisplay
                         daysSinceLastEvent={daysSinceLastEvent}
                         warningThresholdInDays={warningThresholdInDays}
                     />
                 )}
 
-                {timestamps.length > 0 && (
-                    <Typography variant="subtitle2" id={`records-heading-${id}`} role="heading" aria-level={3}>
-                        Records {timestamps.length >= MAX_RECORDS_TO_DISPLAY ? ' (Up to 5 most recent)' : ''}
-                    </Typography>
+                {sortedTimestamps.length > 0 && (
+                    <Box sx={{ mt: lastEventDisplayIsShowing ? 0 : 2 }}>
+                        <Typography variant="overline" id={`records-heading-${id}`} role="heading" aria-level={6}>
+                            Records {sortedTimestamps.length >= MAX_RECORDS_TO_DISPLAY ? ' (Up to 5 most recent)' : ''}
+                        </Typography>
+                    </Box>
                 )}
                 <List
-                    aria-labelledby={timestamps.length > 0 ? `records-heading-${id}` : undefined}
-                    aria-label={timestamps.length === 0 ? 'No event records' : undefined}
+                    aria-labelledby={sortedTimestamps.length > 0 ? `records-heading-${id}` : undefined}
+                    aria-label={sortedTimestamps.length === 0 ? 'No event records' : undefined}
                 >
                     <Box>
-                        {timestamps.slice(0, MAX_RECORDS_TO_DISPLAY).map((record: Date) => (
+                        {sortedTimestamps.slice(0, MAX_RECORDS_TO_DISPLAY).map((record: Date) => (
                             <EventRecord
                                 key={`${id}-${record.toISOString()}`}
                                 eventId={id}

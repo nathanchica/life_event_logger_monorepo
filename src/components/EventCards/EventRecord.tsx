@@ -41,6 +41,9 @@ const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
             onMouseLeave={() => setIsHovered(false)}
         >
             <ListItemText
+                slotProps={{
+                    primary: { typography: 'body2' }
+                }}
                 css={[
                     isFutureDate
                         ? css`

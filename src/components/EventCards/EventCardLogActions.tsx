@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import ToggleButton from '@mui/material/ToggleButton';
 import { visuallyHidden } from '@mui/utils';
 
 import EventDatepicker from './EventDatepicker';
@@ -20,7 +21,7 @@ type Props = {
  */
 const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props) => {
     const { addTimestampToEvent, addTimestampIsLoading } = useLoggableEvents();
-    const { value: datepickerIsShowing, setTrue: showDatepicker, setFalse: hideDatepicker } = useToggle();
+    const { value: datepickerIsShowing, setFalse: hideDatepicker, toggle: toggleDatepicker } = useToggle();
 
     const handleLogEventClick = async (dateToAdd?: Date | null) => {
         const currentDate = new Date();
@@ -52,16 +53,18 @@ const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props)
                     </Box>
                 )}
 
-                <Button
+                <ToggleButton
                     size="small"
+                    value="edit"
                     disableRipple
-                    onClick={showDatepicker}
+                    onClick={toggleDatepicker}
                     disabled={addTimestampIsLoading}
+                    selected={datepickerIsShowing}
                     aria-expanded={datepickerIsShowing}
                     aria-controls={datepickerIsShowing ? `datepicker-${eventId}` : undefined}
                 >
                     Log custom date
-                </Button>
+                </ToggleButton>
             </Stack>
 
             <EventDatepicker
@@ -69,7 +72,6 @@ const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props)
                 isShowing={datepickerIsShowing}
                 disabledDates={timestamps}
                 onAccept={handleDatepickerAccept}
-                onClose={hideDatepicker}
             />
         </>
     );
