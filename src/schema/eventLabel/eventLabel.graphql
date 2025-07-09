@@ -1,0 +1,126 @@
+"""
+Represents a label that can be associated with events for categorization
+"""
+type EventLabel {
+    """
+    Unique identifier for the label
+    """
+    id: ID!
+
+    """
+    Display name for the label
+    """
+    name: String!
+
+    """
+    User who owns this label
+    """
+    user: User!
+
+    """
+    Timestamp when the label was created
+    """
+    createdAt: DateTime!
+
+    """
+    Timestamp when the label was last updated
+    """
+    updatedAt: DateTime!
+}
+
+"""
+Response payload for creating an event label
+"""
+type CreateEventLabelMutationPayload {
+    """
+    The created event label, null if creation failed
+    """
+    eventLabel: EventLabel
+
+    """
+    Array of errors that occurred during creation
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Response payload for updating an event label
+"""
+type UpdateEventLabelMutationPayload {
+    """
+    The updated event label, null if update failed
+    """
+    eventLabel: EventLabel
+
+    """
+    Array of errors that occurred during update
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Response payload for deleting an event label
+"""
+type DeleteEventLabelMutationPayload {
+    """
+    The deleted event label, null if deletion failed
+    """
+    eventLabel: EventLabel
+
+    """
+    Array of errors that occurred during deletion
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Input for creating a new event label
+"""
+input CreateEventLabelMutationInput {
+    """
+    Name for the label (max 25 characters, cannot be empty)
+    """
+    name: String!
+}
+
+"""
+Input for updating an existing event label
+"""
+input UpdateEventLabelMutationInput {
+    """
+    ID of the event label to update
+    """
+    id: ID!
+
+    """
+    Updated name for the label (max 25 characters, cannot be empty)
+    """
+    name: String
+}
+
+"""
+Input for deleting an event label
+"""
+input DeleteEventLabelMutationInput {
+    """
+    ID of the event label to delete
+    """
+    id: ID!
+}
+
+extend type Mutation {
+    """
+    Create a new event label for the authenticated user
+    """
+    createEventLabel(input: CreateEventLabelMutationInput!): CreateEventLabelMutationPayload!
+
+    """
+    Update an existing event label (must be owned by authenticated user)
+    """
+    updateEventLabel(input: UpdateEventLabelMutationInput!): UpdateEventLabelMutationPayload!
+
+    """
+    Delete an event label (must be owned by authenticated user)
+    """
+    deleteEventLabel(input: DeleteEventLabelMutationInput!): DeleteEventLabelMutationPayload!
+}

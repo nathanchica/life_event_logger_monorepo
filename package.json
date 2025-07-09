@@ -7,17 +7,20 @@
         "build": "tsc",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
-        "format": "prettier --write \"src/**/*.{ts,js,json}\"",
-        "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+        "format": "prettier --write \"src/**/*.{ts,js,json,graphql}\"",
+        "format:check": "prettier --check \"src/**/*.{ts,js,json,graphql}\"",
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
         "typecheck": "tsc --noEmit",
+        "codegen": "graphql-codegen --config codegen.ts",
+        "codegen:watch": "graphql-codegen --config codegen.ts --watch",
         "prepare": "husky install",
         "prisma:generate": "prisma generate",
         "prisma:push": "prisma db push",
         "prisma:studio": "prisma studio"
     },
+    "type": "module",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/nathanchica/life_event_logger_api.git"
@@ -32,19 +35,28 @@
     "dependencies": {
         "@graphql-tools/load-files": "^7.0.1",
         "@graphql-tools/merge": "^9.0.24",
+        "@graphql-tools/schema": "^10.0.23",
         "@prisma/client": "^6.11.1",
         "google-auth-library": "^10.1.0",
         "graphql": "^16.11.0",
+        "graphql-scalars": "^1.24.2",
         "graphql-yoga": "^5.14.0",
         "zod": "^3.25.76"
     },
     "devDependencies": {
+        "@graphql-codegen/cli": "5.0.7",
+        "@graphql-codegen/typescript": "4.1.6",
+        "@graphql-codegen/typescript-operations": "^4.6.1",
+        "@graphql-codegen/typescript-resolvers": "4.5.1",
+        "@graphql-eslint/eslint-plugin": "^4.4.0",
         "@types/jest": "^30.0.0",
         "@types/node": "^24.0.12",
         "@typescript-eslint/eslint-plugin": "^8.36.0",
         "@typescript-eslint/parser": "^8.36.0",
+        "cross-env": "^7.0.3",
         "eslint": "^9.30.1",
         "eslint-config-prettier": "^10.1.5",
+        "eslint-plugin-import": "^2.32.0",
         "eslint-plugin-prettier": "^5.5.1",
         "husky": "^8.0.0",
         "jest": "^30.0.4",
@@ -53,6 +65,7 @@
         "prettier": "^3.6.2",
         "prisma": "^6.11.1",
         "ts-jest": "^29.4.0",
+        "tsx": "^4.20.3",
         "typescript": "^5.8.3",
         "vercel": "^44.2.13"
     },
@@ -60,6 +73,11 @@
         "*.{ts,js}": [
             "eslint --fix",
             "prettier --write"
+        ],
+        "*.graphql": [
+            "eslint --fix",
+            "prettier --write",
+            "npm run codegen"
         ],
         "*.{json,md}": [
             "prettier --write"

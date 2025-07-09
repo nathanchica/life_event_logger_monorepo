@@ -1,0 +1,51 @@
+"""
+Represents an authenticated user in the system
+"""
+type User {
+    """
+    Unique identifier for the user
+    """
+    id: ID!
+
+    """
+    External authentication provider identifier
+    """
+    googleId: String!
+
+    """
+    User's email address
+    """
+    email: String!
+
+    """
+    User's display name
+    """
+    name: String!
+
+    """
+    Timestamp when the user was first created
+    """
+    createdAt: DateTime!
+
+    """
+    Timestamp when the user record was last updated
+    """
+    updatedAt: DateTime!
+
+    """
+    All loggable events created by this user
+    """
+    loggableEvents: [LoggableEvent!]!
+
+    """
+    All event labels created by this user
+    """
+    eventLabels: [EventLabel!]!
+}
+
+extend type Query {
+    """
+    Get the currently authenticated user's profile
+    """
+    user: User
+}

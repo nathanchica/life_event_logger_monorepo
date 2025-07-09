@@ -1,8 +1,8 @@
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
-import prettier from 'eslint-plugin-prettier';
-import prettierConfig from 'eslint-config-prettier';
+import graphqlPlugin from '@graphql-eslint/eslint-plugin';
+import importPlugin from 'eslint-plugin-import';
 
 export default [
     js.configs.recommended,
@@ -29,19 +29,49 @@ export default [
         },
         plugins: {
             '@typescript-eslint': tseslint,
-            prettier: prettier
+            import: importPlugin
         },
         rules: {
             ...tseslint.configs.recommended.rules,
-            ...prettierConfig.rules,
             '@typescript-eslint/explicit-function-return-type': 'off',
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
             'no-console': ['warn', { allow: ['warn', 'error'] }],
-            'prettier/prettier': 'error'
+            'import/order': [
+                'warn',
+                {
+                    groups: ['builtin', 'external', 'internal', 'sibling', 'parent', 'index'],
+                    'newlines-between': 'always',
+                    alphabetize: {
+                        order: 'asc',
+                        caseInsensitive: false
+                    }
+                }
+            ]
         }
     },
     {
-        ignores: ['dist/', 'node_modules/', '.vercel/', 'coverage/', '*.config.js', '*.config.mjs', '*.config.ts']
+        files: ['**/*.graphql'],
+        languageOptions: {
+            parser: graphqlPlugin.parser
+        },
+        plugins: {
+            '@graphql-eslint': graphqlPlugin
+        },
+        rules: {
+            '@graphql-eslint/no-unreachable-types': 'error'
+        }
+    },
+    {
+        ignores: [
+            'dist/',
+            'node_modules/',
+            '.vercel/',
+            'coverage/',
+            '*.config.js',
+            '*.config.mjs',
+            '*.config.ts',
+            'src/generated/'
+        ]
     }
 ];

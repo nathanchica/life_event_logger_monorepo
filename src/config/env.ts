@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-    // mongoDB connection string
+    // Database connection string
     DATABASE_URL: z.string().url(),
     // Google OAuth Client ID
     GOOGLE_CLIENT_ID: z.string().min(1),

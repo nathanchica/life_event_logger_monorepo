@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  googleId  String   @unique
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  loggableEvents LoggableEvent[]
+  eventLabels    EventLabel[]
+}
+
+model LoggableEvent {
+  id                     String     @id @default(auto()) @map("_id") @db.ObjectId
+  name                   String
+  dateTimeRecords        DateTime[]
+  warningThresholdInDays Int
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  
+  // Relations - userId is internal, user relation is exposed in GraphQL
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+  
+  labelIds String[]     @db.ObjectId
+  labels   EventLabel[] @relation(fields: [labelIds], references: [id])
+}
+
+model EventLabel {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations - userId is internal, user relation is exposed in GraphQL
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+  
+  loggableEventIds String[]        @db.ObjectId
+  loggableEvents   LoggableEvent[] @relation(fields: [loggableEventIds], references: [id])
+}
