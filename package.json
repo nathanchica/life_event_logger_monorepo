@@ -1,0 +1,68 @@
+{
+    "name": "life_event_logger_api",
+    "version": "1.0.0",
+    "description": "GraphQL API for Life Event Logger app",
+    "scripts": {
+        "dev": "vercel dev",
+        "build": "tsc",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+        "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "typecheck": "tsc --noEmit",
+        "prepare": "husky install",
+        "prisma:generate": "prisma generate",
+        "prisma:push": "prisma db push",
+        "prisma:studio": "prisma studio"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/nathanchica/life_event_logger_api.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/nathanchica/life_event_logger_api/issues"
+    },
+    "homepage": "https://github.com/nathanchica/life_event_logger_api#readme",
+    "dependencies": {
+        "@graphql-tools/load-files": "^7.0.1",
+        "@graphql-tools/merge": "^9.0.24",
+        "@prisma/client": "^6.11.1",
+        "google-auth-library": "^10.1.0",
+        "graphql": "^16.11.0",
+        "graphql-yoga": "^5.14.0",
+        "zod": "^3.25.76"
+    },
+    "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^24.0.12",
+        "@typescript-eslint/eslint-plugin": "^8.36.0",
+        "@typescript-eslint/parser": "^8.36.0",
+        "eslint": "^9.30.1",
+        "eslint-config-prettier": "^10.1.5",
+        "eslint-plugin-prettier": "^5.5.1",
+        "husky": "^8.0.0",
+        "jest": "^30.0.4",
+        "jest-mock-extended": "^4.0.0",
+        "lint-staged": "^16.1.2",
+        "prettier": "^3.6.2",
+        "prisma": "^6.11.1",
+        "ts-jest": "^29.4.0",
+        "typescript": "^5.8.3",
+        "vercel": "^44.2.13"
+    },
+    "lint-staged": {
+        "*.{ts,js}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md}": [
+            "prettier --write"
+        ]
+    }
+}
