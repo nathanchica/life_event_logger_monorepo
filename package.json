@@ -16,7 +16,7 @@
         "typecheck": "tsc --noEmit",
         "codegen": "graphql-codegen --config codegen.ts",
         "codegen:watch": "graphql-codegen --config codegen.ts --watch",
-        "prepare": "husky install",
+        "prepare": "husky install || true",
         "prisma:generate": "prisma generate",
         "prisma:push": "prisma db push",
         "prisma:studio": "prisma studio"
