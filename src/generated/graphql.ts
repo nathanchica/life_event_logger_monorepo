@@ -187,7 +187,7 @@ export type MutationUpdateLoggableEventArgs = {
 export type Query = {
     __typename?: 'Query';
     /** Get the currently authenticated user's profile */
-    user?: Maybe<User>;
+    loggedInUser?: Maybe<User>;
 };
 
 /** Input for updating an existing event label */
@@ -533,7 +533,7 @@ export type QueryResolvers<
     ContextType = GraphQLContext,
     ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']
 > = ResolversObject<{
-    user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+    loggedInUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
 }>;
 
 export type UpdateEventLabelMutationPayloadResolvers<

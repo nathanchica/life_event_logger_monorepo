@@ -15,7 +15,7 @@ export type UserParent = {
 
 const resolvers: Resolvers = {
     Query: {
-        user: async (_, __, { user }) => {
+        loggedInUser: async (_, __, { user }) => {
             return user;
         }
     },

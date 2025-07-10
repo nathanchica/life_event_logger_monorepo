@@ -47,5 +47,5 @@ extend type Query {
     """
     Get the currently authenticated user's profile
     """
-    user: User
+    loggedInUser: User
 }
