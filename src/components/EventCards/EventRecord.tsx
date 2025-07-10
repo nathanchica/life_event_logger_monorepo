@@ -30,7 +30,10 @@ const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
     const isFutureDate = getNumberOfDaysBetweenDates(recordDate, currentDate) < 0;
 
     const onDeleteRecord = async () => {
-        await removeTimestampFromEvent(eventId, recordDate);
+        await removeTimestampFromEvent({
+            eventId,
+            timestamp: recordDate.toISOString()
+        });
     };
 
     return (

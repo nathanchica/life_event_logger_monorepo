@@ -6,6 +6,7 @@ import TextField from '@mui/material/TextField';
 import { useEventLabels } from '../../hooks/useEventLabels';
 import { EventLabel } from '../../utils/types';
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
+import { createEventLabelFromFragment } from '../EventLabels/EventLabel';
 
 type Props = {
     selectedLabels: EventLabel[];
@@ -41,9 +42,10 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels, existingLab
                             const validationError = validateEventLabelName(val, existingLabelNames);
                             if (validationError === null) {
                                 // Create the label asynchronously
-                                createEventLabel({ name: val }).then((createdLabel) => {
-                                    if (createdLabel) {
-                                        setSelectedLabels((prev) => [...prev, createdLabel]);
+                                createEventLabel({ name: val }).then((payload) => {
+                                    if (payload?.eventLabel) {
+                                        newLabel = createEventLabelFromFragment(payload.eventLabel);
+                                        setSelectedLabels((prev) => [...prev, newLabel as EventLabel]);
                                     }
                                 });
                                 // Don't add to newLabel since it's async
@@ -57,7 +59,7 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels, existingLab
                     return [...filteredLabels, ...(newLabel ? [newLabel] : [])];
                 });
             }}
-            renderTags={(value, getTagProps) =>
+            renderValue={(value, getTagProps) =>
                 value.map((option, index) => {
                     const label = existingLabels.find((label) => label.name === option);
                     if (!label) return null;

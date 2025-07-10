@@ -1,11 +1,12 @@
 import { gql, useMutation, Reference } from '@apollo/client';
 import { v4 as uuidv4 } from 'uuid';
 
-import EventLabelComponent from '../components/EventLabels/EventLabel';
 import { useAuth } from '../providers/AuthProvider';
-import { EventLabel } from '../utils/types';
+import { EventLabelFragment, GenericApiError } from '../utils/types';
 
-// Types for mutation inputs
+/**
+ * Mutation input types
+ */
 export interface CreateEventLabelInput {
     name: string;
 }
@@ -19,34 +20,104 @@ export interface DeleteEventLabelInput {
     id: string;
 }
 
-// Import the existing fragment
-const EVENT_LABEL_FRAGMENT = EventLabelComponent.fragments.eventLabel;
+/**
+ * Mutation payload types
+ */
 
-// GraphQL mutations
-const CREATE_EVENT_LABEL = gql`
+export type CreateEventLabelPayload = {
+    eventLabel: EventLabelFragment;
+    errors: Array<GenericApiError>;
+};
+
+export type UpdateEventLabelPayload = {
+    eventLabel: EventLabelFragment;
+    errors: Array<GenericApiError>;
+};
+
+export type DeleteEventLabelPayload = {
+    eventLabel: EventLabelFragment;
+    errors: Array<GenericApiError>;
+};
+
+/**
+ * GraphQL fragments and mutations for event labels
+ */
+
+export const EVENT_LABEL_FRAGMENT = gql`
+    fragment EventLabelFragment on EventLabel {
+        id
+        name
+    }
+`;
+
+export const GENERIC_API_ERROR_FRAGMENT = gql`
+    fragment GenericApiErrorFragment on GenericApiError {
+        code
+        field
+        message
+    }
+`;
+
+export const CREATE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
+    fragment CreateEventLabelPayloadFragment on CreateEventLabelPayload {
+        eventLabel {
+            ...EventLabelFragment
+        }
+        errors {
+            ...GenericApiErrorFragment
+        }
+    }
+    ${EVENT_LABEL_FRAGMENT}
+`;
+
+export const CREATE_EVENT_LABEL_MUTATION = gql`
     mutation CreateEventLabel($input: CreateEventLabelInput!) {
         createEventLabel(input: $input) {
+            ...CreateEventLabelPayloadFragment
+        }
+    }
+    ${CREATE_EVENT_LABEL_PAYLOAD_FRAGMENT}
+`;
+
+export const UPDATE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
+    fragment UpdateEventLabelPayloadFragment on UpdateEventLabelPayload {
+        eventLabel {
             ...EventLabelFragment
+        }
+        errors {
+            ...GenericApiErrorFragment
         }
     }
     ${EVENT_LABEL_FRAGMENT}
 `;
 
-const UPDATE_EVENT_LABEL = gql`
+export const UPDATE_EVENT_LABEL_MUTATION = gql`
     mutation UpdateEventLabel($input: UpdateEventLabelInput!) {
         updateEventLabel(input: $input) {
-            ...EventLabelFragment
+            ...UpdateEventLabelPayloadFragment
         }
     }
-    ${EVENT_LABEL_FRAGMENT}
+    ${UPDATE_EVENT_LABEL_PAYLOAD_FRAGMENT}
 `;
 
-const DELETE_EVENT_LABEL = gql`
-    mutation DeleteEventLabel($input: DeleteEventLabelInput!) {
-        deleteEventLabel(input: $input) {
+export const DELETE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
+    fragment DeleteEventLabelPayloadFragment on DeleteEventLabelPayload {
+        eventLabel {
             id
         }
+        errors {
+            ...GenericApiErrorFragment
+        }
     }
+`;
+
+export const DELETE_EVENT_LABEL_MUTATION = gql`
+    mutation DeleteEventLabel($input: DeleteEventLabelInput!) {
+        deleteEventLabel(input: $input) {
+            ...DeleteEventLabelPayloadFragment
+        }
+    }
+    ${DELETE_EVENT_LABEL_PAYLOAD_FRAGMENT}
 `;
 
 /**
@@ -56,63 +127,124 @@ const DELETE_EVENT_LABEL = gql`
 export const useEventLabels = () => {
     const { user } = useAuth();
 
-    const [createEventLabelMutation, { loading: createIsLoading }] = useMutation(CREATE_EVENT_LABEL, {
+    const [createEventLabelMutation, { loading: createIsLoading }] = useMutation(CREATE_EVENT_LABEL_MUTATION, {
         optimisticResponse: (variables) => ({
             createEventLabel: {
                 __typename: 'EventLabel',
                 id: `temp-${uuidv4()}`,
-                name: variables.input.name,
-                createdAt: new Date().toISOString()
+                name: variables.input.name
             }
         }),
         update: (cache, { data }) => {
-            if (!data?.createEventLabel || !user?.id) return;
+            if (!data?.createEventLabel || !data.createEventLabel?.eventLabel || !user?.id) return;
 
             // Add new label to user's eventLabels list
             cache.modify({
                 id: cache.identify({ __typename: 'User', id: user.id }),
                 fields: {
-                    eventLabels(existing = []) {
+                    eventLabels(existingLabelRefs, { readField }) {
                         const newLabelRef = cache.writeFragment({
                             fragment: EVENT_LABEL_FRAGMENT,
-                            data: data.createEventLabel
+                            data: data.createEventLabel.eventLabel
                         });
-                        return [...existing, newLabelRef];
+
+                        // Safety checks. Not practically reachable so ignore them in coverage
+
+                        // If no existing labels, return new label as the only ref
+                        // istanbul ignore next
+                        if (!existingLabelRefs) return [newLabelRef];
+
+                        // If newLabelRef is null, return existing refs
+                        // istanbul ignore next
+                        if (!newLabelRef) return existingLabelRefs;
+
+                        // If label already exists, return existing refs
+                        // istanbul ignore next
+                        if (
+                            existingLabelRefs.some(
+                                (ref: Reference) => readField('id', ref) === data.createEventLabel.eventLabel.id
+                            )
+                        ) {
+                            return existingLabelRefs;
+                        }
+
+                        return [...existingLabelRefs, newLabelRef];
                     }
                 }
             });
         }
     });
 
-    const [updateEventLabelMutation, { loading: updateIsLoading }] = useMutation(UPDATE_EVENT_LABEL, {
+    const [updateEventLabelMutation, { loading: updateIsLoading }] = useMutation(UPDATE_EVENT_LABEL_MUTATION, {
         optimisticResponse: (variables) => ({
             updateEventLabel: {
                 __typename: 'EventLabel',
                 id: variables.input.id,
-                name: variables.input.name,
-                createdAt: new Date().toISOString() // This will be overwritten by cache merge
+                name: variables.input.name
             }
         })
     });
 
-    const [deleteEventLabelMutation, { loading: deleteIsLoading }] = useMutation(DELETE_EVENT_LABEL, {
+    const [deleteEventLabelMutation, { loading: deleteIsLoading }] = useMutation(DELETE_EVENT_LABEL_MUTATION, {
         optimisticResponse: (variables) => ({
             deleteEventLabel: {
-                __typename: 'EventLabel',
-                id: variables.input.id
+                __typename: 'DeleteEventLabelPayload',
+                eventLabel: {
+                    __typename: 'EventLabel',
+                    id: variables.input.id
+                },
+                errors: []
             }
         }),
         update: (cache, { data }) => {
-            if (!data?.deleteEventLabel || !user?.id) return;
+            if (!data?.deleteEventLabel || !data.deleteEventLabel?.eventLabel || !user?.id) return;
 
             // Remove label from user's eventLabels list
             cache.modify({
                 id: cache.identify({ __typename: 'User', id: user.id }),
                 fields: {
-                    eventLabels(existing = [], { readField }) {
-                        return existing.filter(
-                            (labelRef: Reference) => readField('id', labelRef) !== data.deleteEventLabel.id
+                    eventLabels(existingLabelRefs, { readField }) {
+                        // Safety checks. Not practically reachable so ignore them in coverage
+
+                        // If no existing labels, return empty array
+                        // istanbul ignore next
+                        if (!existingLabelRefs) return [];
+
+                        return existingLabelRefs.filter(
+                            (labelRef: Reference) => readField('id', labelRef) !== data.deleteEventLabel.eventLabel.id
                         );
+                    },
+                    loggableEvents(existingLoggableEventsRefs, { readField }) {
+                        // Safety checks. Not practically reachable so ignore them in coverage
+
+                        // If no existing loggable events, return empty array
+                        // istanbul ignore next
+                        if (!existingLoggableEventsRefs) return [];
+
+                        // Remove label from all loggable events that had it
+                        existingLoggableEventsRefs.forEach((loggableEventRef: Reference) => {
+                            const labels = (readField('labels', loggableEventRef) as Reference[]) || [];
+                            const updatedLabels = labels.filter(
+                                (labelRef: Reference) =>
+                                    readField('id', labelRef) !== data.deleteEventLabel.eventLabel.id
+                            );
+
+                            // Only update if the event actually had this label
+                            if (labels.length !== updatedLabels.length) {
+                                cache.writeFragment({
+                                    id: cache.identify(loggableEventRef),
+                                    fragment: gql`
+                                        fragment UpdatedLoggableEvent on LoggableEvent {
+                                            labels
+                                        }
+                                    `,
+                                    data: { labels: updatedLabels }
+                                });
+                            }
+                        });
+
+                        // Return the original array since we've updated the individual objects
+                        return existingLoggableEventsRefs;
                     }
                 }
             });
@@ -122,8 +254,16 @@ export const useEventLabels = () => {
         }
     });
 
-    // Wrapper functions with error handling
-    const createEventLabel = async (input: CreateEventLabelInput): Promise<EventLabel | null> => {
+    /**
+     * WRAPPER FUNCTIONS
+     */
+
+    /**
+     * Create a new event label
+     */
+    const createEventLabel = async (
+        input: Omit<CreateEventLabelInput, 'id'>
+    ): Promise<CreateEventLabelPayload | null> => {
         try {
             const result = await createEventLabelMutation({
                 variables: {
@@ -134,42 +274,42 @@ export const useEventLabels = () => {
                 }
             });
             return result.data?.createEventLabel || null;
-        } catch (error) {
-            console.error('Error creating event label:', error);
+        } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
             return null;
         }
     };
 
-    const updateEventLabel = async (
-        id: string,
-        input: Omit<UpdateEventLabelInput, 'id'>
-    ): Promise<EventLabel | null> => {
+    /**
+     * Update an existing event label
+     */
+    const updateEventLabel = async (input: UpdateEventLabelInput): Promise<UpdateEventLabelPayload | null> => {
         try {
             const result = await updateEventLabelMutation({
-                variables: { input: { id, ...input } }
+                variables: { input }
             });
             return result.data?.updateEventLabel || null;
-        } catch (error) {
-            console.error('Error updating event label:', error);
+        } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
             return null;
         }
     };
 
-    const deleteEventLabel = async (id: string): Promise<boolean> => {
+    /**
+     * Delete an existing event label
+     */
+    const deleteEventLabel = async (input: DeleteEventLabelInput): Promise<DeleteEventLabelPayload | null> => {
         try {
-            await deleteEventLabelMutation({
-                variables: { input: { id } }
+            const { data } = await deleteEventLabelMutation({
+                variables: { input }
             });
-            return true;
-        } catch (error) {
-            console.error('Error deleting event label:', error);
+            return data?.deleteEventLabel || null;
+        } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return true;
+            return null;
         }
     };
 

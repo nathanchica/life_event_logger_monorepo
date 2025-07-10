@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client';
+import { gql, useFragment } from '@apollo/client';
 import Box from '@mui/material/Box';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
@@ -16,28 +16,26 @@ import { useLoggableEvents } from '../../hooks/useLoggableEvents';
 import { getDaysSinceLastEventRecord, sortDateObjectsByNewestFirst } from '../../utils/time';
 import { LoggableEvent, LoggableEventFragment, EventLabelFragment } from '../../utils/types';
 import { useToggle } from '../../utils/useToggle';
-import EventLabel from '../EventLabels/EventLabel';
 
 const MAX_RECORDS_TO_DISPLAY = 5;
 
-const LOGGABLE_EVENT_FRAGMENT = gql`
-    fragment LoggableEventFragment on LoggableEvent {
+const LOGGABLE_EVENT_CARD_FRAGMENT = gql`
+    fragment LoggableEventCardFragment on LoggableEvent {
+        id
         name
         timestamps
         warningThresholdInDays
-        createdAt
         labels {
-            ...EventLabelFragment
+            id
+            name
         }
     }
-    ${EventLabel.fragments.eventLabel}
 `;
 
 export const createLoggableEventFromFragment = ({
     id,
     name,
     timestamps,
-    createdAt,
     warningThresholdInDays,
     labels
 }: LoggableEventFragment): LoggableEvent => {
@@ -45,15 +43,13 @@ export const createLoggableEventFromFragment = ({
         id,
         name,
         timestamps: timestamps.map((timestampIsoString) => new Date(timestampIsoString)),
-        createdAt: new Date(createdAt),
         warningThresholdInDays,
-        labelIds: labels.map(({ id }) => id),
-        isSynced: true
+        labelIds: labels.map(({ id }) => id)
     };
 };
 
 type Props = {
-    loggableEventFragment: LoggableEventFragment;
+    eventId: string;
 };
 
 /**
@@ -63,20 +59,28 @@ type Props = {
  * It also provides options to edit or delete the event.
  * If the event has not been logged for a certain number of days, it displays a warning.
  */
-const LoggableEventCard = ({ loggableEventFragment }: Props) => {
+const LoggableEventCard = ({ eventId }: Props) => {
+    const { data } = useFragment({
+        fragment: LOGGABLE_EVENT_CARD_FRAGMENT,
+        fragmentName: 'LoggableEventCardFragment',
+        from: {
+            __typename: 'LoggableEvent',
+            id: eventId
+        }
+    });
+
+    const { id, name, timestamps, warningThresholdInDays } = createLoggableEventFromFragment(data);
+    const eventLabelFragments: Array<EventLabelFragment> = data.labels;
+
     const { deleteLoggableEvent } = useLoggableEvents();
-    const { id, name, timestamps, warningThresholdInDays } = createLoggableEventFromFragment(loggableEventFragment);
-
     const { value: editEventFormIsShowing, setTrue: showEditEventForm, setFalse: hideEditEventForm } = useToggle();
-
-    const eventLabelFragments: Array<EventLabelFragment> = loggableEventFragment.labels;
 
     const handleEditEventClick = () => {
         showEditEventForm();
     };
 
     const handleDeleteEventClick = () => {
-        deleteLoggableEvent(id);
+        deleteLoggableEvent({ id });
     };
 
     const currDate = new Date();
@@ -151,7 +155,7 @@ const LoggableEventCard = ({ loggableEventFragment }: Props) => {
 };
 
 LoggableEventCard.fragments = {
-    loggableEvent: LOGGABLE_EVENT_FRAGMENT
+    loggableEvent: LOGGABLE_EVENT_CARD_FRAGMENT
 };
 
 export default LoggableEventCard;

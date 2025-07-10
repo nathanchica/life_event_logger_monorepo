@@ -1,15 +1,12 @@
 import { MockedProvider } from '@apollo/client/testing';
 import { render, screen, waitFor } from '@testing-library/react';
 
-import {
-    createGetLoggableEventsForUserMock,
-    createGetLoggableEventsForUserErrorMock
-} from '../../mocks/getLoggableEventsForUserMocks';
+import { createMockEventLabelFragment } from '../../mocks/eventLabels';
 import { createMockLoggableEventFragment } from '../../mocks/loggableEvent';
 import { createMockAuthContextValue } from '../../mocks/providers';
 import { createMockUser } from '../../mocks/user';
 import { AuthContext } from '../../providers/AuthProvider';
-import LoggableEventsGQL from '../LoggableEventsGQL';
+import LoggableEventsGQL, { GET_LOGGABLE_EVENTS_FOR_USER } from '../LoggableEventsGQL';
 
 jest.mock('../LoggableEventsView', () => {
     return function MockLoggableEventsView({ isLoading, isShowingFetchError }) {
@@ -21,6 +18,42 @@ jest.mock('../LoggableEventsView', () => {
             </div>
         );
     };
+});
+
+const createGetLoggableEventsForUserMock = (
+    userId = createMockUser().id,
+    loggableEvents = [
+        createMockLoggableEventFragment(),
+        createMockLoggableEventFragment({ id: 'event-2', name: 'Test Event 2' })
+    ],
+    eventLabels = [
+        createMockEventLabelFragment({ id: 'label-1', name: 'Work' }),
+        createMockEventLabelFragment({ id: 'label-2', name: 'Personal' })
+    ]
+) => {
+    return {
+        request: {
+            query: GET_LOGGABLE_EVENTS_FOR_USER,
+            variables: { userId }
+        },
+        result: {
+            data: {
+                user: {
+                    __typename: 'User',
+                    loggableEvents,
+                    eventLabels
+                }
+            }
+        }
+    };
+};
+
+const createGetLoggableEventsForUserErrorMock = (userId = createMockUser().id) => ({
+    request: {
+        query: GET_LOGGABLE_EVENTS_FOR_USER,
+        variables: { userId }
+    },
+    error: new Error('GraphQL Error: Unable to fetch loggable events')
 });
 
 describe('LoggableEventsGQL', () => {
@@ -71,33 +104,25 @@ describe('LoggableEventsGQL', () => {
                     id: 'event-1',
                     name: 'Test Event 1',
                     timestamps: [new Date('2023-01-01T00:00:00Z')],
-                    createdAt: new Date('2023-01-01T00:00:00Z'),
                     warningThresholdInDays: 7,
-                    labelIds: ['label-1', 'label-2'],
-                    isSynced: true
+                    labelIds: ['label-1', 'label-2']
                 }),
                 expect.objectContaining({
                     id: 'event-2',
                     name: 'Test Event 2',
                     timestamps: [new Date('2023-01-01T00:00:00Z')],
-                    createdAt: new Date('2023-01-01T00:00:00Z'),
                     warningThresholdInDays: 7,
-                    labelIds: [],
-                    isSynced: true
+                    labelIds: []
                 })
             ]);
             expect(mockLoadEventLabels).toHaveBeenCalledWith([
                 expect.objectContaining({
                     id: 'label-1',
-                    name: 'Work',
-                    createdAt: new Date('2023-01-01T00:00:00Z'),
-                    isSynced: true
+                    name: 'Work'
                 }),
                 expect.objectContaining({
                     id: 'label-2',
-                    name: 'Personal',
-                    createdAt: new Date('2023-01-01T00:00:00Z'),
-                    isSynced: true
+                    name: 'Personal'
                 })
             ]);
         });

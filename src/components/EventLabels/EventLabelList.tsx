@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { gql, useFragment } from '@apollo/client';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
@@ -12,8 +13,21 @@ import invariant from 'tiny-invariant';
 import CreateEventLabelForm from './CreateEventLabelForm';
 import EventLabel from './EventLabel';
 
-import { useLoggableEventsForUser } from '../../hooks/useLoggableEventsForUser';
 import { useAuth } from '../../providers/AuthProvider';
+
+type EventLabelFragment = {
+    id: string;
+    name: string;
+};
+
+const EVENT_LABELS_FOR_USER_FRAGMENT = gql`
+    fragment EventLabelsForUserFragment on User {
+        eventLabels {
+            id
+            name
+        }
+    }
+`;
 
 type Props = {
     isShowingEditActions: boolean;
@@ -27,9 +41,18 @@ const EventLabelList = ({ isShowingEditActions }: Props) => {
 
     invariant(user, 'User is not authenticated');
 
-    const { eventLabelsFragments } = useLoggableEventsForUser(user);
-    const existingLabelNames = eventLabelsFragments.map((fragment) => fragment.name);
     const [createLabelFormIsShowing, setCreateLabelFormIsShowing] = useState(false);
+
+    const { complete, data } = useFragment({
+        fragment: EVENT_LABELS_FOR_USER_FRAGMENT,
+        fragmentName: 'EventLabelsForUserFragment',
+        from: {
+            __typename: 'User',
+            id: user.id
+        }
+    });
+    const eventLabelsFragments: Array<EventLabelFragment> = complete ? data.eventLabels : [];
+    const existingLabelNames = eventLabelsFragments.map((fragment) => fragment.name);
 
     const showCreateLabelForm = () => {
         setCreateLabelFormIsShowing(true);
@@ -58,11 +81,11 @@ const EventLabelList = ({ isShowingEditActions }: Props) => {
                     )}
                 </ListItem>
 
-                {eventLabelsFragments.map((eventLabelFragment) => {
+                {eventLabelsFragments.map(({ id }) => {
                     return (
                         <EventLabel
-                            key={eventLabelFragment.id}
-                            eventLabelFragment={eventLabelFragment}
+                            key={id}
+                            eventLabelId={id}
                             isShowingEditActions={isShowingEditActions}
                             existingLabelNames={existingLabelNames}
                         />

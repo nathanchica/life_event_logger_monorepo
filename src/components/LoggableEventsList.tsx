@@ -1,12 +1,31 @@
+import { gql, useFragment } from '@apollo/client';
 import Grid from '@mui/material/Grid';
 import invariant from 'tiny-invariant';
 
 import LoggableEventCard from './EventCards/LoggableEventCard';
 
-import { useLoggableEventsForUser } from '../hooks/useLoggableEventsForUser';
 import { useAuth } from '../providers/AuthProvider';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
-import { LoggableEventFragment } from '../utils/types';
+
+type LoggableEventFragment = {
+    id: string;
+    name: string;
+    labels: Array<{
+        id: string;
+    }>;
+};
+
+const LOGGABLE_EVENTS_FOR_USER_FRAGMENT = gql`
+    fragment LoggableEventsForUserFragment on User {
+        loggableEvents {
+            id
+            name
+            labels {
+                id
+            }
+        }
+    }
+`;
 
 /**
  * LoggableEventsList component for displaying a list of loggable events.
@@ -18,7 +37,15 @@ const LoggableEventsList = () => {
 
     invariant(user, 'User is not authenticated');
 
-    const { loggableEventsFragments } = useLoggableEventsForUser(user);
+    const { complete, data } = useFragment({
+        fragment: LOGGABLE_EVENTS_FOR_USER_FRAGMENT,
+        fragmentName: 'LoggableEventsForUserFragment',
+        from: {
+            __typename: 'User',
+            id: user.id
+        }
+    });
+    const loggableEventsFragments: Array<LoggableEventFragment> = complete ? data.loggableEvents : [];
 
     const filteredEventFragments: Array<LoggableEventFragment> = activeEventLabelId
         ? loggableEventsFragments.filter(
@@ -28,10 +55,10 @@ const LoggableEventsList = () => {
 
     return (
         <>
-            {filteredEventFragments.map((loggableEventFragment) => {
+            {filteredEventFragments.map(({ id }) => {
                 return (
-                    <Grid key={loggableEventFragment.id} role="listitem">
-                        <LoggableEventCard loggableEventFragment={loggableEventFragment} />
+                    <Grid key={id} role="listitem">
+                        <LoggableEventCard eventId={id} />
                     </Grid>
                 );
             })}

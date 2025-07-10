@@ -25,7 +25,10 @@ const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props)
 
     const handleLogEventClick = async (dateToAdd?: Date | null) => {
         const currentDate = new Date();
-        await addTimestampToEvent(eventId, dateToAdd || currentDate);
+        await addTimestampToEvent({
+            eventId,
+            timestamp: (dateToAdd || currentDate).toISOString()
+        });
     };
 
     const handleDatepickerAccept = async (date: Date) => {

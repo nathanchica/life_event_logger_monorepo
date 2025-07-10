@@ -6,7 +6,7 @@ export const cache = new InMemoryCache({
         Query: {
             fields: {
                 // For offline mode - return data from cache
-                user: {
+                loggedInUser: {
                     read(existing) {
                         return existing;
                     }

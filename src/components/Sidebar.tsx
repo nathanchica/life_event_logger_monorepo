@@ -97,9 +97,11 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                 min-height: 0;
                             `}
                         >
-                            <Typography noWrap variant="h5" gutterBottom>
-                                Event Log {isOfflineMode && '(Offline mode)'}
-                            </Typography>
+                            <Box sx={{ ml: 1.5, mt: 1 }}>
+                                <Typography noWrap variant="h5">
+                                    Event Log {isOfflineMode && '(Offline mode)'}
+                                </Typography>
+                            </Box>
 
                             <Box
                                 sx={{ mt: 4 }}

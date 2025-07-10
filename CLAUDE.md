@@ -359,8 +359,7 @@ When testing components that use dates:
 ```javascript
 const testDate = new Date('2023-01-01T00:00:00Z');
 const mockEvent = createMockLoggableEvent({
-  timestamps: [testDate],
-  createdAt: testDate
+  timestamps: [testDate]
 });
 ```
 
