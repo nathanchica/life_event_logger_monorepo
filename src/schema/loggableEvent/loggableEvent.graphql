@@ -147,15 +147,17 @@ extend type Mutation {
     """
     Create a new loggable event for the authenticated user
     """
-    createLoggableEvent(input: CreateLoggableEventMutationInput!): CreateLoggableEventMutationPayload!
+    createLoggableEvent(input: CreateLoggableEventMutationInput!): CreateLoggableEventMutationPayload! @requireAuth
 
     """
     Update an existing loggable event (must be owned by authenticated user)
     """
     updateLoggableEvent(input: UpdateLoggableEventMutationInput!): UpdateLoggableEventMutationPayload!
+        @requireOwner(resource: "loggableEvent")
 
     """
     Delete a loggable event (must be owned by authenticated user)
     """
     deleteLoggableEvent(input: DeleteLoggableEventMutationInput!): DeleteLoggableEventMutationPayload!
+        @requireOwner(resource: "loggableEvent")
 }

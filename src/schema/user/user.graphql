@@ -43,9 +43,46 @@ type User {
     eventLabels: [EventLabel!]!
 }
 
+"""
+Input for Google OAuth login mutation
+"""
+input GoogleOAuthLoginMutationInput {
+    """
+    Google OAuth ID token from frontend
+    """
+    googleToken: String!
+}
+
+"""
+Payload returned after successful Google OAuth login mutation
+"""
+type GoogleOAuthLoginMutationPayload {
+    """
+    JWT token for the authenticated user
+    """
+    token: String
+
+    """
+    The authenticated user object
+    """
+    user: User
+
+    """
+    List of errors that occurred during login
+    """
+    errors: [GenericApiError!]!
+}
+
 extend type Query {
     """
     Get the currently authenticated user's profile
     """
-    loggedInUser: User
+    loggedInUser: User @requireAuth
+}
+
+extend type Mutation {
+    """
+    Authenticate a user using Google OAuth ID token
+    """
+    googleOAuthLoginMutation(input: GoogleOAuthLoginMutationInput!): GoogleOAuthLoginMutationPayload!
 }

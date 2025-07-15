@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
-import { verifyGoogleToken } from './auth/verifyToken';
+import { verifyJWT } from './auth/token';
 import { prisma } from './prisma/client';
 import { UserParent } from './schema/user';
 
@@ -22,22 +22,20 @@ export async function createContext({ request }: { request: RequestWithHeaders }
         return { user: null, prisma };
     }
 
-    const googleUser = await verifyGoogleToken(token);
-    if (!googleUser || !googleUser.sub || !googleUser.email || !googleUser.name) {
+    // Verify JWT token
+    const jwtPayload = verifyJWT(token);
+    if (!jwtPayload || !jwtPayload.userId) {
         return { user: null, prisma };
     }
 
-    const user = await prisma.user.upsert({
-        where: { googleId: googleUser.sub },
-        update: {
-            name: googleUser.name
-        },
-        create: {
-            googleId: googleUser.sub,
-            email: googleUser.email,
-            name: googleUser.name
-        }
+    // Find user by JWT payload
+    const user = await prisma.user.findUnique({
+        where: { id: jwtPayload.userId }
     });
+
+    if (!user) {
+        return { user: null, prisma };
+    }
 
     return { user, prisma };
 }

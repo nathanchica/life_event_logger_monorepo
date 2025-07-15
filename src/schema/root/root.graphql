@@ -4,6 +4,16 @@ ISO 8601 compliant date-time scalar
 scalar DateTime
 
 """
+Directive to require user authentication
+"""
+directive @requireAuth on FIELD_DEFINITION
+
+"""
+Directive to require user authentication and ownership of the specified resource
+"""
+directive @requireOwner(resource: String!) on FIELD_DEFINITION
+
+"""
 Standard error type returned by mutations for consistent error handling
 """
 type GenericApiError {

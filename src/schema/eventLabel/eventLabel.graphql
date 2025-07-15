@@ -112,15 +112,17 @@ extend type Mutation {
     """
     Create a new event label for the authenticated user
     """
-    createEventLabel(input: CreateEventLabelMutationInput!): CreateEventLabelMutationPayload!
+    createEventLabel(input: CreateEventLabelMutationInput!): CreateEventLabelMutationPayload! @requireAuth
 
     """
     Update an existing event label (must be owned by authenticated user)
     """
     updateEventLabel(input: UpdateEventLabelMutationInput!): UpdateEventLabelMutationPayload!
+        @requireOwner(resource: "eventLabel")
 
     """
     Delete an event label (must be owned by authenticated user)
     """
     deleteEventLabel(input: DeleteEventLabelMutationInput!): DeleteEventLabelMutationPayload!
+        @requireOwner(resource: "eventLabel")
 }

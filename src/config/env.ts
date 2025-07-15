@@ -10,6 +10,8 @@ const envSchema = z.object({
     GOOGLE_CLIENT_ID: z.string().min(1),
     // Client URL for the frontend application
     CLIENT_URL: z.string().url(),
+    // JWT secret for signing tokens
+    JWT_SECRET: z.string().min(1),
     // Environment
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development')
 });

@@ -11,6 +11,8 @@ import eventLabelResolvers from './eventLabel';
 import loggableEventResolvers from './loggableEvent';
 import userResolvers from './user';
 
+import { authDirectiveTransformer } from '../directives/auth';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -26,9 +28,12 @@ export const resolvers = mergeResolvers([
     eventLabelResolvers
 ]);
 
-const schema = makeExecutableSchema({
+let schema = makeExecutableSchema({
     typeDefs,
     resolvers
 });
+
+// Apply auth directives
+schema = authDirectiveTransformer(schema);
 
 export default schema;

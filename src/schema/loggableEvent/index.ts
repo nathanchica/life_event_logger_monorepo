@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { Resolvers } from '../../generated/graphql';
+import { formatZodError } from '../../utils/validation';
 import { UserParent } from '../user';
 
 export type LoggableEventParent = {
@@ -30,24 +31,10 @@ const DeleteLoggableEventSchema = z.object({
     id: z.string().min(1, 'ID is required')
 });
 
-function formatZodError(error: z.ZodError) {
-    return error.errors.map((err) => ({
-        code: 'VALIDATION_ERROR',
-        field: err.path.join('.'),
-        message: err.message
-    }));
-}
-
 const resolvers: Resolvers = {
     Mutation: {
         createLoggableEvent: async (_, { input }, { user, prisma }) => {
-            if (!user) {
-                return {
-                    loggableEvent: null,
-                    errors: [{ code: 'UNAUTHORIZED', field: null, message: 'Not authenticated' }]
-                };
-            }
-
+            // Auth check handled by @requireAuth directive
             try {
                 const validatedInput = CreateLoggableEventSchema.parse(input);
 
@@ -55,7 +42,8 @@ const resolvers: Resolvers = {
                     data: {
                         name: validatedInput.name,
                         warningThresholdInDays: validatedInput.warningThresholdInDays,
-                        userId: user.id,
+                        // @requireAuth directive ensures user is authenticated
+                        userId: user!.id,
                         dateTimeRecords: [],
                         labels: validatedInput.labelIds
                             ? {
@@ -85,40 +73,10 @@ const resolvers: Resolvers = {
             }
         },
 
-        updateLoggableEvent: async (_, { input }, { user, prisma }) => {
-            if (!user) {
-                return {
-                    loggableEvent: null,
-                    errors: [{ code: 'UNAUTHORIZED', field: null, message: 'Not authenticated' }]
-                };
-            }
-
+        updateLoggableEvent: async (_, { input }, { prisma }) => {
+            // Auth and ownership checks handled by @requireOwner directive
             try {
                 const validatedInput = UpdateLoggableEventSchema.parse(input);
-
-                const existingEvent = await prisma.loggableEvent.findUnique({
-                    where: { id: validatedInput.id }
-                });
-
-                if (!existingEvent) {
-                    return {
-                        loggableEvent: null,
-                        errors: [{ code: 'NOT_FOUND', field: 'id', message: 'Loggable event not found' }]
-                    };
-                }
-
-                if (existingEvent.userId !== user.id) {
-                    return {
-                        loggableEvent: null,
-                        errors: [
-                            {
-                                code: 'FORBIDDEN',
-                                field: null,
-                                message: 'You do not have permission to update this loggable event'
-                            }
-                        ]
-                    };
-                }
 
                 const event = await prisma.loggableEvent.update({
                     where: { id: validatedInput.id },
@@ -153,40 +111,10 @@ const resolvers: Resolvers = {
             }
         },
 
-        deleteLoggableEvent: async (_, { input }, { user, prisma }) => {
-            if (!user) {
-                return {
-                    loggableEvent: null,
-                    errors: [{ code: 'UNAUTHORIZED', field: null, message: 'Not authenticated' }]
-                };
-            }
-
+        deleteLoggableEvent: async (_, { input }, { prisma }) => {
+            // Auth and ownership checks handled by @requireOwner directive
             try {
                 const validatedInput = DeleteLoggableEventSchema.parse(input);
-
-                const existingEvent = await prisma.loggableEvent.findUnique({
-                    where: { id: validatedInput.id }
-                });
-
-                if (!existingEvent) {
-                    return {
-                        loggableEvent: null,
-                        errors: [{ code: 'NOT_FOUND', field: 'id', message: 'Loggable event not found' }]
-                    };
-                }
-
-                if (existingEvent.userId !== user.id) {
-                    return {
-                        loggableEvent: null,
-                        errors: [
-                            {
-                                code: 'FORBIDDEN',
-                                field: null,
-                                message: 'You do not have permission to delete this loggable event'
-                            }
-                        ]
-                    };
-                }
 
                 const event = await prisma.loggableEvent.delete({
                     where: { id: validatedInput.id },

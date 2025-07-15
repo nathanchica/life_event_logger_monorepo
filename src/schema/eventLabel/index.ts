@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { GraphQLContext } from '../../context';
 import { Resolvers } from '../../generated/graphql';
+import { formatZodError } from '../../utils/validation';
 import { UserParent } from '../user';
 
 export type EventLabelParent = {
@@ -25,31 +26,18 @@ const DeleteEventLabelSchema = z.object({
     id: z.string().min(1, 'ID is required')
 });
 
-function formatZodError(error: z.ZodError) {
-    return error.errors.map((err) => ({
-        code: 'VALIDATION_ERROR',
-        field: err.path.join('.'),
-        message: err.message
-    }));
-}
-
 const resolvers: Resolvers<GraphQLContext> = {
     Mutation: {
+        // Authentication is handled by @requireAuth directive
         createEventLabel: async (_, { input }, { user, prisma }) => {
-            if (!user) {
-                return {
-                    eventLabel: null,
-                    errors: [{ code: 'UNAUTHORIZED', field: null, message: 'Not authenticated' }]
-                };
-            }
-
             try {
                 const validatedInput = CreateEventLabelSchema.parse(input);
 
                 const label = await prisma.eventLabel.create({
                     data: {
                         name: validatedInput.name,
-                        userId: user.id
+                        // @requireAuth directive ensures user is authenticated
+                        userId: user!.id
                     }
                 });
 
@@ -72,14 +60,8 @@ const resolvers: Resolvers<GraphQLContext> = {
             }
         },
 
-        updateEventLabel: async (_, { input }, { user, prisma }) => {
-            if (!user) {
-                return {
-                    eventLabel: null,
-                    errors: [{ code: 'UNAUTHORIZED', field: null, message: 'Not authenticated' }]
-                };
-            }
-
+        // Authentication and ownership are handled by @requireOwner directive
+        updateEventLabel: async (_, { input }, { prisma }) => {
             try {
                 const validatedInput = UpdateEventLabelSchema.parse(input);
 
@@ -91,19 +73,6 @@ const resolvers: Resolvers<GraphQLContext> = {
                     return {
                         eventLabel: null,
                         errors: [{ code: 'NOT_FOUND', field: 'id', message: 'Event label not found' }]
-                    };
-                }
-
-                if (existingLabel.userId !== user.id) {
-                    return {
-                        eventLabel: null,
-                        errors: [
-                            {
-                                code: 'FORBIDDEN',
-                                field: null,
-                                message: 'You do not have permission to update this event label'
-                            }
-                        ]
                     };
                 }
 
@@ -136,14 +105,8 @@ const resolvers: Resolvers<GraphQLContext> = {
             }
         },
 
-        deleteEventLabel: async (_, { input }, { user, prisma }) => {
-            if (!user) {
-                return {
-                    eventLabel: null,
-                    errors: [{ code: 'UNAUTHORIZED', field: null, message: 'Not authenticated' }]
-                };
-            }
-
+        // Authentication and ownership are handled by @requireOwner directive
+        deleteEventLabel: async (_, { input }, { prisma }) => {
             try {
                 const validatedInput = DeleteEventLabelSchema.parse(input);
 
@@ -155,19 +118,6 @@ const resolvers: Resolvers<GraphQLContext> = {
                     return {
                         eventLabel: null,
                         errors: [{ code: 'NOT_FOUND', field: 'id', message: 'Event label not found' }]
-                    };
-                }
-
-                if (existingLabel.userId !== user.id) {
-                    return {
-                        eventLabel: null,
-                        errors: [
-                            {
-                                code: 'FORBIDDEN',
-                                field: null,
-                                message: 'You do not have permission to delete this event label'
-                            }
-                        ]
                     };
                 }
 
