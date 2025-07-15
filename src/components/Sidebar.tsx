@@ -7,6 +7,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import EditIconOutlined from '@mui/icons-material/EditOutlined';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
+import LogoutIcon from '@mui/icons-material/Logout';
 import Box from '@mui/material/Box';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Collapse from '@mui/material/Collapse';
@@ -19,6 +20,7 @@ import { blueGrey, green } from '@mui/material/colors';
 
 import EventLabelList from './EventLabels/EventLabelList';
 
+import { useAuth } from '../providers/AuthProvider';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
 import { useToggle } from '../utils/useToggle';
 
@@ -35,6 +37,7 @@ type Props = {
  */
 const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
     const { value: isEditingLabels, setTrue: startEditingLabels, setFalse: stopEditingLabels } = useToggle(false);
+    const { logout } = useAuth();
     const { theme, enableDarkTheme, enableLightTheme } = useViewOptions();
 
     const isDark = theme === 'dark';
@@ -163,6 +166,11 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                                 aria-label="View on GitHub"
                             >
                                 <GitHubIcon />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Logout">
+                            <IconButton onClick={logout} sx={{ ml: 1 }} aria-label="Logout">
+                                <LogoutIcon />
                             </IconButton>
                         </Tooltip>
                     </Box>

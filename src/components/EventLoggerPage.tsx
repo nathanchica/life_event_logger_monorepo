@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 
 import { ApolloProvider, ApolloClient, NormalizedCacheObject } from '@apollo/client';
-import { lightGreen } from '@mui/material/colors';
+import { blueGrey, brown, lightGreen } from '@mui/material/colors';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import LoggableEventsGQL from './LoggableEventsGQL';
@@ -35,7 +35,7 @@ const EventLoggerPage = () => {
             createTheme({
                 palette: {
                     mode,
-                    ...(mode === 'light' ? { primary: lightGreen } : {})
+                    ...(mode === 'light' ? { primary: lightGreen, secondary: brown } : { secondary: blueGrey })
                 },
                 components:
                     mode === 'dark'

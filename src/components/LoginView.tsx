@@ -4,10 +4,16 @@ import { useState } from 'react';
 
 import { gql, useMutation } from '@apollo/client';
 import { css } from '@emotion/react';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import SecurityIcon from '@mui/icons-material/Security';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
-import Paper from '@mui/material/Paper';
+import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
 import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oauth/google';
@@ -41,7 +47,7 @@ export const LOGIN_MUTATION = gql`
 const LoginView = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [loginMutation] = useMutation(LOGIN_MUTATION);
-    const { login } = useAuth();
+    const { login, setOfflineMode } = useAuth();
     const theme = useTheme();
 
     const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
@@ -71,10 +77,7 @@ const LoginView = () => {
     };
 
     const handleOfflineMode = () => {
-        // Add the offline parameter to the URL and reload
-        const url = new URL(window.location.href);
-        url.searchParams.set('offline', 'true');
-        window.location.href = url.toString();
+        setOfflineMode(true);
     };
 
     // Enable Google One Tap login
@@ -85,57 +88,166 @@ const LoginView = () => {
     });
 
     return (
-        <Paper
-            square
+        <Box
             css={css`
                 height: 100vh;
                 width: 100vw;
-                background-color: ${theme.palette.background.default};
-                position: relative;
+                background: linear-gradient(
+                    135deg,
+                    ${theme.palette.mode === 'dark'
+                        ? `${theme.palette.secondary.dark}`
+                        : `${theme.palette.secondary.light}`},
+                    ${theme.palette.background.default}
+                );
+                display: flex;
+                align-items: center;
+                justify-content: center;
             `}
         >
-            <Box
-                css={css`
-                    margin: auto;
-                    padding: 2rem;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 1rem;
-                `}
-            >
-                <Typography variant="h5" component="h1" textAlign="center">
-                    Welcome to Life Event Logger
-                </Typography>
+            <Container maxWidth="sm">
+                <Card
+                    elevation={8}
+                    css={css`
+                        background: ${theme.palette.background.paper};
+                        border-radius: 16px;
+                        overflow: visible;
+                    `}
+                >
+                    <CardContent sx={{ p: 4 }}>
+                        <Stack spacing={3} alignItems="center">
+                            {/* App Icon and Title */}
+                            <Box textAlign="center">
+                                <EventNoteIcon
+                                    sx={{
+                                        fontSize: 64,
+                                        color: 'secondary.main',
+                                        mb: 2
+                                    }}
+                                />
+                                <Typography
+                                    variant="h4"
+                                    component="h1"
+                                    fontWeight={600}
+                                    color="secondary.main"
+                                    gutterBottom
+                                >
+                                    Life Event Logger
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400 }}>
+                                    Track and organize the important moments in your life
+                                </Typography>
+                            </Box>
 
-                {isLoading ? (
-                    <Box display="flex" alignItems="center" gap={2}>
-                        <CircularProgress size={20} />
-                        <Typography>Logging in...</Typography>
-                    </Box>
-                ) : (
-                    <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-                        <Typography variant="body2" textAlign="center" color="textSecondary">
-                            Sign in with your Google account to get started
-                        </Typography>
-                        <GoogleLogin
-                            onSuccess={handleGoogleLoginSuccess}
-                            onError={handleGoogleLoginError}
-                            text="signin_with"
-                        />
-                        <Typography variant="body2" textAlign="center" color="textSecondary" sx={{ mt: 2 }}>
-                            or
-                        </Typography>
-                        <Button variant="text" onClick={handleOfflineMode} size="small">
-                            Continue without signing in (Offline mode)
-                        </Button>
-                        <Typography variant="caption" textAlign="center" color="textSecondary" sx={{ maxWidth: 400 }}>
-                            Offline mode lets you explore the app without saving data
-                        </Typography>
-                    </Box>
-                )}
-            </Box>
-        </Paper>
+                            {isLoading ? (
+                                <Box
+                                    display="flex"
+                                    alignItems="center"
+                                    gap={2}
+                                    sx={{
+                                        py: 3,
+                                        px: 4,
+                                        bgcolor: 'action.hover',
+                                        borderRadius: 2,
+                                        minWidth: 200
+                                    }}
+                                >
+                                    <CircularProgress size={24} />
+                                    <Typography variant="body1" fontWeight={500}>
+                                        Signing you in...
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                <Box sx={{ width: '100%', maxWidth: 400 }}>
+                                    <Stack spacing={3} alignItems="center">
+                                        {/* Google Sign In Section */}
+                                        <Box textAlign="center" sx={{ width: '100%' }}>
+                                            <Typography
+                                                variant="body1"
+                                                fontWeight={500}
+                                                gutterBottom
+                                                color="text.primary"
+                                                sx={{ mb: 3 }}
+                                            >
+                                                Sign in to get started
+                                            </Typography>
+
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    '& > div': {
+                                                        transform: 'scale(1.1)'
+                                                    }
+                                                }}
+                                            >
+                                                <GoogleLogin
+                                                    onSuccess={handleGoogleLoginSuccess}
+                                                    onError={handleGoogleLoginError}
+                                                    text="signin_with"
+                                                    shape="rectangular"
+                                                    theme="outline"
+                                                    size="large"
+                                                />
+                                            </Box>
+                                        </Box>
+
+                                        {/* Divider */}
+                                        <Divider sx={{ width: '100%', position: 'relative' }}>
+                                            <Typography
+                                                variant="body2"
+                                                color="text.secondary"
+                                                sx={{
+                                                    bgcolor: 'background.paper',
+                                                    px: 2,
+                                                    fontWeight: 500
+                                                }}
+                                            >
+                                                OR
+                                            </Typography>
+                                        </Divider>
+
+                                        {/* Offline Mode Section */}
+                                        <Box textAlign="center" sx={{ width: '100%' }}>
+                                            <Button
+                                                variant="outlined"
+                                                onClick={handleOfflineMode}
+                                                color="secondary"
+                                                size="large"
+                                                startIcon={<SecurityIcon />}
+                                                sx={{
+                                                    py: 1.5,
+                                                    px: 3,
+                                                    borderRadius: 2,
+                                                    textTransform: 'none',
+                                                    fontWeight: 500,
+                                                    fontSize: '1rem',
+                                                    minWidth: 280
+                                                }}
+                                            >
+                                                Try Offline Mode
+                                            </Button>
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                sx={{
+                                                    mt: 1.5,
+                                                    display: 'block',
+                                                    lineHeight: 1.4
+                                                }}
+                                            >
+                                                Explore the app locally without creating an account.
+                                                <br />
+                                                Changes won&apos;t be permanently saved while in offline mode.
+                                            </Typography>
+                                        </Box>
+                                    </Stack>
+                                </Box>
+                            )}
+                        </Stack>
+                    </CardContent>
+                </Card>
+            </Container>
+        </Box>
     );
 };
 

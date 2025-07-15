@@ -56,6 +56,12 @@ const AuthProvider = ({ children }: Props) => {
         if (isOffline) {
             setUser(offlineUser);
             setToken('offline-token'); // Simulate an offline token
+
+            // Add the offline parameter to the URL without redirecting
+            const url = new URL(window.location.href);
+            url.searchParams.set('offline', 'true');
+            window.history.replaceState({}, '', url.toString());
+
             console.info('Application switched to offline mode.');
         }
     };
