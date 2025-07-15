@@ -132,6 +132,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
     invariant(user, 'User is not authenticated');
 
+    const isDarkMode = theme.palette.mode === 'dark';
+
     const { complete: userLabelsAndEventsDataComplete, data: userLabelsAndEventsData } = useFragment({
         fragment: USER_LABELS_AND_EVENTS_FRAGMENT,
         fragmentName: 'UserLabelsAndEventsFragment',
@@ -275,7 +277,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
             >
                 <EventCard
                     css={css`
-                        background-color: ${theme.palette.mode === 'dark' ? blueGrey[900] : blueGrey[50]};
+                        background-color: ${isDarkMode ? blueGrey[900] : blueGrey[50]};
                     `}
                 >
                     <CardContent>
@@ -294,6 +296,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                             aria-required="true"
                             aria-invalid={!eventNameIsValid}
                             aria-describedby={textFieldErrorProps.error ? 'event-name-error' : undefined}
+                            color={isDarkMode ? 'primary' : 'secondary'}
                         />
 
                         {/* Warning threshold */}
@@ -329,6 +332,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                                 sx={{ mt: 2, mb: 1 }}
                                 onClick={() => setLabelInputIsVisible(true)}
                                 aria-describedby="labels-section-description"
+                                color={isDarkMode ? 'primary' : 'secondary'}
                             >
                                 Add labels
                             </Button>
@@ -355,10 +359,16 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                             type="submit"
                             size="small"
                             aria-describedby={!eventNameIsValid ? 'submit-button-disabled-reason' : undefined}
+                            color={isDarkMode ? 'primary' : 'secondary'}
                         >
                             {eventIdToEdit ? 'Update' : 'Create'}
                         </Button>
-                        <Button onClick={dismissForm} size="small" aria-label="Cancel and close form">
+                        <Button
+                            onClick={dismissForm}
+                            size="small"
+                            aria-label="Cancel and close form"
+                            color={isDarkMode ? 'primary' : 'secondary'}
+                        >
                             Cancel
                         </Button>
                         {!eventNameIsValid && (

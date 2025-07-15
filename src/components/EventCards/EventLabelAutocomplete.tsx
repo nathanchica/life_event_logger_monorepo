@@ -2,6 +2,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Chip from '@mui/material/Chip';
 import { InputBaseComponentProps } from '@mui/material/InputBase';
 import TextField from '@mui/material/TextField';
+import { useTheme } from '@mui/material/styles';
 
 import { useEventLabels } from '../../hooks/useEventLabels';
 import { EventLabel } from '../../utils/types';
@@ -21,6 +22,9 @@ type Props = {
  */
 const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels, existingLabels }: Props) => {
     const { createEventLabel } = useEventLabels();
+    const theme = useTheme();
+
+    const isDarkMode = theme.palette.mode === 'dark';
 
     const labelOptions = existingLabels.filter((label) => !selectedLabels.some(({ id }) => id === label.id));
     const existingLabelNames = existingLabels.map((label) => label.name);
@@ -82,6 +86,7 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels, existingLab
                         {...params}
                         variant="standard"
                         label="Labels"
+                        color={isDarkMode ? 'primary' : 'primary'}
                         placeholder="Type to search or create labels"
                         autoFocus
                         error={error}
