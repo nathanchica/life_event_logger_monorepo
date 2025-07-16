@@ -16,7 +16,7 @@ import { authDirectiveTransformer } from '../directives/auth.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const typesArray = loadFilesSync(join(__dirname, './**/*.graphql'));
+const typesArray = loadFilesSync(join(__dirname, '**/*.graphql'));
 
 export const typeDefs = mergeTypeDefs(typesArray);
 export const resolvers = mergeResolvers([

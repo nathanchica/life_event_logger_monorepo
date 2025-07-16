@@ -107,3 +107,43 @@ Directives return standardized GraphQL errors:
 - **`FORBIDDEN`**: User lacks permission for the resource
 - **`NOT_FOUND`**: Requested resource doesn't exist
 - **`VALIDATION_ERROR`**: Invalid input or missing resource ID
+
+## ES Module Import Extensions
+
+This project uses ES modules with `"type": "module"` in package.json. As a result, **all relative imports must include the `.js` file extension**, even when importing from `.ts` files.
+
+### Why File Extensions Are Required
+
+Node.js ES modules require explicit file extensions for several reasons:
+
+1. **Official Node.js Standard** - [Node.js ES Modules documentation](https://nodejs.org/api/esm.html#mandatory-file-extensions) states: "A file extension must be provided when using the `import` keyword to resolve relative or absolute specifiers."
+
+2. **Web Compatibility** - Browsers require exact file paths for ES module imports
+
+3. **Performance** - No file system lookups for extension inference
+
+4. **Clarity** - Makes imports explicit and unambiguous
+
+### Examples in This Codebase
+
+```typescript
+// ✅ Correct - includes .js extension
+import { env } from '../config/env.js';
+import { createContext } from '../context.js';
+import schema from '../schema/index.js';
+
+// ❌ Incorrect - will cause runtime errors
+import { env } from '../config/env';
+import { createContext } from '../context';
+import schema from '../schema';
+```
+
+### Why `.js` and Not `.ts`?
+
+When TypeScript compiles to JavaScript, the imports reference the compiled `.js` files. The `.js` extension in the import statement tells Node.js to look for the compiled JavaScript file at runtime.
+
+### Community Discussion
+
+This requirement is widely discussed in the TypeScript community. See this [Reddit discussion](https://www.reddit.com/r/typescript/comments/1b87o96/esm_on_nodejs_file_extension_mandatory/) for more context on why this is the current standard.
+
+The current approach with explicit `.js` extensions is the **official Node.js ESM standard** and is considered best practice for modern Node.js development.
