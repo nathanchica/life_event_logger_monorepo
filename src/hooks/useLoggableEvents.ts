@@ -153,7 +153,7 @@ export const DELETE_LOGGABLE_EVENT_MUTATION = gql`
 `;
 
 export const ADD_TIMESTAMP_PAYLOAD_FRAGMENT = gql`
-    fragment AddTimestampPayloadFragment on AddTimestampMutationPayload {
+    fragment AddTimestampPayloadFragment on AddTimestampToEventMutationPayload {
         loggableEvent {
             ...UseLoggableEventsFragment
         }
@@ -175,7 +175,7 @@ export const ADD_TIMESTAMP_TO_EVENT_MUTATION = gql`
 `;
 
 export const REMOVE_TIMESTAMP_PAYLOAD_FRAGMENT = gql`
-    fragment RemoveTimestampPayloadFragment on RemoveTimestampMutationPayload {
+    fragment RemoveTimestampPayloadFragment on RemoveTimestampFromEventMutationPayload {
         loggableEvent {
             ...UseLoggableEventsFragment
         }
