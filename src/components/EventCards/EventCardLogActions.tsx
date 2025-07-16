@@ -23,16 +23,16 @@ const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props)
     const { addTimestampToEvent, addTimestampIsLoading } = useLoggableEvents();
     const { value: datepickerIsShowing, setFalse: hideDatepicker, toggle: toggleDatepicker } = useToggle();
 
-    const handleLogEventClick = async (dateToAdd?: Date | null) => {
+    const handleLogEventClick = (dateToAdd?: Date | null) => {
         const currentDate = new Date();
-        await addTimestampToEvent({
+        addTimestampToEvent({
             eventId,
             timestamp: (dateToAdd || currentDate).toISOString()
         });
     };
 
-    const handleDatepickerAccept = async (date: Date) => {
-        await handleLogEventClick(date);
+    const handleDatepickerAccept = (date: Date) => {
+        handleLogEventClick(date);
         hideDatepicker();
     };
 

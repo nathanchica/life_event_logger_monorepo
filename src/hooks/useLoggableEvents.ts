@@ -318,7 +318,7 @@ export const useLoggableEvents = () => {
     const [addTimestampMutation, { loading: addTimestampIsLoading }] = useMutation(ADD_TIMESTAMP_TO_EVENT_MUTATION, {
         optimisticResponse: (variables) => ({
             addTimestampToEvent: {
-                __typename: 'AddTimestampPayload',
+                __typename: 'AddTimestampToEventMutationPayload',
                 loggableEvent: {
                     __typename: 'LoggableEvent',
                     id: variables.input.eventId,
@@ -394,32 +394,30 @@ export const useLoggableEvents = () => {
     /**
      * Add a timestamp to an event
      */
-    const addTimestampToEvent = async (input: AddTimestampInput): Promise<AddTimestampPayload | null> => {
+    const addTimestampToEvent = (input: AddTimestampInput): void => {
         try {
-            const result = await addTimestampMutation({
+            addTimestampMutation({
                 variables: { input }
             });
-            return result.data?.addTimestampToEvent || null;
         } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return null;
+            return;
         }
     };
 
     /**
      * Remove a timestamp from an event
      */
-    const removeTimestampFromEvent = async (input: RemoveTimestampInput): Promise<RemoveTimestampPayload | null> => {
+    const removeTimestampFromEvent = (input: RemoveTimestampInput): void => {
         try {
-            const result = await removeTimestampMutation({
+            removeTimestampMutation({
                 variables: { input }
             });
-            return result.data?.removeTimestampFromEvent || null;
         } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return null;
+            return;
         }
     };
 
