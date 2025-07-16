@@ -33,6 +33,11 @@ Response payload for creating an event label
 """
 type CreateEventLabelMutationPayload {
     """
+    Temporary ID for the label, used before creation.
+    """
+    tempID: ID
+
+    """
     The created event label, null if creation failed
     """
     eventLabel: EventLabel
@@ -77,6 +82,11 @@ type DeleteEventLabelMutationPayload {
 Input for creating a new event label
 """
 input CreateEventLabelMutationInput {
+    """
+    Temporary ID for the label, used before creation. Will be replaced with the actual ID after creation.
+    """
+    id: ID!
+
     """
     Name for the label (max 25 characters, cannot be empty)
     """

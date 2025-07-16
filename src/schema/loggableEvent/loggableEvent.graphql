@@ -15,7 +15,7 @@ type LoggableEvent {
     """
     Array of timestamps when this event occurred
     """
-    dateTimeRecords: [DateTime!]!
+    timestamps: [DateTime!]!
 
     """
     Number of days since the last event record before a warning will show for this event
@@ -47,6 +47,11 @@ type LoggableEvent {
 Response payload for creating a loggable event
 """
 type CreateLoggableEventMutationPayload {
+    """
+    Temporary ID for the event, used before creation.
+    """
+    tempID: ID
+
     """
     The created loggable event, null if creation failed
     """
@@ -93,6 +98,11 @@ Input for creating a new loggable event
 """
 input CreateLoggableEventMutationInput {
     """
+    Temporary ID for the event, used before creation. Will be replaced with the actual ID after creation.
+    """
+    id: ID!
+
+    """
     Name for the event (max 25 characters, cannot be empty)
     """
     name: String!
@@ -130,7 +140,7 @@ input UpdateLoggableEventMutationInput {
     """
     Array of timestamps for this event
     """
-    dateTimeRecords: [DateTime!]
+    timestamps: [DateTime!]
 }
 
 """

@@ -7,7 +7,7 @@ import { UserParent } from '../user';
 export type LoggableEventParent = {
     id?: string;
     name?: string;
-    dateTimeRecords?: Array<Date>;
+    timestamps?: Array<Date>;
     warningThresholdInDays?: number;
     user?: UserParent;
     createdAt?: Date;
@@ -24,7 +24,7 @@ const UpdateLoggableEventSchema = z.object({
     id: z.string().min(1, 'ID is required'),
     name: z.string().min(1, 'Name cannot be empty').max(25, 'Name must be under 25 characters').optional(),
     warningThresholdInDays: z.number().int().min(0, 'Warning threshold must be a positive number').optional(),
-    dateTimeRecords: z.array(z.date()).optional()
+    timestamps: z.array(z.date()).optional()
 });
 
 const DeleteLoggableEventSchema = z.object({
@@ -44,7 +44,7 @@ const resolvers: Resolvers = {
                         warningThresholdInDays: validatedInput.warningThresholdInDays,
                         // @requireAuth directive ensures user is authenticated
                         userId: user!.id,
-                        dateTimeRecords: [],
+                        timestamps: [],
                         labels: validatedInput.labelIds
                             ? {
                                   connect: validatedInput.labelIds.map((id) => ({ id }))
@@ -55,18 +55,21 @@ const resolvers: Resolvers = {
                 });
 
                 return {
+                    tempID: input.id, // Return the temporary ID
                     loggableEvent: event,
                     errors: []
                 };
             } catch (error) {
                 if (error instanceof z.ZodError) {
                     return {
+                        tempID: null,
                         loggableEvent: null,
                         errors: formatZodError(error)
                     };
                 }
 
                 return {
+                    tempID: null,
                     loggableEvent: null,
                     errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
                 };
@@ -85,9 +88,7 @@ const resolvers: Resolvers = {
                         ...(validatedInput.warningThresholdInDays !== undefined
                             ? { warningThresholdInDays: validatedInput.warningThresholdInDays }
                             : {}),
-                        ...(validatedInput.dateTimeRecords !== undefined
-                            ? { dateTimeRecords: validatedInput.dateTimeRecords }
-                            : {})
+                        ...(validatedInput.timestamps !== undefined ? { timestamps: validatedInput.timestamps } : {})
                     },
                     include: { labels: true }
                 });
