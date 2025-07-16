@@ -1,3 +1,4 @@
+import { PrismaClient, Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { Resolvers } from '../../generated/graphql.js';
@@ -30,6 +31,60 @@ const UpdateLoggableEventSchema = z.object({
 const DeleteLoggableEventSchema = z.object({
     id: z.string().min(1, 'ID is required')
 });
+
+const AddTimestampToEventSchema = z.object({
+    eventId: z.string().min(1, 'Event ID is required'),
+    timestamp: z.date()
+});
+
+const RemoveTimestampFromEventSchema = z.object({
+    eventId: z.string().min(1, 'Event ID is required'),
+    timestamp: z.date()
+});
+
+/**
+ * Processes an array of timestamps by removing duplicates and sorting newest first
+ * @param timestamps - Array of Date objects to process
+ * @returns Deduplicated and sorted array of Date objects (newest first)
+ */
+const processTimestamps = (timestamps: Date[]): Date[] => {
+    const uniqueTimestamps = Array.from(new Set(timestamps.map((timestamp) => new Date(timestamp).getTime()))).map(
+        (time) => new Date(time)
+    );
+
+    return uniqueTimestamps.sort(
+        (timestampA, timestampB) => new Date(timestampB).getTime() - new Date(timestampA).getTime()
+    );
+};
+
+const updateLoggableEventHelper = async (
+    eventId: string,
+    updateData: Prisma.LoggableEventUpdateInput,
+    prisma: PrismaClient
+) => {
+    try {
+        // Process timestamps if they are being updated
+        if (updateData.timestamps && Array.isArray(updateData.timestamps)) {
+            updateData.timestamps = { set: processTimestamps(updateData.timestamps as Date[]) };
+        }
+
+        const event = await prisma.loggableEvent.update({
+            where: { id: eventId },
+            data: updateData,
+            include: { labels: true }
+        });
+
+        return {
+            loggableEvent: event,
+            errors: []
+        };
+    } catch {
+        return {
+            loggableEvent: null,
+            errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
+        };
+    }
+};
 
 const resolvers: Resolvers = {
     Mutation: {
@@ -81,22 +136,15 @@ const resolvers: Resolvers = {
             try {
                 const validatedInput = UpdateLoggableEventSchema.parse(input);
 
-                const event = await prisma.loggableEvent.update({
-                    where: { id: validatedInput.id },
-                    data: {
-                        ...(validatedInput.name ? { name: validatedInput.name } : {}),
-                        ...(validatedInput.warningThresholdInDays !== undefined
-                            ? { warningThresholdInDays: validatedInput.warningThresholdInDays }
-                            : {}),
-                        ...(validatedInput.timestamps !== undefined ? { timestamps: validatedInput.timestamps } : {})
-                    },
-                    include: { labels: true }
-                });
-
-                return {
-                    loggableEvent: event,
-                    errors: []
+                const updateData = {
+                    ...(validatedInput.name ? { name: validatedInput.name } : {}),
+                    ...(validatedInput.warningThresholdInDays !== undefined
+                        ? { warningThresholdInDays: validatedInput.warningThresholdInDays }
+                        : {}),
+                    ...(validatedInput.timestamps !== undefined ? { timestamps: validatedInput.timestamps } : {})
                 };
+
+                return await updateLoggableEventHelper(validatedInput.id, updateData, prisma);
             } catch (error) {
                 if (error instanceof z.ZodError) {
                     return {
@@ -126,6 +174,103 @@ const resolvers: Resolvers = {
                     loggableEvent: event,
                     errors: []
                 };
+            } catch (error) {
+                if (error instanceof z.ZodError) {
+                    return {
+                        loggableEvent: null,
+                        errors: formatZodError(error)
+                    };
+                }
+
+                return {
+                    loggableEvent: null,
+                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
+                };
+            }
+        },
+
+        addTimestampToEvent: async (_, { input }, { prisma }) => {
+            // Auth and ownership checks handled by @requireOwner directive
+            try {
+                const validatedInput = AddTimestampToEventSchema.parse(input);
+
+                // First, get the current event to retrieve existing timestamps
+                const currentEvent = await prisma.loggableEvent.findUnique({
+                    where: { id: validatedInput.eventId },
+                    select: { timestamps: true }
+                });
+
+                if (!currentEvent) {
+                    return {
+                        loggableEvent: null,
+                        errors: [{ code: 'NOT_FOUND', field: 'eventId', message: 'Event not found' }]
+                    };
+                }
+
+                // Add the new timestamp to existing ones
+                const updatedTimestamps = [...currentEvent.timestamps, validatedInput.timestamp];
+
+                return await updateLoggableEventHelper(
+                    validatedInput.eventId,
+                    { timestamps: updatedTimestamps },
+                    prisma
+                );
+            } catch (error) {
+                if (error instanceof z.ZodError) {
+                    return {
+                        loggableEvent: null,
+                        errors: formatZodError(error)
+                    };
+                }
+
+                return {
+                    loggableEvent: null,
+                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
+                };
+            }
+        },
+
+        removeTimestampFromEvent: async (_, { input }, { prisma }) => {
+            // Auth and ownership checks handled by @requireOwner directive
+            try {
+                const validatedInput = RemoveTimestampFromEventSchema.parse(input);
+
+                // First, get the current event to retrieve existing timestamps
+                const currentEvent = await prisma.loggableEvent.findUnique({
+                    where: { id: validatedInput.eventId },
+                    select: { timestamps: true }
+                });
+
+                if (!currentEvent) {
+                    return {
+                        loggableEvent: null,
+                        errors: [{ code: 'NOT_FOUND', field: 'eventId', message: 'Event not found' }]
+                    };
+                }
+
+                // Check if the timestamp exists before removing
+                const timestampToRemove = validatedInput.timestamp.getTime();
+                const timestampExists = currentEvent.timestamps.some(
+                    (timestamp: Date) => timestamp.getTime() === timestampToRemove
+                );
+
+                if (!timestampExists) {
+                    return {
+                        loggableEvent: null,
+                        errors: [{ code: 'NOT_FOUND', field: 'timestamp', message: 'Timestamp not found' }]
+                    };
+                }
+
+                // Remove the timestamp from existing ones
+                const updatedTimestamps = currentEvent.timestamps.filter(
+                    (timestamp: Date) => timestamp.getTime() !== timestampToRemove
+                );
+
+                return await updateLoggableEventHelper(
+                    validatedInput.eventId,
+                    { timestamps: updatedTimestamps },
+                    prisma
+                );
             } catch (error) {
                 if (error instanceof z.ZodError) {
                     return {
