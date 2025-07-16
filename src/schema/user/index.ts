@@ -30,17 +30,12 @@ const resolvers: Resolvers = {
 
     Mutation: {
         googleOAuthLoginMutation: async (_, { input }, { prisma }) => {
-            console.log('Login mutation started');
             try {
-                console.log('Validating input...');
                 const validatedInput = GoogleOAuthLoginMutationSchema.parse(input);
 
-                console.log('Verifying Google token...');
                 const googleUser = await verifyGoogleToken(validatedInput.googleToken);
-                console.log('Google token verification complete');
 
                 if (!googleUser || !googleUser.sub || !googleUser.email || !googleUser.name) {
-                    console.log('Invalid Google user data');
                     return {
                         token: null,
                         user: null,
