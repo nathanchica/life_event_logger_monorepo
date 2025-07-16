@@ -166,7 +166,7 @@ export const ADD_TIMESTAMP_PAYLOAD_FRAGMENT = gql`
 `;
 
 export const ADD_TIMESTAMP_TO_EVENT_MUTATION = gql`
-    mutation AddTimestampToEvent($input: AddTimestampMutationInput!) {
+    mutation AddTimestampToEvent($input: AddTimestampToEventMutationInput!) {
         addTimestampToEvent(input: $input) {
             ...AddTimestampPayloadFragment
         }
@@ -188,7 +188,7 @@ export const REMOVE_TIMESTAMP_PAYLOAD_FRAGMENT = gql`
 `;
 
 export const REMOVE_TIMESTAMP_FROM_EVENT_MUTATION = gql`
-    mutation RemoveTimestampFromEvent($input: RemoveTimestampMutationInput!) {
+    mutation RemoveTimestampFromEvent($input: RemoveTimestampFromEventMutationInput!) {
         removeTimestampFromEvent(input: $input) {
             ...RemoveTimestampPayloadFragment
         }
