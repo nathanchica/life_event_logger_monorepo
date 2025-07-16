@@ -1,3 +1,4 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createYoga } from 'graphql-yoga';
 
 import { env } from '../src/config/env.js';
@@ -14,4 +15,6 @@ const yoga = createYoga({
     graphiql: env.NODE_ENV === 'development'
 });
 
-export default yoga;
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    return yoga.handle(req, res);
+}
