@@ -49,6 +49,13 @@ const AuthProvider = ({ children }: Props) => {
         setUser(null);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+
+        setIsOfflineMode(false);
+
+        // Remove the offline parameter from the URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('offline');
+        window.history.replaceState({}, '', url.toString());
     };
 
     const setOfflineMode = (isOffline: boolean) => {

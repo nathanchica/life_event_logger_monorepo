@@ -244,10 +244,10 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         labelIds: selectedLabels.map(({ id }) => id)
     };
 
-    const handleNewEventSubmit = async (event: SyntheticEvent) => {
+    const handleNewEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
         if (eventNameIsValid) {
-            await createLoggableEvent({
+            createLoggableEvent({
                 name: formValues.name,
                 warningThresholdInDays: formValues.warningThresholdInDays,
                 labelIds: formValues.labelIds
@@ -256,10 +256,10 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         }
     };
 
-    const handleUpdateEventSubmit = async (event: SyntheticEvent) => {
+    const handleUpdateEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
         if (eventNameIsValid && eventIdToEdit) {
-            await updateLoggableEvent({
+            updateLoggableEvent({
                 id: eventIdToEdit,
                 ...formValues
             });

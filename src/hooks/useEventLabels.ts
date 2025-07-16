@@ -25,16 +25,20 @@ export interface DeleteEventLabelInput {
  */
 
 export type CreateEventLabelPayload = {
+    __typename: 'CreateEventLabelMutationPayload';
+    tempID: string;
     eventLabel: EventLabelFragment;
     errors: Array<GenericApiError>;
 };
 
 export type UpdateEventLabelPayload = {
+    __typename: 'UpdateEventLabelMutationPayload';
     eventLabel: EventLabelFragment;
     errors: Array<GenericApiError>;
 };
 
 export type DeleteEventLabelPayload = {
+    __typename: 'DeleteEventLabelPayload';
     eventLabel: EventLabelFragment;
     errors: Array<GenericApiError>;
 };
@@ -59,7 +63,8 @@ export const GENERIC_API_ERROR_FRAGMENT = gql`
 `;
 
 export const CREATE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
-    fragment CreateEventLabelPayloadFragment on CreateEventLabelPayload {
+    fragment CreateEventLabelPayloadFragment on CreateEventLabelMutationPayload {
+        tempID
         eventLabel {
             ...EventLabelFragment
         }
@@ -68,10 +73,11 @@ export const CREATE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
         }
     }
     ${EVENT_LABEL_FRAGMENT}
+    ${GENERIC_API_ERROR_FRAGMENT}
 `;
 
 export const CREATE_EVENT_LABEL_MUTATION = gql`
-    mutation CreateEventLabel($input: CreateEventLabelInput!) {
+    mutation CreateEventLabel($input: CreateEventLabelMutationInput!) {
         createEventLabel(input: $input) {
             ...CreateEventLabelPayloadFragment
         }
@@ -80,7 +86,7 @@ export const CREATE_EVENT_LABEL_MUTATION = gql`
 `;
 
 export const UPDATE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
-    fragment UpdateEventLabelPayloadFragment on UpdateEventLabelPayload {
+    fragment UpdateEventLabelPayloadFragment on UpdateEventLabelMutationPayload {
         eventLabel {
             ...EventLabelFragment
         }
@@ -89,10 +95,11 @@ export const UPDATE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
         }
     }
     ${EVENT_LABEL_FRAGMENT}
+    ${GENERIC_API_ERROR_FRAGMENT}
 `;
 
 export const UPDATE_EVENT_LABEL_MUTATION = gql`
-    mutation UpdateEventLabel($input: UpdateEventLabelInput!) {
+    mutation UpdateEventLabel($input: UpdateEventLabelMutationInput!) {
         updateEventLabel(input: $input) {
             ...UpdateEventLabelPayloadFragment
         }
@@ -101,7 +108,7 @@ export const UPDATE_EVENT_LABEL_MUTATION = gql`
 `;
 
 export const DELETE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
-    fragment DeleteEventLabelPayloadFragment on DeleteEventLabelPayload {
+    fragment DeleteEventLabelPayloadFragment on DeleteEventLabelMutationPayload {
         eventLabel {
             id
         }
@@ -109,10 +116,11 @@ export const DELETE_EVENT_LABEL_PAYLOAD_FRAGMENT = gql`
             ...GenericApiErrorFragment
         }
     }
+    ${GENERIC_API_ERROR_FRAGMENT}
 `;
 
 export const DELETE_EVENT_LABEL_MUTATION = gql`
-    mutation DeleteEventLabel($input: DeleteEventLabelInput!) {
+    mutation DeleteEventLabel($input: DeleteEventLabelMutationInput!) {
         deleteEventLabel(input: $input) {
             ...DeleteEventLabelPayloadFragment
         }
@@ -130,9 +138,14 @@ export const useEventLabels = () => {
     const [createEventLabelMutation, { loading: createIsLoading }] = useMutation(CREATE_EVENT_LABEL_MUTATION, {
         optimisticResponse: (variables) => ({
             createEventLabel: {
-                __typename: 'EventLabel',
-                id: `temp-${uuidv4()}`,
-                name: variables.input.name
+                __typename: 'CreateEventLabelMutationPayload',
+                tempID: variables.input.id,
+                eventLabel: {
+                    __typename: 'EventLabel',
+                    id: `temp-${uuidv4()}`,
+                    name: variables.input.name
+                },
+                errors: []
             }
         }),
         update: (cache, { data }) => {
@@ -178,9 +191,13 @@ export const useEventLabels = () => {
     const [updateEventLabelMutation, { loading: updateIsLoading }] = useMutation(UPDATE_EVENT_LABEL_MUTATION, {
         optimisticResponse: (variables) => ({
             updateEventLabel: {
-                __typename: 'EventLabel',
-                id: variables.input.id,
-                name: variables.input.name
+                __typename: 'UpdateEventLabelMutationPayload',
+                eventLabel: {
+                    __typename: 'EventLabel',
+                    id: variables.input.id,
+                    name: variables.input.name
+                },
+                errors: []
             }
         })
     });
@@ -261,55 +278,54 @@ export const useEventLabels = () => {
     /**
      * Create a new event label
      */
-    const createEventLabel = async (
-        input: Omit<CreateEventLabelInput, 'id'>
-    ): Promise<CreateEventLabelPayload | null> => {
+    const createEventLabel = (
+        input: Omit<CreateEventLabelInput, 'id'>,
+        onCompleted?: (payload: { createEventLabel: CreateEventLabelPayload }) => void
+    ): void => {
         try {
-            const result = await createEventLabelMutation({
+            createEventLabelMutation({
                 variables: {
                     input: {
                         ...input,
                         id: `temp-${uuidv4()}` // Temporary ID for offline mode
                     }
-                }
+                },
+                onCompleted
             });
-            return result.data?.createEventLabel || null;
         } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return null;
+            return;
         }
     };
 
     /**
      * Update an existing event label
      */
-    const updateEventLabel = async (input: UpdateEventLabelInput): Promise<UpdateEventLabelPayload | null> => {
+    const updateEventLabel = (input: UpdateEventLabelInput): void => {
         try {
-            const result = await updateEventLabelMutation({
+            updateEventLabelMutation({
                 variables: { input }
             });
-            return result.data?.updateEventLabel || null;
         } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return null;
+            return;
         }
     };
 
     /**
      * Delete an existing event label
      */
-    const deleteEventLabel = async (input: DeleteEventLabelInput): Promise<DeleteEventLabelPayload | null> => {
+    const deleteEventLabel = (input: DeleteEventLabelInput): void => {
         try {
-            const { data } = await deleteEventLabelMutation({
+            deleteEventLabelMutation({
                 variables: { input }
             });
-            return data?.deleteEventLabel || null;
         } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return null;
+            return;
         }
     };
 

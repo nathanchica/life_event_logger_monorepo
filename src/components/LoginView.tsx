@@ -20,19 +20,19 @@ import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oa
 
 import { useAuth } from '../providers/AuthProvider';
 
-// Types for mutation inputs
-export interface LoginInput {
-    googleToken: string;
-}
-
 export const LOGIN_MUTATION = gql`
-    mutation Login($input: LoginInput!) {
-        login(input: $input) {
+    mutation LoginMutation($input: GoogleOAuthLoginMutationInput!) {
+        googleOAuthLoginMutation(input: $input) {
             token
             user {
                 id
                 email
                 name
+            }
+            errors {
+                code
+                field
+                message
             }
         }
     }
@@ -61,8 +61,8 @@ const LoginView = () => {
                 }
             });
 
-            if (data?.login?.token) {
-                login(data.login.token, data.login.user);
+            if (data?.googleOAuthLoginMutation?.token) {
+                login(data.googleOAuthLoginMutation.token, data.googleOAuthLoginMutation.user);
             }
         } catch (error) {
             console.error('Login failed:', error);

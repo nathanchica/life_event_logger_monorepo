@@ -4,7 +4,7 @@ import { InputBaseComponentProps } from '@mui/material/InputBase';
 import TextField from '@mui/material/TextField';
 import { useTheme } from '@mui/material/styles';
 
-import { useEventLabels } from '../../hooks/useEventLabels';
+import { useEventLabels, CreateEventLabelPayload } from '../../hooks/useEventLabels';
 import { EventLabel } from '../../utils/types';
 import { validateEventLabelName, MAX_LABEL_LENGTH } from '../../utils/validation';
 import { createEventLabelFromFragment } from '../EventLabels/EventLabel';
@@ -36,32 +36,32 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels, existingLab
             options={labelOptions.map(({ name }) => name)}
             value={selectedLabels.map(({ name }) => name)}
             onChange={(_, values, reason) => {
-                setSelectedLabels((prevLabels: EventLabel[]) => {
-                    let newLabel: EventLabel | undefined;
-                    values.forEach((val: string) => {
-                        // Skip if the label already exists in the selected labels
-                        if (prevLabels.some((label: EventLabel) => label.name === val)) return;
-                        // Create new label if it doesn't exist
-                        if (reason === 'createOption' && !existingLabelNames.includes(val)) {
-                            const validationError = validateEventLabelName(val, existingLabelNames);
-                            if (validationError === null) {
-                                // Create the label asynchronously
-                                createEventLabel({ name: val }).then((payload) => {
-                                    if (payload?.eventLabel) {
-                                        newLabel = createEventLabelFromFragment(payload.eventLabel);
-                                        setSelectedLabels((prev) => [...prev, newLabel as EventLabel]);
-                                    }
-                                });
-                                // Don't add to newLabel since it's async
-                                return;
-                            }
-                        } else {
-                            newLabel = existingLabels.find((label: EventLabel) => label.name === val);
-                        }
-                    });
-                    const filteredLabels = prevLabels.filter((label: EventLabel) => values.includes(label.name));
-                    return [...filteredLabels, ...(newLabel ? [newLabel] : [])];
+                // Handle label creation separately from selection
+                const newLabelsToCreate = values.filter(
+                    (val: string) =>
+                        reason === 'createOption' &&
+                        !existingLabelNames.includes(val) &&
+                        !selectedLabels.some((label) => label.name === val)
+                );
+
+                // Create new labels if needed
+                newLabelsToCreate.forEach((val: string) => {
+                    const validationError = validateEventLabelName(val, existingLabelNames);
+                    if (validationError === null) {
+                        const onCompleted = (payload: { createEventLabel: CreateEventLabelPayload }) => {
+                            const newLabel = createEventLabelFromFragment(payload.createEventLabel.eventLabel);
+                            setSelectedLabels((prev) => [...prev, newLabel]);
+                        };
+                        createEventLabel({ name: val }, onCompleted);
+                    }
                 });
+
+                // Update selected labels with existing labels only
+                const existingSelectedLabels = values
+                    .map((val: string) => existingLabels.find((label) => label.name === val))
+                    .filter((label): label is EventLabel => label !== undefined);
+
+                setSelectedLabels(existingSelectedLabels);
             }}
             renderValue={(value, getTagProps) =>
                 value.map((option, index) => {

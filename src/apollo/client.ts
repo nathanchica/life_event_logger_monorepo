@@ -243,7 +243,7 @@ const offlineMockLink = new ApolloLink((operation) => {
 
 // HTTP link for production use, connecting to the GraphQL server
 const httpLink = createHttpLink({
-    uri: process.env.REACT_APP_GRAPHQL_URL || 'http://localhost:4000',
+    uri: process.env.REACT_APP_GRAPHQL_URL || 'http://localhost:4000/graphql',
     credentials: 'include'
 });
 

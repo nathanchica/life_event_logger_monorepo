@@ -87,7 +87,8 @@ export const GENERIC_API_ERROR_FRAGMENT = gql`
 `;
 
 export const CREATE_LOGGABLE_EVENT_PAYLOAD_FRAGMENT = gql`
-    fragment CreateLoggableEventPayloadFragment on CreateLoggableEventPayload {
+    fragment CreateLoggableEventPayloadFragment on CreateLoggableEventMutationPayload {
+        tempID
         loggableEvent {
             ...UseLoggableEventsFragment
         }
@@ -96,10 +97,11 @@ export const CREATE_LOGGABLE_EVENT_PAYLOAD_FRAGMENT = gql`
         }
     }
     ${USE_LOGGABLE_EVENTS_FRAGMENT}
+    ${GENERIC_API_ERROR_FRAGMENT}
 `;
 
 export const CREATE_LOGGABLE_EVENT_MUTATION = gql`
-    mutation CreateLoggableEvent($input: CreateLoggableEventInput!) {
+    mutation CreateLoggableEvent($input: CreateLoggableEventMutationInput!) {
         createLoggableEvent(input: $input) {
             ...CreateLoggableEventPayloadFragment
         }
@@ -108,7 +110,7 @@ export const CREATE_LOGGABLE_EVENT_MUTATION = gql`
 `;
 
 export const UPDATE_LOGGABLE_EVENT_PAYLOAD_FRAGMENT = gql`
-    fragment UpdateLoggableEventPayloadFragment on UpdateLoggableEventPayload {
+    fragment UpdateLoggableEventPayloadFragment on UpdateLoggableEventMutationPayload {
         loggableEvent {
             ...UseLoggableEventsFragment
         }
@@ -117,10 +119,11 @@ export const UPDATE_LOGGABLE_EVENT_PAYLOAD_FRAGMENT = gql`
         }
     }
     ${USE_LOGGABLE_EVENTS_FRAGMENT}
+    ${GENERIC_API_ERROR_FRAGMENT}
 `;
 
 export const UPDATE_LOGGABLE_EVENT_MUTATION = gql`
-    mutation UpdateLoggableEvent($input: UpdateLoggableEventInput!) {
+    mutation UpdateLoggableEvent($input: UpdateLoggableEventMutationInput!) {
         updateLoggableEvent(input: $input) {
             ...UpdateLoggableEventPayloadFragment
         }
@@ -129,7 +132,7 @@ export const UPDATE_LOGGABLE_EVENT_MUTATION = gql`
 `;
 
 export const DELETE_LOGGABLE_EVENT_PAYLOAD_FRAGMENT = gql`
-    fragment DeleteLoggableEventPayloadFragment on DeleteLoggableEventPayload {
+    fragment DeleteLoggableEventPayloadFragment on DeleteLoggableEventMutationPayload {
         loggableEvent {
             id
         }
@@ -137,10 +140,11 @@ export const DELETE_LOGGABLE_EVENT_PAYLOAD_FRAGMENT = gql`
             ...GenericApiErrorFragment
         }
     }
+    ${GENERIC_API_ERROR_FRAGMENT}
 `;
 
 export const DELETE_LOGGABLE_EVENT_MUTATION = gql`
-    mutation DeleteLoggableEvent($input: DeleteLoggableEventInput!) {
+    mutation DeleteLoggableEvent($input: DeleteLoggableEventMutationInput!) {
         deleteLoggableEvent(input: $input) {
             ...DeleteLoggableEventPayloadFragment
         }
@@ -149,7 +153,7 @@ export const DELETE_LOGGABLE_EVENT_MUTATION = gql`
 `;
 
 export const ADD_TIMESTAMP_PAYLOAD_FRAGMENT = gql`
-    fragment AddTimestampPayloadFragment on AddTimestampPayload {
+    fragment AddTimestampPayloadFragment on AddTimestampMutationPayload {
         loggableEvent {
             ...UseLoggableEventsFragment
         }
@@ -158,10 +162,11 @@ export const ADD_TIMESTAMP_PAYLOAD_FRAGMENT = gql`
         }
     }
     ${USE_LOGGABLE_EVENTS_FRAGMENT}
+    ${GENERIC_API_ERROR_FRAGMENT}
 `;
 
 export const ADD_TIMESTAMP_TO_EVENT_MUTATION = gql`
-    mutation AddTimestampToEvent($input: AddTimestampInput!) {
+    mutation AddTimestampToEvent($input: AddTimestampMutationInput!) {
         addTimestampToEvent(input: $input) {
             ...AddTimestampPayloadFragment
         }
@@ -170,7 +175,7 @@ export const ADD_TIMESTAMP_TO_EVENT_MUTATION = gql`
 `;
 
 export const REMOVE_TIMESTAMP_PAYLOAD_FRAGMENT = gql`
-    fragment RemoveTimestampPayloadFragment on RemoveTimestampPayload {
+    fragment RemoveTimestampPayloadFragment on RemoveTimestampMutationPayload {
         loggableEvent {
             ...UseLoggableEventsFragment
         }
@@ -179,10 +184,11 @@ export const REMOVE_TIMESTAMP_PAYLOAD_FRAGMENT = gql`
         }
     }
     ${USE_LOGGABLE_EVENTS_FRAGMENT}
+    ${GENERIC_API_ERROR_FRAGMENT}
 `;
 
 export const REMOVE_TIMESTAMP_FROM_EVENT_MUTATION = gql`
-    mutation RemoveTimestampFromEvent($input: RemoveTimestampInput!) {
+    mutation RemoveTimestampFromEvent($input: RemoveTimestampMutationInput!) {
         removeTimestampFromEvent(input: $input) {
             ...RemoveTimestampPayloadFragment
         }
@@ -338,55 +344,50 @@ export const useLoggableEvents = () => {
     /**
      * Create a new loggable event
      */
-    const createLoggableEvent = async (
-        input: Omit<CreateLoggableEventInput, 'id'>
-    ): Promise<CreateLoggableEventPayload | null> => {
+    const createLoggableEvent = (input: Omit<CreateLoggableEventInput, 'id'>): void => {
         try {
-            const result = await createLoggableEventMutation({
+            createLoggableEventMutation({
                 variables: {
                     input: {
                         ...input,
-                        id: `temp-${uuidv4()}` // Temporary ID for offline mode
+                        id: `temp-${uuidv4()}` // Temporary ID for optimistic update
                     }
                 }
             });
-            return result.data?.createLoggableEvent || null;
         } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return null;
+            return;
         }
     };
 
     /**
      * Update an existing loggable event
      */
-    const updateLoggableEvent = async (input: UpdateLoggableEventInput): Promise<UpdateLoggableEventPayload | null> => {
+    const updateLoggableEvent = (input: UpdateLoggableEventInput): void => {
         try {
-            const result = await updateLoggableEventMutation({
+            updateLoggableEventMutation({
                 variables: { input }
             });
-            return result.data?.updateLoggableEvent || null;
         } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return null;
+            return;
         }
     };
 
     /**
      * Delete an existing loggable event
      */
-    const deleteLoggableEvent = async (input: DeleteLoggableEventInput): Promise<DeleteLoggableEventPayload | null> => {
+    const deleteLoggableEvent = (input: DeleteLoggableEventInput): void => {
         try {
-            const { data } = await deleteLoggableEventMutation({
+            deleteLoggableEventMutation({
                 variables: { input }
             });
-            return data?.deleteLoggableEvent || null;
         } catch {
             // Don't throw the error - this allows the optimistic update to persist
             // even when the network request fails
-            return null;
+            return;
         }
     };
 

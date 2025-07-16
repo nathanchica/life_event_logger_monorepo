@@ -24,9 +24,9 @@ const CreateEventLabelForm = ({ onCancel, onSuccess, existingLabelNames }: Props
     const isDuplicate = validationError === 'DuplicateName';
     const isEmpty = validationError === 'EmptyName';
 
-    const handleCreateLabel = async () => {
+    const handleCreateLabel = () => {
         if (validationError === null) {
-            await createEventLabel({ name: newLabelName.trim() });
+            createEventLabel({ name: newLabelName.trim() });
             setNewLabelName('');
             onSuccess();
         }
