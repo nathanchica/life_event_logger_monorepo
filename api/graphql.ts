@@ -8,7 +8,7 @@ const yoga = createYoga({
     schema,
     context: createContext,
     cors: {
-        origin: env.CLIENT_URL,
+        origin: env.CLIENT_URL ? env.CLIENT_URL.split(',') : [],
         credentials: true
     },
     graphiql: env.NODE_ENV === 'development'
