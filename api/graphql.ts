@@ -16,5 +16,26 @@ const yoga = createYoga({
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    return yoga.handle(req, res);
+    try {
+        console.log('GraphQL request received:', req.method, req.url);
+
+        // Don't use $connect/$disconnect in serverless - let Prisma handle it
+        const response = await yoga.handle(req, res);
+
+        console.log('GraphQL request completed successfully');
+        return response;
+    } catch (error) {
+        console.error('GraphQL handler error:', error);
+
+        // Set CORS headers on error response
+        const origin = req.headers.origin;
+        const allowedOrigins = env.CLIENT_URL.split(',').map((url) => url.trim());
+
+        if (origin && allowedOrigins.includes(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Access-Control-Allow-Credentials', 'true');
+        }
+
+        return res.status(500).json({ error: 'Internal server error' });
+    }
 }
