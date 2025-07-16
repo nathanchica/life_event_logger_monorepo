@@ -14,7 +14,7 @@ export const prisma =
                 url: env.DATABASE_URL
             }
         },
-        log: env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error']
+        log: env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['warn', 'error']
     });
 
 if (env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

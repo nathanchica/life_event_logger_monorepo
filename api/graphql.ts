@@ -7,12 +7,23 @@ import schema from '../src/schema/index.js';
 
 const yoga = createYoga({
     schema,
-    context: createContext,
+    context: async (ctx) => {
+        console.log('Creating GraphQL context...');
+        const context = await createContext(ctx);
+        console.log('Context created successfully');
+        return context;
+    },
     cors: {
         origin: env.CLIENT_URL.split(',').map((url) => url.trim()),
         credentials: true
     },
-    graphiql: env.NODE_ENV === 'development'
+    graphiql: env.NODE_ENV === 'development',
+    logging: {
+        debug: (...args) => console.debug('Yoga Debug:', ...args),
+        info: (...args) => console.info('Yoga Info:', ...args),
+        warn: (...args) => console.warn('Yoga Warn:', ...args),
+        error: (...args) => console.error('Yoga Error:', ...args)
+    }
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
