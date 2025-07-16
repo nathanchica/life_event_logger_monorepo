@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
-import { generateJWT, verifyGoogleToken } from '../../auth/token';
-import { Resolvers } from '../../generated/graphql';
-import { formatZodError } from '../../utils/validation';
-import { EventLabelParent } from '../eventLabel';
-import { LoggableEventParent } from '../loggableEvent';
+import { generateJWT, verifyGoogleToken } from '../../auth/token.js';
+import { Resolvers } from '../../generated/graphql.js';
+import { formatZodError } from '../../utils/validation.js';
+import { EventLabelParent } from '../eventLabel/index.js';
+import { LoggableEventParent } from '../loggableEvent/index.js';
 
 export type UserParent = {
     id: string;

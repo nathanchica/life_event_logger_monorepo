@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { Resolvers } from '../../generated/graphql';
-import { formatZodError } from '../../utils/validation';
-import { UserParent } from '../user';
+import { Resolvers } from '../../generated/graphql.js';
+import { formatZodError } from '../../utils/validation.js';
+import { UserParent } from '../user/index.js';
 
 export type LoggableEventParent = {
     id?: string;

@@ -1,7 +1,7 @@
 import { mapSchema, getDirective, MapperKind } from '@graphql-tools/utils';
 import { defaultFieldResolver, GraphQLError, GraphQLFieldConfig, GraphQLSchema } from 'graphql';
 
-import { GraphQLContext } from '../context';
+import { GraphQLContext } from '../context.js';
 
 /**
  * Resource types that can be protected by the @requireOwner directive

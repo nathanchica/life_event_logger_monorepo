@@ -7,11 +7,11 @@ import { mergeTypeDefs, mergeResolvers } from '@graphql-tools/merge';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { DateTimeISOResolver } from 'graphql-scalars';
 
-import eventLabelResolvers from './eventLabel';
-import loggableEventResolvers from './loggableEvent';
-import userResolvers from './user';
+import eventLabelResolvers from './eventLabel/index.js';
+import loggableEventResolvers from './loggableEvent/index.js';
+import userResolvers from './user/index.js';
 
-import { authDirectiveTransformer } from '../directives/auth';
+import { authDirectiveTransformer } from '../directives/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -1,8 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
-import { verifyJWT } from './auth/token';
-import { prisma } from './prisma/client';
-import { UserParent } from './schema/user';
+import { verifyJWT } from './auth/token.js';
+import { prisma } from './prisma/client.js';
+import { UserParent } from './schema/user/index.js';
 
 type RequestWithHeaders = {
     headers: {

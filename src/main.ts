@@ -2,9 +2,9 @@ import { createServer } from 'http';
 
 import { createYoga } from 'graphql-yoga';
 
-import { env } from './config/env';
-import { createContext } from './context';
-import schema from './schema';
+import { env } from './config/env.js';
+import { createContext } from './context.js';
+import schema from './schema/index.js';
 
 const yoga = createYoga({
     schema,

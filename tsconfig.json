@@ -10,7 +10,7 @@
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
         "moduleResolution": "node",
-        "noEmit": true,
+        "noEmit": false,
         "paths": {
             "@/*": ["./src/*"]
         }

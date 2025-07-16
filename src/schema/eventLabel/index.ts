@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-import { GraphQLContext } from '../../context';
-import { Resolvers } from '../../generated/graphql';
-import { formatZodError } from '../../utils/validation';
-import { UserParent } from '../user';
+import { GraphQLContext } from '../../context.js';
+import { Resolvers } from '../../generated/graphql.js';
+import { formatZodError } from '../../utils/validation.js';
+import { UserParent } from '../user/index.js';
 
 export type EventLabelParent = {
     id?: string;
