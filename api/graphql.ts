@@ -7,10 +7,7 @@ import schema from '../src/schema/index.js';
 const yoga = createYoga({
     schema,
     context: createContext,
-    cors: {
-        origin: env.CLIENT_URL ? env.CLIENT_URL.split(',') : [],
-        credentials: true
-    },
+    cors: false,
     graphiql: env.NODE_ENV === 'development'
 });
 
