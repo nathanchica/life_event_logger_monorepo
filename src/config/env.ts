@@ -8,8 +8,8 @@ const envSchema = z.object({
     DATABASE_URL: z.string().url(),
     // Google OAuth Client ID
     GOOGLE_CLIENT_ID: z.string().min(1),
-    // Client URL for the frontend application
-    CLIENT_URL: z.string().url(),
+    // Client URL for the frontend application (comma-separated for multiple origins)
+    CLIENT_URL: z.string().min(1),
     // JWT secret for signing tokens
     JWT_SECRET: z.string().min(1),
     // Environment
