@@ -69,11 +69,14 @@ const LoggableEventCard = ({ eventId }: Props) => {
         }
     });
 
-    const { id, name, timestamps, warningThresholdInDays } = createLoggableEventFromFragment(data);
-    const eventLabelFragments: Array<EventLabelFragment> = data.labels;
-
     const { deleteLoggableEvent } = useLoggableEvents();
     const { value: editEventFormIsShowing, setTrue: showEditEventForm, setFalse: hideEditEventForm } = useToggle();
+
+    // return null if no data is available (can happen when event is being deleted and events list hasn't updated yet)
+    if (!data || Object.keys(data).length === 0) return null;
+
+    const { id, name, timestamps, warningThresholdInDays } = createLoggableEventFromFragment(data);
+    const eventLabelFragments: Array<EventLabelFragment> = data.labels;
 
     const handleEditEventClick = () => {
         showEditEventForm();
