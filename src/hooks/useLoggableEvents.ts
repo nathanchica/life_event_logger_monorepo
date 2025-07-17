@@ -1,8 +1,8 @@
-import { gql, useMutation, Reference } from '@apollo/client';
+import { gql, useMutation, Reference, useApolloClient } from '@apollo/client';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useAuth } from '../providers/AuthProvider';
-import { LoggableEvent, GenericApiError } from '../utils/types';
+import { LoggableEvent, LoggableEventFragment, GenericApiError } from '../utils/types';
 
 /**
  * Mutation input types
@@ -202,6 +202,7 @@ export const REMOVE_TIMESTAMP_FROM_EVENT_MUTATION = gql`
  */
 export const useLoggableEvents = () => {
     const { user } = useAuth();
+    const client = useApolloClient();
 
     const [createLoggableEventMutation, { loading: createIsLoading }] = useMutation(CREATE_LOGGABLE_EVENT_MUTATION, {
         optimisticResponse: (variables) => ({
@@ -259,20 +260,33 @@ export const useLoggableEvents = () => {
     });
 
     const [updateLoggableEventMutation, { loading: updateIsLoading }] = useMutation(UPDATE_LOGGABLE_EVENT_MUTATION, {
-        optimisticResponse: (variables) => ({
-            updateLoggableEvent: {
-                __typename: 'UpdateLoggableEventPayload',
-                loggableEvent: {
-                    __typename: 'LoggableEvent',
-                    id: variables.input.id,
-                    name: variables.input.name,
-                    timestamps: [],
-                    warningThresholdInDays: variables.input.warningThresholdInDays || 0,
-                    labels: []
-                },
-                errors: []
-            }
-        })
+        // using any type here. it will be fixed in apollo 4.0 (not yet out at this time) https://github.com/apollographql/apollo-client/issues/12726
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        optimisticResponse: (variables, { IGNORE }: { IGNORE: any }) => {
+            const eventId = client.cache.identify({ __typename: 'LoggableEvent', id: variables.input.id });
+
+            if (!eventId) return IGNORE;
+
+            const existingEvent = client.cache.readFragment({
+                id: eventId,
+                fragment: USE_LOGGABLE_EVENTS_FRAGMENT
+            }) as LoggableEventFragment;
+
+            return {
+                updateLoggableEvent: {
+                    __typename: 'UpdateLoggableEventPayload',
+                    loggableEvent: {
+                        __typename: 'LoggableEvent',
+                        id: variables.input.id,
+                        name: variables.input.name,
+                        timestamps: existingEvent.timestamps,
+                        warningThresholdInDays: variables.input.warningThresholdInDays,
+                        labels: existingEvent.labels
+                    },
+                    errors: []
+                }
+            };
+        }
     });
 
     const [deleteLoggableEventMutation, { loading: deleteIsLoading }] = useMutation(DELETE_LOGGABLE_EVENT_MUTATION, {
@@ -316,21 +330,35 @@ export const useLoggableEvents = () => {
     });
 
     const [addTimestampMutation, { loading: addTimestampIsLoading }] = useMutation(ADD_TIMESTAMP_TO_EVENT_MUTATION, {
-        optimisticResponse: (variables) => ({
-            addTimestampToEvent: {
-                __typename: 'AddTimestampToEventMutationPayload',
-                loggableEvent: {
-                    __typename: 'LoggableEvent',
-                    id: variables.input.id,
-                    // We can't easily get the current timestamps here, but Apollo will merge this
-                    timestamps: [variables.input.timestamp],
-                    name: '',
-                    warningThresholdInDays: 0,
-                    labels: []
-                },
-                errors: []
-            }
-        })
+        // using any type here. it will be fixed in apollo 4.0 (not yet out at this time) https://github.com/apollographql/apollo-client/issues/12726
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        optimisticResponse: (variables, { IGNORE }: { IGNORE: any }) => {
+            const eventId = client.cache.identify({ __typename: 'LoggableEvent', id: variables.input.id });
+
+            if (!eventId) return IGNORE;
+
+            const existingEvent = client.cache.readFragment({
+                id: eventId,
+                fragment: USE_LOGGABLE_EVENTS_FRAGMENT
+            }) as LoggableEventFragment;
+
+            const updatedTimestamps = Array.from(new Set([...existingEvent.timestamps, variables.input.timestamp]));
+
+            return {
+                addTimestampToEvent: {
+                    __typename: 'AddTimestampToEventMutationPayload',
+                    loggableEvent: {
+                        __typename: 'LoggableEvent',
+                        id: variables.input.id,
+                        timestamps: updatedTimestamps,
+                        name: existingEvent.name,
+                        warningThresholdInDays: existingEvent.warningThresholdInDays,
+                        labels: existingEvent.labels
+                    },
+                    errors: []
+                }
+            };
+        }
     });
 
     const [removeTimestampMutation, { loading: removeTimestampIsLoading }] = useMutation(

@@ -189,17 +189,19 @@ export const useEventLabels = () => {
     });
 
     const [updateEventLabelMutation, { loading: updateIsLoading }] = useMutation(UPDATE_EVENT_LABEL_MUTATION, {
-        optimisticResponse: (variables) => ({
-            updateEventLabel: {
-                __typename: 'UpdateEventLabelMutationPayload',
-                eventLabel: {
-                    __typename: 'EventLabel',
-                    id: variables.input.id,
-                    name: variables.input.name
-                },
-                errors: []
-            }
-        })
+        optimisticResponse: (variables) => {
+            return {
+                updateEventLabel: {
+                    __typename: 'UpdateEventLabelMutationPayload',
+                    eventLabel: {
+                        __typename: 'EventLabel',
+                        id: variables.input.id,
+                        name: variables.input.name
+                    },
+                    errors: []
+                }
+            };
+        }
     });
 
     const [deleteEventLabelMutation, { loading: deleteIsLoading }] = useMutation(DELETE_EVENT_LABEL_MUTATION, {
