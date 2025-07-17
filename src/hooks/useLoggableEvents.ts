@@ -207,9 +207,27 @@ const resolveLabelsFromCache = (
     labelIds: string[] | undefined,
     fallbackLabels: EventLabelFragment[] = []
 ): EventLabelFragment[] => {
-    return labelIds
-        ? (labelIds.map((id: string) => readEventLabelFromCache(id)).filter(Boolean) as EventLabelFragment[])
-        : fallbackLabels;
+    if (!labelIds) {
+        return fallbackLabels;
+    }
+
+    const resolvedLabels = labelIds
+        .map((id: string) => readEventLabelFromCache(id))
+        .filter(Boolean) as EventLabelFragment[];
+
+    // If some labels couldn't be resolved from cache, merge with fallback labels
+    // This ensures optimistic updates work even when labels aren't in cache yet
+    if (resolvedLabels.length < labelIds.length) {
+        const resolvedLabelIds = new Set(resolvedLabels.map((label) => label.id));
+        const missingLabelIds = labelIds.filter((id) => !resolvedLabelIds.has(id));
+
+        // Try to find missing labels in fallback labels
+        const missingLabelsFromFallback = fallbackLabels.filter((label) => missingLabelIds.includes(label.id));
+
+        return [...resolvedLabels, ...missingLabelsFromFallback];
+    }
+
+    return resolvedLabels;
 };
 
 /**
@@ -287,10 +305,12 @@ export const useLoggableEvents = () => {
 
             if (!eventId) return IGNORE;
 
-            const existingEvent = client.cache.readFragment({
+            const existingEvent: LoggableEventFragment | null = client.cache.readFragment({
                 id: eventId,
                 fragment: USE_LOGGABLE_EVENTS_FRAGMENT
-            }) as LoggableEventFragment;
+            });
+
+            if (!existingEvent) return IGNORE;
 
             const labels = resolveLabelsFromCache(variables.input.labelIds, existingEvent.labels);
 
@@ -359,10 +379,12 @@ export const useLoggableEvents = () => {
 
             if (!eventId) return IGNORE;
 
-            const existingEvent = client.cache.readFragment({
+            const existingEvent: LoggableEventFragment | null = client.cache.readFragment({
                 id: eventId,
                 fragment: USE_LOGGABLE_EVENTS_FRAGMENT
-            }) as LoggableEventFragment;
+            });
+
+            if (!existingEvent) return IGNORE;
 
             const updatedTimestamps = Array.from(new Set([...existingEvent.timestamps, variables.input.timestamp]));
 
@@ -384,7 +406,42 @@ export const useLoggableEvents = () => {
     });
 
     const [removeTimestampMutation, { loading: removeTimestampIsLoading }] = useMutation(
-        REMOVE_TIMESTAMP_FROM_EVENT_MUTATION
+        REMOVE_TIMESTAMP_FROM_EVENT_MUTATION,
+        {
+            // using any type here. it will be fixed in apollo 4.0 (not yet out at this time) https://github.com/apollographql/apollo-client/issues/12726
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            optimisticResponse: (variables, { IGNORE }: { IGNORE: any }) => {
+                const eventId = client.cache.identify({ __typename: 'LoggableEvent', id: variables.input.id });
+
+                if (!eventId) return IGNORE;
+
+                const existingEvent: LoggableEventFragment | null = client.cache.readFragment({
+                    id: eventId,
+                    fragment: USE_LOGGABLE_EVENTS_FRAGMENT
+                });
+
+                if (!existingEvent) return IGNORE;
+
+                const updatedTimestamps = existingEvent.timestamps.filter(
+                    (timestamp: string) => timestamp !== variables.input.timestamp
+                );
+
+                return {
+                    removeTimestampFromEvent: {
+                        __typename: 'RemoveTimestampFromEventMutationPayload',
+                        loggableEvent: {
+                            __typename: 'LoggableEvent',
+                            id: variables.input.id,
+                            timestamps: updatedTimestamps,
+                            name: existingEvent.name,
+                            warningThresholdInDays: existingEvent.warningThresholdInDays,
+                            labels: existingEvent.labels
+                        },
+                        errors: []
+                    }
+                };
+            }
+        }
     );
 
     /**
