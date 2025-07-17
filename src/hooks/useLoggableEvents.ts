@@ -25,12 +25,12 @@ export interface DeleteLoggableEventInput {
 }
 
 export interface AddTimestampInput {
-    eventId: string;
+    id: string;
     timestamp: string; // ISO string
 }
 
 export interface RemoveTimestampInput {
-    eventId: string;
+    id: string;
     timestamp: string; // ISO string
 }
 
@@ -321,7 +321,7 @@ export const useLoggableEvents = () => {
                 __typename: 'AddTimestampToEventMutationPayload',
                 loggableEvent: {
                     __typename: 'LoggableEvent',
-                    id: variables.input.eventId,
+                    id: variables.input.id,
                     // We can't easily get the current timestamps here, but Apollo will merge this
                     timestamps: [variables.input.timestamp],
                     name: '',
