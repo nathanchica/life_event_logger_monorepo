@@ -241,15 +241,16 @@ export const useLoggableEvents = () => {
     const [createLoggableEventMutation, { loading: createIsLoading }] = useMutation(CREATE_LOGGABLE_EVENT_MUTATION, {
         optimisticResponse: (variables) => {
             const labels = resolveLabelsFromCache(variables.input.labelIds);
-            const newId = `temp-${uuidv4()}`;
+            // Use the tempID passed in variables instead of generating a new one
+            const tempId = variables.input.id || `temp-${uuidv4()}`;
 
             return {
                 createLoggableEvent: {
                     __typename: 'CreateLoggableEventMutationPayload',
-                    tempID: newId,
+                    tempID: tempId,
                     loggableEvent: {
                         __typename: 'LoggableEvent',
-                        id: newId,
+                        id: tempId,
                         name: variables.input.name,
                         timestamps: [],
                         warningThresholdInDays: variables.input.warningThresholdInDays || 0,
@@ -262,40 +263,107 @@ export const useLoggableEvents = () => {
         update: (cache, { data }) => {
             if (!data?.createLoggableEvent || !data.createLoggableEvent?.loggableEvent || !user?.id) return;
 
-            // Add new event to user's loggableEvents list
-            cache.modify({
-                id: cache.identify({ __typename: 'User', id: user.id }),
-                fields: {
-                    loggableEvents(existingEventRefs, { readField }) {
-                        const newEventRef = cache.writeFragment({
-                            fragment: USE_LOGGABLE_EVENTS_FRAGMENT,
-                            data: data.createLoggableEvent.loggableEvent
-                        });
+            const tempID = data.createLoggableEvent.tempID;
+            const realEvent = data.createLoggableEvent.loggableEvent;
 
-                        // Safety checks. Not practically reachable so ignore them in coverage
+            // If we have a tempID that matches an existing temp event, we need to replace it
+            if (tempID && tempID.startsWith('temp-')) {
+                // Update the user's loggableEvents list
+                cache.modify({
+                    id: cache.identify({ __typename: 'User', id: user.id }),
+                    fields: {
+                        loggableEvents(existingEventRefs, { readField }) {
+                            // Safety checks. Not practically reachable so ignore them in coverage
+                            // istanbul ignore next
+                            if (!existingEventRefs) {
+                                const newEventRef = cache.writeFragment({
+                                    fragment: USE_LOGGABLE_EVENTS_FRAGMENT,
+                                    data: realEvent
+                                });
+                                return [newEventRef];
+                            }
 
-                        // If no existing events, return new event as the only ref
-                        // istanbul ignore next
-                        if (!existingEventRefs) return [newEventRef];
+                            // Check if we have a temp event to replace
+                            const tempEventIndex = existingEventRefs.findIndex(
+                                (ref: Reference) => readField('id', ref) === tempID
+                            );
 
-                        // If newEventRef is null, return existing refs
-                        // istanbul ignore next
-                        if (!newEventRef) return existingEventRefs;
+                            if (tempEventIndex !== -1) {
+                                // Replace the temp event with the real one
+                                const newRefs = [...existingEventRefs];
+                                const newEventRef = cache.writeFragment({
+                                    fragment: USE_LOGGABLE_EVENTS_FRAGMENT,
+                                    data: realEvent
+                                });
 
-                        // If event already exists, return existing refs
-                        // istanbul ignore next
-                        if (
-                            existingEventRefs.some(
-                                (ref: Reference) => readField('id', ref) === data.createLoggableEvent.loggableEvent.id
-                            )
-                        ) {
-                            return existingEventRefs;
+                                // istanbul ignore next
+                                if (!newEventRef) return existingEventRefs;
+
+                                newRefs[tempEventIndex] = newEventRef;
+
+                                // Remove the temp event from cache after replacing the reference
+                                cache.evict({ id: cache.identify({ __typename: 'LoggableEvent', id: tempID }) });
+
+                                return newRefs;
+                            } else {
+                                // No temp event found, check if real event already exists
+                                // istanbul ignore next
+                                if (existingEventRefs.some((ref: Reference) => readField('id', ref) === realEvent.id)) {
+                                    return existingEventRefs;
+                                }
+
+                                // Add as new event
+                                const newEventRef = cache.writeFragment({
+                                    fragment: USE_LOGGABLE_EVENTS_FRAGMENT,
+                                    data: realEvent
+                                });
+
+                                // istanbul ignore next
+                                if (!newEventRef) return existingEventRefs;
+
+                                return [...existingEventRefs, newEventRef];
+                            }
                         }
-
-                        return [...existingEventRefs, newEventRef];
                     }
-                }
-            });
+                });
+            } else {
+                // No tempID - standard behavior
+                // Add new event to user's loggableEvents list
+                cache.modify({
+                    id: cache.identify({ __typename: 'User', id: user.id }),
+                    fields: {
+                        loggableEvents(existingEventRefs, { readField }) {
+                            const newEventRef = cache.writeFragment({
+                                fragment: USE_LOGGABLE_EVENTS_FRAGMENT,
+                                data: data.createLoggableEvent.loggableEvent
+                            });
+
+                            // Safety checks. Not practically reachable so ignore them in coverage
+
+                            // If no existing events, return new event as the only ref
+                            // istanbul ignore next
+                            if (!existingEventRefs) return [newEventRef];
+
+                            // If newEventRef is null, return existing refs
+                            // istanbul ignore next
+                            if (!newEventRef) return existingEventRefs;
+
+                            // If event already exists, return existing refs
+                            // istanbul ignore next
+                            if (
+                                existingEventRefs.some(
+                                    (ref: Reference) =>
+                                        readField('id', ref) === data.createLoggableEvent.loggableEvent.id
+                                )
+                            ) {
+                                return existingEventRefs;
+                            }
+
+                            return [...existingEventRefs, newEventRef];
+                        }
+                    }
+                });
+            }
         }
     });
 
