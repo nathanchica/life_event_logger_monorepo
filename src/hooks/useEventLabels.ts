@@ -142,7 +142,7 @@ export const useEventLabels = () => {
                 tempID: variables.input.id,
                 eventLabel: {
                     __typename: 'EventLabel',
-                    id: `temp-${uuidv4()}`,
+                    id: variables.input.id,
                     name: variables.input.name
                 },
                 errors: []
