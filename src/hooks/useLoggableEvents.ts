@@ -241,13 +241,15 @@ export const useLoggableEvents = () => {
     const [createLoggableEventMutation, { loading: createIsLoading }] = useMutation(CREATE_LOGGABLE_EVENT_MUTATION, {
         optimisticResponse: (variables) => {
             const labels = resolveLabelsFromCache(variables.input.labelIds);
+            const newId = `temp-${uuidv4()}`;
 
             return {
                 createLoggableEvent: {
-                    __typename: 'CreateLoggableEventPayload',
+                    __typename: 'CreateLoggableEventMutationPayload',
+                    tempID: newId,
                     loggableEvent: {
                         __typename: 'LoggableEvent',
-                        id: `temp-${uuidv4()}`,
+                        id: newId,
                         name: variables.input.name,
                         timestamps: [],
                         warningThresholdInDays: variables.input.warningThresholdInDays || 0,
@@ -316,7 +318,7 @@ export const useLoggableEvents = () => {
 
             return {
                 updateLoggableEvent: {
-                    __typename: 'UpdateLoggableEventPayload',
+                    __typename: 'UpdateLoggableEventMutationPayload',
                     loggableEvent: {
                         __typename: 'LoggableEvent',
                         id: variables.input.id,
@@ -332,20 +334,41 @@ export const useLoggableEvents = () => {
     });
 
     const [deleteLoggableEventMutation, { loading: deleteIsLoading }] = useMutation(DELETE_LOGGABLE_EVENT_MUTATION, {
-        optimisticResponse: (variables) => ({
-            deleteLoggableEvent: {
-                __typename: 'DeleteLoggableEventPayload',
-                loggableEvent: {
-                    __typename: 'LoggableEvent',
-                    id: variables.input.id
-                },
-                errors: []
-            }
-        }),
+        // using any type here. it will be fixed in apollo 4.0 (not yet out at this time) https://github.com/apollographql/apollo-client/issues/12726
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        optimisticResponse: (variables, { IGNORE }: { IGNORE: any }) => {
+            const eventId = client.cache.identify({ __typename: 'LoggableEvent', id: variables.input.id });
+
+            if (!eventId) return IGNORE;
+
+            const existingEvent: LoggableEventFragment | null = client.cache.readFragment({
+                id: eventId,
+                fragment: USE_LOGGABLE_EVENTS_FRAGMENT
+            });
+
+            if (!existingEvent) return IGNORE;
+
+            return {
+                deleteLoggableEvent: {
+                    __typename: 'DeleteLoggableEventMutationPayload',
+                    loggableEvent: {
+                        __typename: 'LoggableEvent',
+                        id: variables.input.id,
+                        name: existingEvent.name,
+                        warningThresholdInDays: existingEvent.warningThresholdInDays,
+                        labels: existingEvent.labels,
+                        timestamps: existingEvent.timestamps
+                    },
+                    errors: []
+                }
+            };
+        },
         update: (cache, { data }) => {
             if (!data?.deleteLoggableEvent || !data.deleteLoggableEvent?.loggableEvent || !user?.id) return;
 
-            // Remove event from user's loggableEvents list
+            const eventId = data.deleteLoggableEvent.loggableEvent.id;
+
+            // Remove event from user's loggableEvents list first
             cache.modify({
                 id: cache.identify({ __typename: 'User', id: user.id }),
                 fields: {
@@ -356,17 +379,14 @@ export const useLoggableEvents = () => {
                         // istanbul ignore next
                         if (!existingEventRefs) return [];
 
-                        return existingEventRefs.filter(
-                            (eventRef: Reference) =>
-                                readField('id', eventRef) !== data.deleteLoggableEvent.loggableEvent.id
-                        );
+                        return existingEventRefs.filter((eventRef: Reference) => readField('id', eventRef) !== eventId);
                     }
                 }
             });
 
-            // Remove the event from cache completely
+            // Remove the event from the cache
             cache.evict({
-                id: cache.identify({ __typename: 'LoggableEvent', id: data.deleteLoggableEvent.loggableEvent.id })
+                id: cache.identify({ __typename: 'LoggableEvent', id: eventId })
             });
         }
     });

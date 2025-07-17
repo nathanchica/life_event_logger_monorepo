@@ -77,7 +77,8 @@ const offlineMockLink = new ApolloLink((operation) => {
                 observer.next({
                     data: {
                         createLoggableEvent: {
-                            __typename: 'CreateLoggableEventPayload',
+                            __typename: 'CreateLoggableEventMutationPayload',
+                            tempID: newId,
                             loggableEvent: {
                                 __typename: 'LoggableEvent',
                                 id: newId,
@@ -104,7 +105,7 @@ const offlineMockLink = new ApolloLink((operation) => {
                 observer.next({
                     data: {
                         updateLoggableEvent: {
-                            __typename: 'UpdateLoggableEventPayload',
+                            __typename: 'UpdateLoggableEventMutationPayload',
                             loggableEvent: {
                                 __typename: 'LoggableEvent',
                                 id: inputVariables?.id,
@@ -123,13 +124,15 @@ const offlineMockLink = new ApolloLink((operation) => {
             }
             // Mock CreateEventLabel mutation response
             else if (operationName === 'CreateEventLabel') {
+                const newId = inputVariables?.id || `server-${Date.now()}`;
                 observer.next({
                     data: {
                         createEventLabel: {
-                            __typename: 'CreateEventLabelPayload',
+                            __typename: 'CreateEventLabelMutationPayload',
+                            tempID: newId,
                             eventLabel: {
                                 __typename: 'EventLabel',
-                                id: inputVariables?.id || `server-${Date.now()}`,
+                                id: newId,
                                 name: inputVariables?.name || ''
                             },
                             errors: []
@@ -144,7 +147,7 @@ const offlineMockLink = new ApolloLink((operation) => {
                 observer.next({
                     data: {
                         updateEventLabel: {
-                            __typename: 'UpdateEventLabelPayload',
+                            __typename: 'UpdateEventLabelMutationPayload',
                             eventLabel: {
                                 __typename: 'EventLabel',
                                 id: inputVariables?.id,
@@ -157,15 +160,15 @@ const offlineMockLink = new ApolloLink((operation) => {
             }
             // Mock AddTimestampToEvent mutation response
             else if (operationName === 'AddTimestampToEvent') {
-                const existingEvent = readLoggableEventFromCache(inputVariables?.eventId);
+                const existingEvent = readLoggableEventFromCache(inputVariables?.id);
 
                 observer.next({
                     data: {
                         addTimestampToEvent: {
-                            __typename: 'AddTimestampPayload',
+                            __typename: 'AddTimestampToEventMutationPayload',
                             loggableEvent: {
                                 __typename: 'LoggableEvent',
-                                id: inputVariables?.eventId,
+                                id: inputVariables?.id,
                                 name: existingEvent?.name || '',
                                 timestamps: [...(existingEvent?.timestamps || []), inputVariables?.timestamp],
                                 warningThresholdInDays: existingEvent?.warningThresholdInDays || 0,
@@ -178,15 +181,15 @@ const offlineMockLink = new ApolloLink((operation) => {
             }
             // Mock RemoveTimestampFromEvent mutation response
             else if (operationName === 'RemoveTimestampFromEvent') {
-                const existingEvent = readLoggableEventFromCache(inputVariables?.eventId);
+                const existingEvent = readLoggableEventFromCache(inputVariables?.id);
 
                 observer.next({
                     data: {
                         removeTimestampFromEvent: {
-                            __typename: 'RemoveTimestampPayload',
+                            __typename: 'RemoveTimestampFromEventMutationPayload',
                             loggableEvent: {
                                 __typename: 'LoggableEvent',
-                                id: inputVariables?.eventId,
+                                id: inputVariables?.id,
                                 name: existingEvent?.name || '',
                                 timestamps:
                                     existingEvent?.timestamps?.filter(
@@ -202,13 +205,19 @@ const offlineMockLink = new ApolloLink((operation) => {
             }
             // Mock DeleteLoggableEvent mutation response
             else if (operationName === 'DeleteLoggableEvent') {
+                const existingEvent = readLoggableEventFromCache(inputVariables?.id);
+
                 observer.next({
                     data: {
                         deleteLoggableEvent: {
-                            __typename: 'DeleteLoggableEventPayload',
+                            __typename: 'DeleteLoggableEventMutationPayload',
                             loggableEvent: {
                                 __typename: 'LoggableEvent',
-                                id: inputVariables?.id
+                                id: inputVariables?.id,
+                                name: existingEvent?.name ?? '',
+                                timestamps: existingEvent?.timestamps || [],
+                                warningThresholdInDays: existingEvent?.warningThresholdInDays ?? 0,
+                                labels: existingEvent?.labels || []
                             },
                             errors: []
                         }
@@ -220,7 +229,7 @@ const offlineMockLink = new ApolloLink((operation) => {
                 observer.next({
                     data: {
                         deleteEventLabel: {
-                            __typename: 'DeleteEventLabelPayload',
+                            __typename: 'DeleteEventLabelMutationPayload',
                             eventLabel: {
                                 __typename: 'EventLabel',
                                 id: inputVariables?.id

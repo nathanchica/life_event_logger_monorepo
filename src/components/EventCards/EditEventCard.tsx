@@ -127,7 +127,7 @@ type Props = {
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const { user } = useAuth();
     const theme = useTheme();
-    const { createLoggableEvent, updateLoggableEvent, createIsLoading, updateIsLoading } = useLoggableEvents();
+    const { createLoggableEvent, updateLoggableEvent } = useLoggableEvents();
     const { activeEventLabelId } = useViewOptions();
 
     invariant(user, 'User is not authenticated');
@@ -171,11 +171,11 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const [eventNameInputValue, setEventNameInputValue] = useState(eventToEdit.name);
     const resetEventNameInputValue = () => setEventNameInputValue(EVENT_DEFAULT_VALUES.name);
 
-    const shouldValidate = eventNameInputValue !== eventToEdit.name;
-    const eventNameIsValid = shouldValidate ? isEventNameValid(eventNameInputValue, existingEventNames) : true;
+    const shouldValidateEventName = eventNameInputValue !== eventToEdit.name;
+    const eventNameIsValid = shouldValidateEventName ? isEventNameValid(eventNameInputValue, existingEventNames) : true;
 
     /** Event name validation error display */
-    const validationErrorText = shouldValidate
+    const validationErrorText = shouldValidateEventName
         ? getEventNameValidationErrorText(eventNameInputValue, existingEventNames)
         : null;
     const textFieldErrorProps: { error?: boolean; helperText?: string } = validationErrorText
@@ -184,6 +184,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
               helperText: validationErrorText
           }
         : {};
+
+    const submitButtonIsDisabled = !eventNameIsValid || eventNameInputValue.trim() === '';
 
     /**
      * Warning threshold.
@@ -355,7 +357,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
                     <CardActions>
                         <Button
-                            disabled={!eventNameIsValid || createIsLoading || updateIsLoading}
+                            disabled={submitButtonIsDisabled}
                             type="submit"
                             size="small"
                             aria-describedby={!eventNameIsValid ? 'submit-button-disabled-reason' : undefined}
