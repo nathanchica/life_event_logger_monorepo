@@ -108,6 +108,103 @@ Directives return standardized GraphQL errors:
 - **`NOT_FOUND`**: Requested resource doesn't exist
 - **`VALIDATION_ERROR`**: Invalid input or missing resource ID
 
+## Error Handling Patterns
+
+This API uses two distinct patterns for error handling, each suited for different types of errors:
+
+### 1. GraphQL Errors (Exceptions)
+
+These are thrown and appear in the `errors` array of the GraphQL response. Used for:
+
+- **Authentication failures** - When user is not logged in
+- **Authorization failures** - When user lacks permission (e.g., trying to access another user's resources)
+- **Resource not found** - When attempting operations on non-existent entities
+- **Invalid cross-resource references** - When referencing labels/resources that don't belong to the user
+
+**Example Response:**
+
+```json
+{
+    "data": null,
+    "errors": [
+        {
+            "message": "Some labels do not exist or do not belong to you",
+            "extensions": {
+                "code": "FORBIDDEN"
+            }
+        }
+    ]
+}
+```
+
+**Implementation:**
+
+```typescript
+// Thrown from resolvers or directives
+throw new GraphQLError('Some labels do not exist or do not belong to you', {
+    extensions: { code: 'FORBIDDEN' }
+});
+```
+
+### 2. API Errors (Result Pattern)
+
+These are returned as part of the mutation payload in an `errors` field. Used for:
+
+- **Validation errors** - Invalid input data (e.g., name too long, negative numbers)
+- **Business logic errors** - Errors that users can fix by changing their input
+- **Partial success scenarios** - When some information can still be returned
+
+**Example Response:**
+
+```json
+{
+    "data": {
+        "createLoggableEvent": {
+            "loggableEvent": null,
+            "errors": [
+                {
+                    "code": "VALIDATION_ERROR",
+                    "field": "name",
+                    "message": "Name must be under 25 characters"
+                }
+            ]
+        }
+    }
+}
+```
+
+**Implementation:**
+
+```typescript
+// Returned in mutation payloads
+return {
+    loggableEvent: null,
+    errors: [
+        {
+            code: 'VALIDATION_ERROR',
+            field: 'name',
+            message: 'Name must be under 25 characters'
+        }
+    ]
+};
+```
+
+### When to Use Each Pattern
+
+| Error Type          | Pattern       | Reason                                         |
+| ------------------- | ------------- | ---------------------------------------------- |
+| Auth failures       | GraphQL Error | Security violations should interrupt execution |
+| Invalid labelIds    | GraphQL Error | Cross-resource authorization failure           |
+| Name too long       | API Error     | User can fix by changing input                 |
+| Invalid date format | API Error     | Validation that user can correct               |
+| Database connection | GraphQL Error | System error beyond user control               |
+
+This dual approach provides:
+
+- **Type safety** for expected errors via the API pattern
+- **Security** by treating auth errors as exceptions
+- **Consistency** with GraphQL best practices
+
 ## ES Module Import Extensions
 
 This project uses ES modules with `"type": "module"` in package.json. As a result, **all relative imports must include the `.js` file extension**, even when importing from `.ts` files.

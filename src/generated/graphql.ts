@@ -291,6 +291,8 @@ export type UpdateEventLabelMutationPayload = {
 export type UpdateLoggableEventMutationInput = {
     /** ID of the loggable event to update */
     id: Scalars['ID']['input'];
+    /** Array of label IDs to associate with this event */
+    labelIds?: InputMaybe<Array<Scalars['String']['input']>>;
     /** Updated name for the event (max 25 characters, cannot be empty) */
     name?: InputMaybe<Scalars['String']['input']>;
     /** Array of timestamps for this event */

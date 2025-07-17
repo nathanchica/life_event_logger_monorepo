@@ -141,6 +141,11 @@ input UpdateLoggableEventMutationInput {
     Array of timestamps for this event
     """
     timestamps: [DateTime!]
+
+    """
+    Array of label IDs to associate with this event
+    """
+    labelIds: [String!]
 }
 
 """

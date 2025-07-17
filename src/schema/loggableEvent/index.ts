@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import { GraphQLError } from 'graphql';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
 
@@ -26,7 +27,8 @@ const UpdateLoggableEventSchema = z.object({
     id: z.string().min(1, 'ID is required'),
     name: z.string().min(1, 'Name cannot be empty').max(25, 'Name must be under 25 characters').optional(),
     warningThresholdInDays: z.number().int().min(0, 'Warning threshold must be a positive number').optional(),
-    timestamps: z.array(z.date()).optional()
+    timestamps: z.array(z.date()).optional(),
+    labelIds: z.array(z.string()).optional()
 });
 
 const DeleteLoggableEventSchema = z.object({
@@ -56,6 +58,29 @@ const processTimestamps = (timestamps: Date[]): Date[] => {
     return uniqueTimestamps.sort(
         (timestampA, timestampB) => new Date(timestampB).getTime() - new Date(timestampA).getTime()
     );
+};
+
+/**
+ * Validates that all provided labelIds exist and belong to the user
+ * @param labelIds - Array of label IDs to validate
+ * @param userId - ID of the user who should own the labels
+ * @param prisma - Prisma client instance
+ * @throws {GraphQLError} When some labels don't exist or don't belong to the user
+ */
+const validateLabelOwnership = async (labelIds: string[], userId: string, prisma: PrismaClient): Promise<void> => {
+    const labels = await prisma.eventLabel.findMany({
+        where: {
+            id: { in: labelIds },
+            userId: userId
+        },
+        select: { id: true }
+    });
+
+    if (labels.length !== labelIds.length) {
+        throw new GraphQLError('Some labels do not exist or do not belong to you', {
+            extensions: { code: 'FORBIDDEN' }
+        });
+    }
 };
 
 const updateLoggableEventHelper = async (
@@ -94,12 +119,18 @@ const resolvers: Resolvers = {
             try {
                 const validatedInput = CreateLoggableEventSchema.parse(input);
 
+                invariant(user, 'User should exist after @requireAuth directive validation');
+
+                // Validate labelIds ownership if provided
+                if (validatedInput.labelIds && validatedInput.labelIds.length > 0) {
+                    await validateLabelOwnership(validatedInput.labelIds, user.id, prisma);
+                }
+
                 const event = await prisma.loggableEvent.create({
                     data: {
                         name: validatedInput.name,
                         warningThresholdInDays: validatedInput.warningThresholdInDays,
-                        // @requireAuth directive ensures user is authenticated
-                        userId: user!.id,
+                        userId: user.id,
                         timestamps: [],
                         labels: validatedInput.labelIds
                             ? {
@@ -124,6 +155,11 @@ const resolvers: Resolvers = {
                     };
                 }
 
+                if (error instanceof GraphQLError) {
+                    // Re-throw GraphQL errors (like authorization failures)
+                    throw error;
+                }
+
                 return {
                     tempID: null,
                     loggableEvent: null,
@@ -132,17 +168,31 @@ const resolvers: Resolvers = {
             }
         },
 
-        updateLoggableEvent: async (_, { input }, { prisma }) => {
+        updateLoggableEvent: async (_, { input }, { user, prisma }) => {
             // Auth and ownership checks handled by @requireOwner directive
             try {
                 const validatedInput = UpdateLoggableEventSchema.parse(input);
+
+                invariant(user, 'User should exist after @requireOwner directive validation');
+
+                // Validate labelIds ownership if provided
+                if (validatedInput.labelIds && validatedInput.labelIds.length > 0) {
+                    await validateLabelOwnership(validatedInput.labelIds, user.id, prisma);
+                }
 
                 const updateData = {
                     ...(validatedInput.name ? { name: validatedInput.name } : {}),
                     ...(validatedInput.warningThresholdInDays !== undefined
                         ? { warningThresholdInDays: validatedInput.warningThresholdInDays }
                         : {}),
-                    ...(validatedInput.timestamps !== undefined ? { timestamps: validatedInput.timestamps } : {})
+                    ...(validatedInput.timestamps !== undefined ? { timestamps: validatedInput.timestamps } : {}),
+                    ...(validatedInput.labelIds !== undefined
+                        ? {
+                              labels: {
+                                  set: validatedInput.labelIds.map((id) => ({ id }))
+                              }
+                          }
+                        : {})
                 };
 
                 return await updateLoggableEventHelper(validatedInput.id, updateData, prisma);
@@ -152,6 +202,11 @@ const resolvers: Resolvers = {
                         loggableEvent: null,
                         errors: formatZodError(error)
                     };
+                }
+
+                if (error instanceof GraphQLError) {
+                    // Re-throw GraphQL errors (like authorization failures)
+                    throw error;
                 }
 
                 return {
