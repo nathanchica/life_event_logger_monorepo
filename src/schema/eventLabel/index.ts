@@ -37,6 +37,28 @@ const resolvers: Resolvers<GraphQLContext> = {
                 // @requireAuth directive ensures user is authenticated
                 invariant(user, 'User should be authenticated after auth directive validation');
 
+                // Check if name already exists for this user
+                const existingLabel = await prisma.eventLabel.findFirst({
+                    where: {
+                        name: validatedInput.name,
+                        userId: user.id
+                    }
+                });
+
+                if (existingLabel) {
+                    return {
+                        tempID: input.id,
+                        eventLabel: null,
+                        errors: [
+                            {
+                                code: 'VALIDATION_ERROR',
+                                field: 'name',
+                                message: 'A label with this name already exists'
+                            }
+                        ]
+                    };
+                }
+
                 const label = await prisma.eventLabel.create({
                     data: {
                         name: validatedInput.name,
@@ -67,9 +89,35 @@ const resolvers: Resolvers<GraphQLContext> = {
         },
 
         // Authentication and ownership are handled by @requireOwner directive
-        updateEventLabel: async (_, { input }, { prisma }) => {
+        updateEventLabel: async (_, { input }, { user, prisma }) => {
             try {
                 const validatedInput = UpdateEventLabelSchema.parse(input);
+
+                invariant(user, 'User should exist after @requireOwner directive validation');
+
+                // Check if name already exists for this user (excluding current label)
+                if (validatedInput.name) {
+                    const existingLabel = await prisma.eventLabel.findFirst({
+                        where: {
+                            name: validatedInput.name,
+                            userId: user.id,
+                            NOT: { id: validatedInput.id }
+                        }
+                    });
+
+                    if (existingLabel) {
+                        return {
+                            eventLabel: null,
+                            errors: [
+                                {
+                                    code: 'VALIDATION_ERROR',
+                                    field: 'name',
+                                    message: 'A label with this name already exists'
+                                }
+                            ]
+                        };
+                    }
+                }
 
                 // @requireOwner directive already validated the label exists and user owns it
                 const updateData: { name?: string } = {};

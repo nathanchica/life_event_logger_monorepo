@@ -103,7 +103,7 @@ input CreateLoggableEventMutationInput {
     id: ID!
 
     """
-    Name for the event (max 25 characters, cannot be empty)
+    Name for the event (max 25 characters, cannot be empty, must be unique per user)
     """
     name: String!
 
@@ -128,7 +128,7 @@ input UpdateLoggableEventMutationInput {
     id: ID!
 
     """
-    Updated name for the event (max 25 characters, cannot be empty)
+    Updated name for the event (max 25 characters, cannot be empty, must be unique per user)
     """
     name: String
 

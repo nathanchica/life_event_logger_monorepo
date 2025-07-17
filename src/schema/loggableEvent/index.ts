@@ -121,6 +121,28 @@ const resolvers: Resolvers = {
 
                 invariant(user, 'User should exist after @requireAuth directive validation');
 
+                // Check if name already exists for this user
+                const existingEvent = await prisma.loggableEvent.findFirst({
+                    where: {
+                        name: validatedInput.name,
+                        userId: user.id
+                    }
+                });
+
+                if (existingEvent) {
+                    return {
+                        tempID: input.id,
+                        loggableEvent: null,
+                        errors: [
+                            {
+                                code: 'VALIDATION_ERROR',
+                                field: 'name',
+                                message: 'An event with this name already exists'
+                            }
+                        ]
+                    };
+                }
+
                 // Validate labelIds ownership if provided
                 if (validatedInput.labelIds && validatedInput.labelIds.length > 0) {
                     await validateLabelOwnership(validatedInput.labelIds, user.id, prisma);
@@ -174,6 +196,30 @@ const resolvers: Resolvers = {
                 const validatedInput = UpdateLoggableEventSchema.parse(input);
 
                 invariant(user, 'User should exist after @requireOwner directive validation');
+
+                // Check if name already exists for this user (excluding current event)
+                if (validatedInput.name) {
+                    const existingEvent = await prisma.loggableEvent.findFirst({
+                        where: {
+                            name: validatedInput.name,
+                            userId: user.id,
+                            NOT: { id: validatedInput.id }
+                        }
+                    });
+
+                    if (existingEvent) {
+                        return {
+                            loggableEvent: null,
+                            errors: [
+                                {
+                                    code: 'VALIDATION_ERROR',
+                                    field: 'name',
+                                    message: 'An event with this name already exists'
+                                }
+                            ]
+                        };
+                    }
+                }
 
                 // Validate labelIds ownership if provided
                 if (validatedInput.labelIds && validatedInput.labelIds.length > 0) {

@@ -46,7 +46,7 @@ export type AddTimestampToEventMutationPayload = {
 export type CreateEventLabelMutationInput = {
     /** Temporary ID for the label, used before creation. Will be replaced with the actual ID after creation. */
     id: Scalars['ID']['input'];
-    /** Name for the label (max 25 characters, cannot be empty) */
+    /** Name for the label (max 25 characters, cannot be empty, must be unique per user) */
     name: Scalars['String']['input'];
 };
 
@@ -67,7 +67,7 @@ export type CreateLoggableEventMutationInput = {
     id: Scalars['ID']['input'];
     /** Array of label IDs to associate with this event */
     labelIds?: InputMaybe<Array<Scalars['String']['input']>>;
-    /** Name for the event (max 25 characters, cannot be empty) */
+    /** Name for the event (max 25 characters, cannot be empty, must be unique per user) */
     name: Scalars['String']['input'];
     /** Number of days since the last event record before a warning will show for this event */
     warningThresholdInDays: Scalars['Int']['input'];
@@ -274,7 +274,7 @@ export type RemoveTimestampFromEventMutationPayload = {
 export type UpdateEventLabelMutationInput = {
     /** ID of the event label to update */
     id: Scalars['ID']['input'];
-    /** Updated name for the label (max 25 characters, cannot be empty) */
+    /** Updated name for the label (max 25 characters, cannot be empty, must be unique per user) */
     name?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -293,7 +293,7 @@ export type UpdateLoggableEventMutationInput = {
     id: Scalars['ID']['input'];
     /** Array of label IDs to associate with this event */
     labelIds?: InputMaybe<Array<Scalars['String']['input']>>;
-    /** Updated name for the event (max 25 characters, cannot be empty) */
+    /** Updated name for the event (max 25 characters, cannot be empty, must be unique per user) */
     name?: InputMaybe<Scalars['String']['input']>;
     /** Array of timestamps for this event */
     timestamps?: InputMaybe<Array<Scalars['DateTime']['input']>>;
