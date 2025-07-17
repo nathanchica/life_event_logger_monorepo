@@ -55,9 +55,9 @@ const LoggableEventsList = () => {
 
     return (
         <>
-            {filteredEventFragments.map(({ id }) => {
+            {filteredEventFragments.map(({ id, name }) => {
                 return (
-                    <Grid key={id} role="listitem">
+                    <Grid key={`event-${name}`} role="listitem">
                         <LoggableEventCard eventId={id} />
                     </Grid>
                 );
