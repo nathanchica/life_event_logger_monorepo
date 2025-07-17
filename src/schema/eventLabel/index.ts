@@ -1,3 +1,4 @@
+import invariant from 'tiny-invariant';
 import { z } from 'zod';
 
 import { GraphQLContext } from '../../context.js';
@@ -33,11 +34,13 @@ const resolvers: Resolvers<GraphQLContext> = {
             try {
                 const validatedInput = CreateEventLabelSchema.parse(input);
 
+                // @requireAuth directive ensures user is authenticated
+                invariant(user, 'User should be authenticated after auth directive validation');
+
                 const label = await prisma.eventLabel.create({
                     data: {
                         name: validatedInput.name,
-                        // @requireAuth directive ensures user is authenticated
-                        userId: user!.id
+                        userId: user.id
                     }
                 });
 
@@ -68,17 +71,7 @@ const resolvers: Resolvers<GraphQLContext> = {
             try {
                 const validatedInput = UpdateEventLabelSchema.parse(input);
 
-                const existingLabel = await prisma.eventLabel.findUnique({
-                    where: { id: validatedInput.id }
-                });
-
-                if (!existingLabel) {
-                    return {
-                        eventLabel: null,
-                        errors: [{ code: 'NOT_FOUND', field: 'id', message: 'Event label not found' }]
-                    };
-                }
-
+                // @requireOwner directive already validated the label exists and user owns it
                 const updateData: { name?: string } = {};
                 if (validatedInput.name) {
                     updateData.name = validatedInput.name;
@@ -113,17 +106,7 @@ const resolvers: Resolvers<GraphQLContext> = {
             try {
                 const validatedInput = DeleteEventLabelSchema.parse(input);
 
-                const existingLabel = await prisma.eventLabel.findUnique({
-                    where: { id: validatedInput.id }
-                });
-
-                if (!existingLabel) {
-                    return {
-                        eventLabel: null,
-                        errors: [{ code: 'NOT_FOUND', field: 'id', message: 'Event label not found' }]
-                    };
-                }
-
+                // @requireOwner directive already validated the label exists and user owns it
                 const label = await prisma.eventLabel.delete({
                     where: { id: validatedInput.id }
                 });

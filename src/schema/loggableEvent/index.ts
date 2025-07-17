@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import invariant from 'tiny-invariant';
 import { z } from 'zod';
 
 import { Resolvers } from '../../generated/graphql.js';
@@ -33,12 +34,12 @@ const DeleteLoggableEventSchema = z.object({
 });
 
 const AddTimestampToEventSchema = z.object({
-    eventId: z.string().min(1, 'Event ID is required'),
+    id: z.string().min(1, 'Event ID is required'),
     timestamp: z.date()
 });
 
 const RemoveTimestampFromEventSchema = z.object({
-    eventId: z.string().min(1, 'Event ID is required'),
+    id: z.string().min(1, 'Event ID is required'),
     timestamp: z.date()
 });
 
@@ -194,27 +195,19 @@ const resolvers: Resolvers = {
             try {
                 const validatedInput = AddTimestampToEventSchema.parse(input);
 
-                // First, get the current event to retrieve existing timestamps
+                // Get the current event to retrieve existing timestamps
+                // Auth directive already validated the event exists and user owns it
                 const currentEvent = await prisma.loggableEvent.findUnique({
-                    where: { id: validatedInput.eventId },
+                    where: { id: validatedInput.id },
                     select: { timestamps: true }
                 });
 
-                if (!currentEvent) {
-                    return {
-                        loggableEvent: null,
-                        errors: [{ code: 'NOT_FOUND', field: 'eventId', message: 'Event not found' }]
-                    };
-                }
+                invariant(currentEvent, 'Event should exist after auth directive validation');
 
                 // Add the new timestamp to existing ones
                 const updatedTimestamps = [...currentEvent.timestamps, validatedInput.timestamp];
 
-                return await updateLoggableEventHelper(
-                    validatedInput.eventId,
-                    { timestamps: updatedTimestamps },
-                    prisma
-                );
+                return await updateLoggableEventHelper(validatedInput.id, { timestamps: updatedTimestamps }, prisma);
             } catch (error) {
                 if (error instanceof z.ZodError) {
                     return {
@@ -235,18 +228,14 @@ const resolvers: Resolvers = {
             try {
                 const validatedInput = RemoveTimestampFromEventSchema.parse(input);
 
-                // First, get the current event to retrieve existing timestamps
+                // Get the current event to retrieve existing timestamps
+                // Auth directive already validated the event exists and user owns it
                 const currentEvent = await prisma.loggableEvent.findUnique({
-                    where: { id: validatedInput.eventId },
+                    where: { id: validatedInput.id },
                     select: { timestamps: true }
                 });
 
-                if (!currentEvent) {
-                    return {
-                        loggableEvent: null,
-                        errors: [{ code: 'NOT_FOUND', field: 'eventId', message: 'Event not found' }]
-                    };
-                }
+                invariant(currentEvent, 'Event should exist after auth directive validation');
 
                 // Check if the timestamp exists before removing
                 const timestampToRemove = validatedInput.timestamp.getTime();
@@ -266,11 +255,7 @@ const resolvers: Resolvers = {
                     (timestamp: Date) => timestamp.getTime() !== timestampToRemove
                 );
 
-                return await updateLoggableEventHelper(
-                    validatedInput.eventId,
-                    { timestamps: updatedTimestamps },
-                    prisma
-                );
+                return await updateLoggableEventHelper(validatedInput.id, { timestamps: updatedTimestamps }, prisma);
             } catch (error) {
                 if (error instanceof z.ZodError) {
                     return {

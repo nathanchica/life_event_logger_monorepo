@@ -28,7 +28,7 @@ export type Scalars = {
 /** Input for adding a timestamp to a loggable event */
 export type AddTimestampToEventMutationInput = {
     /** ID of the loggable event to add timestamp to */
-    eventId: Scalars['ID']['input'];
+    id: Scalars['ID']['input'];
     /** ISO string timestamp to add to the event */
     timestamp: Scalars['DateTime']['input'];
 };
@@ -256,7 +256,7 @@ export type Query = {
 /** Input for removing a timestamp from a loggable event */
 export type RemoveTimestampFromEventMutationInput = {
     /** ID of the loggable event to remove timestamp from */
-    eventId: Scalars['ID']['input'];
+    id: Scalars['ID']['input'];
     /** ISO string timestamp to remove from the event */
     timestamp: Scalars['DateTime']['input'];
 };
