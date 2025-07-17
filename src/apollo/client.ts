@@ -27,7 +27,7 @@ const readLoggableEventFromCache = (eventId: string): LoggableEventFragment | nu
 /**
  * Helper function to read an EventLabel from the cache
  */
-const readEventLabelFromCache = (labelId: string): EventLabelFragment | null => {
+export const readEventLabelFromCache = (labelId: string): EventLabelFragment | null => {
     try {
         return cache.readFragment<EventLabelFragment>({
             id: `EventLabel:${labelId}`,
