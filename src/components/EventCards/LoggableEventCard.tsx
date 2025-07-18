@@ -83,7 +83,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
     };
 
     const handleDeleteEventClick = () => {
-        deleteLoggableEvent({ id });
+        deleteLoggableEvent({ input: { id } });
     };
 
     const currDate = new Date();

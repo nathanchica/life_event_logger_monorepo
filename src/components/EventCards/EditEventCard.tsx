@@ -250,9 +250,11 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         event.preventDefault();
         if (eventNameIsValid) {
             createLoggableEvent({
-                name: formValues.name,
-                warningThresholdInDays: formValues.warningThresholdInDays,
-                labelIds: formValues.labelIds
+                input: {
+                    name: formValues.name,
+                    warningThresholdInDays: formValues.warningThresholdInDays,
+                    labelIds: formValues.labelIds
+                }
             });
             dismissForm();
         }
@@ -262,8 +264,10 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         event.preventDefault();
         if (eventNameIsValid && eventIdToEdit) {
             updateLoggableEvent({
-                id: eventIdToEdit,
-                ...formValues
+                input: {
+                    id: eventIdToEdit,
+                    ...formValues
+                }
             });
             dismissForm();
         }

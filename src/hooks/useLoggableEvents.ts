@@ -1,9 +1,8 @@
-import { gql, useMutation, Reference, useApolloClient } from '@apollo/client';
+import { gql, useMutation, Reference, useApolloClient, ApolloError } from '@apollo/client';
 import { v4 as uuidv4 } from 'uuid';
 
-import { readEventLabelFromCache } from '../apollo/client';
 import { useAuth } from '../providers/AuthProvider';
-import { LoggableEvent, LoggableEventFragment, GenericApiError, EventLabelFragment } from '../utils/types';
+import { LoggableEvent, LoggableEventFragment, GenericApiError } from '../utils/types';
 
 /**
  * Mutation input types
@@ -197,38 +196,17 @@ export const REMOVE_TIMESTAMP_FROM_EVENT_MUTATION = gql`
     ${REMOVE_TIMESTAMP_PAYLOAD_FRAGMENT}
 `;
 
-/**
- * Helper function to resolve label IDs to label objects from cache
- * @param labelIds - Array of label IDs to resolve, or undefined
- * @param fallbackLabels - Default labels to use if labelIds is not provided
- * @returns Array of EventLabelFragment objects
- */
-const resolveLabelsFromCache = (
-    labelIds: string[] | undefined,
-    fallbackLabels: EventLabelFragment[] = []
-): EventLabelFragment[] => {
-    if (!labelIds) {
-        return fallbackLabels;
+export const GET_EVENT_LABELS_FOR_USER = gql`
+    query GetEventLabelsForUser {
+        loggedInUser {
+            id
+            eventLabels {
+                id
+                name
+            }
+        }
     }
-
-    const resolvedLabels = labelIds
-        .map((id: string) => readEventLabelFromCache(id))
-        .filter(Boolean) as EventLabelFragment[];
-
-    // If some labels couldn't be resolved from cache, merge with fallback labels
-    // This ensures optimistic updates work even when labels aren't in cache yet
-    if (resolvedLabels.length < labelIds.length) {
-        const resolvedLabelIds = new Set(resolvedLabels.map((label) => label.id));
-        const missingLabelIds = labelIds.filter((id) => !resolvedLabelIds.has(id));
-
-        // Try to find missing labels in fallback labels
-        const missingLabelsFromFallback = fallbackLabels.filter((label) => missingLabelIds.includes(label.id));
-
-        return [...resolvedLabels, ...missingLabelsFromFallback];
-    }
-
-    return resolvedLabels;
-};
+`;
 
 /**
  * Hook for managing loggable events with Apollo mutations.
@@ -238,19 +216,32 @@ export const useLoggableEvents = () => {
     const { user } = useAuth();
     const client = useApolloClient();
 
+    const getAllUserEventLabels = () => {
+        const data = client.readQuery({
+            query: GET_EVENT_LABELS_FOR_USER
+        });
+        return data?.loggedInUser?.eventLabels || [];
+    };
+
+    const getEventFromCache = (id: string): LoggableEventFragment | null =>
+        client.cache.readFragment({
+            id: client.cache.identify({ __typename: 'LoggableEvent', id }),
+            fragment: USE_LOGGABLE_EVENTS_FRAGMENT
+        });
+
     const [createLoggableEventMutation, { loading: createIsLoading }] = useMutation(CREATE_LOGGABLE_EVENT_MUTATION, {
         optimisticResponse: (variables) => {
-            const labels = resolveLabelsFromCache(variables.input.labelIds);
-            // Use the tempID passed in variables instead of generating a new one
-            const tempId = variables.input.id || `temp-${uuidv4()}`;
+            const inputLabelIds = new Set(variables.input.labelIds || []);
+            const labels = [...getAllUserEventLabels()].filter(({ id }) => inputLabelIds.has(id));
+            const tempID = variables.input.id;
 
             return {
                 createLoggableEvent: {
                     __typename: 'CreateLoggableEventMutationPayload',
-                    tempID: tempId,
+                    tempID,
                     loggableEvent: {
                         __typename: 'LoggableEvent',
-                        id: tempId,
+                        id: tempID,
                         name: variables.input.name,
                         timestamps: [],
                         warningThresholdInDays: variables.input.warningThresholdInDays || 0,
@@ -293,7 +284,7 @@ export const useLoggableEvents = () => {
                             return existingEventRefs;
                         }
 
-                        return [...existingEventRefs, newEventRef];
+                        return [newEventRef, ...existingEventRefs];
                     }
                 }
             });
@@ -304,18 +295,12 @@ export const useLoggableEvents = () => {
         // using any type here. it will be fixed in apollo 4.0 (not yet out at this time) https://github.com/apollographql/apollo-client/issues/12726
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         optimisticResponse: (variables, { IGNORE }: { IGNORE: any }) => {
-            const eventId = client.cache.identify({ __typename: 'LoggableEvent', id: variables.input.id });
-
-            if (!eventId) return IGNORE;
-
-            const existingEvent: LoggableEventFragment | null = client.cache.readFragment({
-                id: eventId,
-                fragment: USE_LOGGABLE_EVENTS_FRAGMENT
-            });
+            const existingEvent: LoggableEventFragment | null = getEventFromCache(variables.input.id);
 
             if (!existingEvent) return IGNORE;
 
-            const labels = resolveLabelsFromCache(variables.input.labelIds, existingEvent.labels);
+            const inputLabelIds = new Set(variables.input.labelIds || []);
+            const labels = [...getAllUserEventLabels()].filter(({ id }) => inputLabelIds.has(id));
 
             return {
                 updateLoggableEvent: {
@@ -325,7 +310,8 @@ export const useLoggableEvents = () => {
                         id: variables.input.id,
                         name: variables.input.name,
                         timestamps: existingEvent.timestamps,
-                        warningThresholdInDays: variables.input.warningThresholdInDays,
+                        warningThresholdInDays:
+                            variables.input.warningThresholdInDays || existingEvent.warningThresholdInDays,
                         labels
                     },
                     errors: []
@@ -338,14 +324,7 @@ export const useLoggableEvents = () => {
         // using any type here. it will be fixed in apollo 4.0 (not yet out at this time) https://github.com/apollographql/apollo-client/issues/12726
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         optimisticResponse: (variables, { IGNORE }: { IGNORE: any }) => {
-            const eventId = client.cache.identify({ __typename: 'LoggableEvent', id: variables.input.id });
-
-            if (!eventId) return IGNORE;
-
-            const existingEvent: LoggableEventFragment | null = client.cache.readFragment({
-                id: eventId,
-                fragment: USE_LOGGABLE_EVENTS_FRAGMENT
-            });
+            const existingEvent: LoggableEventFragment | null = getEventFromCache(variables.input.id);
 
             if (!existingEvent) return IGNORE;
 
@@ -396,14 +375,7 @@ export const useLoggableEvents = () => {
         // using any type here. it will be fixed in apollo 4.0 (not yet out at this time) https://github.com/apollographql/apollo-client/issues/12726
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         optimisticResponse: (variables, { IGNORE }: { IGNORE: any }) => {
-            const eventId = client.cache.identify({ __typename: 'LoggableEvent', id: variables.input.id });
-
-            if (!eventId) return IGNORE;
-
-            const existingEvent: LoggableEventFragment | null = client.cache.readFragment({
-                id: eventId,
-                fragment: USE_LOGGABLE_EVENTS_FRAGMENT
-            });
+            const existingEvent: LoggableEventFragment | null = getEventFromCache(variables.input.id);
 
             if (!existingEvent) return IGNORE;
 
@@ -432,14 +404,7 @@ export const useLoggableEvents = () => {
             // using any type here. it will be fixed in apollo 4.0 (not yet out at this time) https://github.com/apollographql/apollo-client/issues/12726
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             optimisticResponse: (variables, { IGNORE }: { IGNORE: any }) => {
-                const eventId = client.cache.identify({ __typename: 'LoggableEvent', id: variables.input.id });
-
-                if (!eventId) return IGNORE;
-
-                const existingEvent: LoggableEventFragment | null = client.cache.readFragment({
-                    id: eventId,
-                    fragment: USE_LOGGABLE_EVENTS_FRAGMENT
-                });
+                const existingEvent: LoggableEventFragment | null = getEventFromCache(variables.input.id);
 
                 if (!existingEvent) return IGNORE;
 
@@ -472,81 +437,101 @@ export const useLoggableEvents = () => {
     /**
      * Create a new loggable event
      */
-    const createLoggableEvent = (input: Omit<CreateLoggableEventInput, 'id'>): void => {
-        try {
-            createLoggableEventMutation({
-                variables: {
-                    input: {
-                        ...input,
-                        id: `temp-${uuidv4()}` // Temporary ID for optimistic update
-                    }
+    const createLoggableEvent = ({
+        input,
+        onCompleted,
+        onError
+    }: {
+        input: Omit<CreateLoggableEventInput, 'id'>;
+        onCompleted?: (payload: { createLoggableEvent: CreateLoggableEventPayload }) => void;
+        onError?: (error: ApolloError) => void;
+    }): void => {
+        createLoggableEventMutation({
+            variables: {
+                input: {
+                    ...input,
+                    id: `temp-${uuidv4()}` // Temporary ID for optimistic update
                 }
-            });
-        } catch {
-            // Don't throw the error - this allows the optimistic update to persist
-            // even when the network request fails
-            return;
-        }
+            },
+            onCompleted,
+            onError
+        });
     };
 
     /**
      * Update an existing loggable event
      */
-    const updateLoggableEvent = (input: UpdateLoggableEventInput): void => {
-        try {
-            updateLoggableEventMutation({
-                variables: { input }
-            });
-        } catch {
-            // Don't throw the error - this allows the optimistic update to persist
-            // even when the network request fails
-            return;
-        }
+    const updateLoggableEvent = ({
+        input,
+        onCompleted,
+        onError
+    }: {
+        input: UpdateLoggableEventInput;
+        onCompleted?: (payload: { updateLoggableEvent: UpdateLoggableEventPayload }) => void;
+        onError?: (error: ApolloError) => void;
+    }): void => {
+        updateLoggableEventMutation({
+            variables: { input },
+            onCompleted,
+            onError
+        });
     };
 
     /**
      * Delete an existing loggable event
      */
-    const deleteLoggableEvent = (input: DeleteLoggableEventInput): void => {
-        try {
-            deleteLoggableEventMutation({
-                variables: { input }
-            });
-        } catch {
-            // Don't throw the error - this allows the optimistic update to persist
-            // even when the network request fails
-            return;
-        }
+    const deleteLoggableEvent = ({
+        input,
+        onCompleted,
+        onError
+    }: {
+        input: DeleteLoggableEventInput;
+        onCompleted?: (payload: { deleteLoggableEvent: DeleteLoggableEventPayload }) => void;
+        onError?: (error: ApolloError) => void;
+    }): void => {
+        deleteLoggableEventMutation({
+            variables: { input },
+            onCompleted,
+            onError
+        });
     };
 
     /**
      * Add a timestamp to an event
      */
-    const addTimestampToEvent = (input: AddTimestampInput): void => {
-        try {
-            addTimestampMutation({
-                variables: { input }
-            });
-        } catch {
-            // Don't throw the error - this allows the optimistic update to persist
-            // even when the network request fails
-            return;
-        }
+    const addTimestampToEvent = ({
+        input,
+        onCompleted,
+        onError
+    }: {
+        input: AddTimestampInput;
+        onCompleted?: (payload: { addTimestampToEvent: AddTimestampPayload }) => void;
+        onError?: (error: ApolloError) => void;
+    }): void => {
+        addTimestampMutation({
+            variables: { input },
+            onCompleted,
+            onError
+        });
     };
 
     /**
      * Remove a timestamp from an event
      */
-    const removeTimestampFromEvent = (input: RemoveTimestampInput): void => {
-        try {
-            removeTimestampMutation({
-                variables: { input }
-            });
-        } catch {
-            // Don't throw the error - this allows the optimistic update to persist
-            // even when the network request fails
-            return;
-        }
+    const removeTimestampFromEvent = ({
+        input,
+        onCompleted,
+        onError
+    }: {
+        input: RemoveTimestampInput;
+        onCompleted?: (payload: { removeTimestampFromEvent: RemoveTimestampPayload }) => void;
+        onError?: (error: ApolloError) => void;
+    }): void => {
+        removeTimestampMutation({
+            variables: { input },
+            onCompleted,
+            onError
+        });
     };
 
     return {

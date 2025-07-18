@@ -31,8 +31,10 @@ const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
 
     const onDeleteRecord = () => {
         removeTimestampFromEvent({
-            id: eventId,
-            timestamp: recordDate.toISOString()
+            input: {
+                id: eventId,
+                timestamp: recordDate.toISOString()
+            }
         });
     };
 

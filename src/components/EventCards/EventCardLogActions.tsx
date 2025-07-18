@@ -26,8 +26,10 @@ const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props)
     const handleLogEventClick = (dateToAdd?: Date | null) => {
         const currentDate = new Date();
         addTimestampToEvent({
-            id: eventId,
-            timestamp: (dateToAdd || currentDate).toISOString()
+            input: {
+                id: eventId,
+                timestamp: (dateToAdd || currentDate).toISOString()
+            }
         });
     };
 

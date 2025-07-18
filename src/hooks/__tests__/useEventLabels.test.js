@@ -2,6 +2,7 @@ import { InMemoryCache, gql } from '@apollo/client';
 import { MockedProvider } from '@apollo/client/testing';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
+import { createMutationResponse } from '../../mocks/mutations';
 import { createMockAuthContextValue } from '../../mocks/providers';
 import { createMockUser } from '../../mocks/user';
 import { AuthContext } from '../../providers/AuthProvider';
@@ -19,134 +20,89 @@ jest.mock('uuid', () => ({
 
 const createCreateEventLabelMutationResponse = ({
     id,
-    serverGeneratedId,
     name,
+    serverGeneratedId,
     apiErrors = [],
     gqlError = null,
-    customPayload = undefined,
+    nullPayload = false,
     delay = 0
-}) => {
-    return {
-        request: {
-            query: CREATE_EVENT_LABEL_MUTATION,
-            variables: {
-                input: {
-                    name,
-                    id
-                }
+}) =>
+    createMutationResponse({
+        query: CREATE_EVENT_LABEL_MUTATION,
+        input: {
+            id,
+            name
+        },
+        mutationName: 'createEventLabel',
+        payload: {
+            __typename: 'CreateEventLabelMutationPayload',
+            tempID: serverGeneratedId,
+            eventLabel: {
+                __typename: 'EventLabel',
+                id: serverGeneratedId,
+                name
             }
         },
-        ...(delay > 0 ? { delay } : {}),
-        ...(gqlError
-            ? {
-                  error: gqlError
-              }
-            : {
-                  result: {
-                      data: {
-                          createEventLabel:
-                              customPayload !== undefined
-                                  ? customPayload
-                                  : {
-                                        __typename: 'CreateEventLabelMutationPayload',
-                                        tempID: serverGeneratedId,
-                                        eventLabel: {
-                                            __typename: 'EventLabel',
-                                            id: serverGeneratedId,
-                                            name
-                                        },
-                                        errors: apiErrors
-                                    }
-                      }
-                  }
-              })
-    };
-};
+        delay,
+        gqlError,
+        apiErrors,
+        nullPayload
+    });
 
 const createUpdateEventLabelMutationResponse = ({
     id,
     name,
     apiErrors = [],
     gqlError = null,
-    customPayload = undefined,
+    nullPayload = false,
     delay = 0
-}) => {
-    return {
-        request: {
-            query: UPDATE_EVENT_LABEL_MUTATION,
-            variables: {
-                input: {
-                    id,
-                    name
-                }
-            }
+}) =>
+    createMutationResponse({
+        query: UPDATE_EVENT_LABEL_MUTATION,
+        input: {
+            id,
+            name
         },
-        ...(delay > 0 ? { delay } : {}),
-        ...(gqlError
-            ? {
-                  error: gqlError
-              }
-            : {
-                  result: {
-                      data: {
-                          updateEventLabel:
-                              customPayload !== undefined
-                                  ? customPayload
-                                  : {
-                                        __typename: 'UpdateEventLabelMutationPayload',
-                                        eventLabel: {
-                                            __typename: 'EventLabel',
-                                            id,
-                                            name
-                                        },
-                                        errors: apiErrors
-                                    }
-                      }
-                  }
-              })
-    };
-};
+        mutationName: 'updateEventLabel',
+        payload: {
+            __typename: 'UpdateEventLabelMutationPayload',
+            eventLabel: {
+                __typename: 'EventLabel',
+                id,
+                name
+            },
+            errors: apiErrors
+        },
+        delay,
+        gqlError,
+        nullPayload
+    });
 
 const createDeleteEventLabelMutationResponse = ({
     id,
     apiErrors = [],
     gqlError = null,
-    customPayload = undefined,
+    nullPayload = false,
     delay = 0
-}) => {
-    return {
-        request: {
-            query: DELETE_EVENT_LABEL_MUTATION,
-            variables: {
-                input: {
-                    id
-                }
-            }
+}) =>
+    createMutationResponse({
+        query: DELETE_EVENT_LABEL_MUTATION,
+        input: {
+            id
         },
-        ...(delay > 0 ? { delay } : {}),
-        ...(gqlError
-            ? {
-                  error: gqlError
-              }
-            : {
-                  result: {
-                      data: {
-                          deleteEventLabel:
-                              customPayload !== undefined
-                                  ? customPayload
-                                  : {
-                                        __typename: 'DeleteEventLabelMutationPayload',
-                                        eventLabel: {
-                                            __typename: 'EventLabel',
-                                            id
-                                        },
-                                        errors: apiErrors
-                                    }
-                      }
-                  }
-              })
-    };
-};
+        mutationName: 'deleteEventLabel',
+        payload: {
+            __typename: 'DeleteEventLabelMutationPayload',
+            eventLabel: {
+                __typename: 'EventLabel',
+                id
+            },
+            errors: apiErrors
+        },
+        delay,
+        gqlError,
+        nullPayload
+    });
 
 const GET_USER_QUERY = gql`
     query GetUser($id: String!) {
@@ -237,7 +193,7 @@ describe('useEventLabels', () => {
                 {
                     id: 'temp-mocked-uuid-value',
                     name: 'New Label',
-                    customPayload: null
+                    nullPayload: true
                 },
                 [],
                 0
@@ -303,7 +259,7 @@ describe('useEventLabels', () => {
                 {
                     id: 'existing-label-id',
                     name: 'Updated Label',
-                    customPayload: null
+                    nullPayload: true
                 },
                 [
                     {
@@ -370,7 +326,7 @@ describe('useEventLabels', () => {
                 'returns null when mutation result is empty',
                 {
                     id: 'existing-label-id',
-                    customPayload: null
+                    nullPayload: true
                 },
                 [{ __typename: 'EventLabel', id: 'existing-label-id', name: 'Test Label' }],
                 0
@@ -523,86 +479,64 @@ describe('useEventLabels', () => {
     });
 
     describe('cascade deletion from loggable events', () => {
+        const GET_USER_EVENTS_AND_LABELS_QUERY = gql`
+            query GetUser($id: String!) {
+                user(id: $id) {
+                    id
+                    eventLabels {
+                        id
+                        name
+                    }
+                    loggableEvents {
+                        id
+                        name
+                        labels {
+                            id
+                            name
+                        }
+                    }
+                }
+            }
+        `;
+        const mockLabelToKeep = {
+            __typename: 'EventLabel',
+            id: 'label-to-keep',
+            name: 'Label to Keep'
+        };
+        const mockLabelToDelete = {
+            __typename: 'EventLabel',
+            id: 'label-to-delete',
+            name: 'Label to Delete'
+        };
+
         it('removes deleted label from events that reference it', async () => {
             // Pre-populate cache with user data including events with labels
             apolloCache.writeQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            eventLabels {
-                                id
-                                name
-                            }
-                            loggableEvents {
-                                id
-                                name
-                                labels {
-                                    id
-                                    name
-                                }
-                            }
-                        }
-                    }
-                `,
+                query: GET_USER_EVENTS_AND_LABELS_QUERY,
                 variables: { id: mockUser.id },
                 data: {
                     user: {
                         __typename: 'User',
                         id: mockUser.id,
-                        eventLabels: [
-                            {
-                                __typename: 'EventLabel',
-                                id: 'label-to-delete',
-                                name: 'Label to Delete'
-                            },
-                            {
-                                __typename: 'EventLabel',
-                                id: 'label-to-keep',
-                                name: 'Label to Keep'
-                            }
-                        ],
+                        eventLabels: [mockLabelToDelete, mockLabelToKeep],
                         loggableEvents: [
                             {
                                 __typename: 'LoggableEvent',
                                 id: 'event-1',
                                 name: 'Event with Multiple Labels',
-                                labels: [
-                                    {
-                                        __typename: 'EventLabel',
-                                        id: 'label-to-delete',
-                                        name: 'Label to Delete'
-                                    },
-                                    {
-                                        __typename: 'EventLabel',
-                                        id: 'label-to-keep',
-                                        name: 'Label to Keep'
-                                    }
-                                ]
+                                labels: [mockLabelToDelete, mockLabelToKeep]
                             },
                             {
                                 __typename: 'LoggableEvent',
                                 id: 'event-2',
                                 name: 'Event with Single Label',
-                                labels: [
-                                    {
-                                        __typename: 'EventLabel',
-                                        id: 'label-to-delete',
-                                        name: 'Label to Delete'
-                                    }
-                                ]
+                                labels: [mockLabelToDelete]
                             },
                             {
                                 __typename: 'LoggableEvent',
                                 id: 'event-3',
                                 name: 'Event with No Target Label',
-                                labels: [
-                                    {
-                                        __typename: 'EventLabel',
-                                        id: 'label-to-keep',
-                                        name: 'Label to Keep'
-                                    }
-                                ]
+                                labels: [mockLabelToKeep]
                             }
                         ]
                     }
@@ -611,33 +545,19 @@ describe('useEventLabels', () => {
 
             const mocks = [
                 createDeleteEventLabelMutationResponse({
-                    id: 'label-to-delete'
+                    id: mockLabelToDelete.id
                 })
             ];
 
             const { result } = renderHookWithProviders({ mocks });
 
             await act(async () => {
-                result.current.deleteEventLabel({ input: { id: 'label-to-delete' } });
+                result.current.deleteEventLabel({ input: { id: mockLabelToDelete.id } });
             });
 
             await waitFor(() => {
                 const cachedData = apolloCache.readQuery({
-                    query: gql`
-                        query GetUser($id: String!) {
-                            user(id: $id) {
-                                id
-                                loggableEvents {
-                                    id
-                                    name
-                                    labels {
-                                        id
-                                        name
-                                    }
-                                }
-                            }
-                        }
-                    `,
+                    query: GET_USER_EVENTS_AND_LABELS_QUERY,
                     variables: { id: mockUser.id }
                 });
 
@@ -646,13 +566,7 @@ describe('useEventLabels', () => {
                     __typename: 'LoggableEvent',
                     id: 'event-1',
                     name: 'Event with Multiple Labels',
-                    labels: [
-                        {
-                            __typename: 'EventLabel',
-                            id: 'label-to-keep',
-                            name: 'Label to Keep'
-                        }
-                    ]
+                    labels: [mockLabelToKeep]
                 });
 
                 // Event 2 should have empty labels array after deletion
@@ -682,25 +596,7 @@ describe('useEventLabels', () => {
         it('handles events with empty or null labels gracefully', async () => {
             // Pre-populate cache with events that have null/empty labels
             apolloCache.writeQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            eventLabels {
-                                id
-                                name
-                            }
-                            loggableEvents {
-                                id
-                                name
-                                labels {
-                                    id
-                                    name
-                                }
-                            }
-                        }
-                    }
-                `,
+                query: GET_USER_EVENTS_AND_LABELS_QUERY,
                 variables: { id: mockUser.id },
                 data: {
                     user: {
@@ -745,21 +641,7 @@ describe('useEventLabels', () => {
 
             await waitFor(() => {
                 const cachedData = apolloCache.readQuery({
-                    query: gql`
-                        query GetUser($id: String!) {
-                            user(id: $id) {
-                                id
-                                loggableEvents {
-                                    id
-                                    name
-                                    labels {
-                                        id
-                                        name
-                                    }
-                                }
-                            }
-                        }
-                    `,
+                    query: GET_USER_EVENTS_AND_LABELS_QUERY,
                     variables: { id: mockUser.id }
                 });
 
