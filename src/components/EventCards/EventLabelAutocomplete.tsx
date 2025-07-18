@@ -69,7 +69,7 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels, existingLab
                 const newLabel = createEventLabelFromFragment(payload.createEventLabel.eventLabel);
                 setSelectedLabels((prev) => [...prev, newLabel]);
             };
-            createEventLabel({ name: labelName }, onCompleted);
+            createEventLabel({ input: { name: labelName }, onCompleted });
         }
     };
 

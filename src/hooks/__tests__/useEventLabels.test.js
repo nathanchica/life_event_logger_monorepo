@@ -1,6 +1,6 @@
 import { InMemoryCache, gql } from '@apollo/client';
 import { MockedProvider } from '@apollo/client/testing';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 
 import { createMockAuthContextValue } from '../../mocks/providers';
 import { createMockUser } from '../../mocks/user';
@@ -17,7 +17,7 @@ jest.mock('uuid', () => ({
     v4: () => 'mocked-uuid-value'
 }));
 
-const createCreateEventLabelMutation = ({
+const createCreateEventLabelMutationResponse = ({
     id,
     serverGeneratedId,
     name,
@@ -48,7 +48,8 @@ const createCreateEventLabelMutation = ({
                               customPayload !== undefined
                                   ? customPayload
                                   : {
-                                        __typename: 'CreateEventLabelPayload',
+                                        __typename: 'CreateEventLabelMutationPayload',
+                                        tempID: serverGeneratedId,
                                         eventLabel: {
                                             __typename: 'EventLabel',
                                             id: serverGeneratedId,
@@ -62,7 +63,7 @@ const createCreateEventLabelMutation = ({
     };
 };
 
-const createUpdateEventLabelMutation = ({
+const createUpdateEventLabelMutationResponse = ({
     id,
     name,
     apiErrors = [],
@@ -92,7 +93,7 @@ const createUpdateEventLabelMutation = ({
                               customPayload !== undefined
                                   ? customPayload
                                   : {
-                                        __typename: 'UpdateEventLabelPayload',
+                                        __typename: 'UpdateEventLabelMutationPayload',
                                         eventLabel: {
                                             __typename: 'EventLabel',
                                             id,
@@ -106,7 +107,7 @@ const createUpdateEventLabelMutation = ({
     };
 };
 
-const createDeleteEventLabelMutation = ({
+const createDeleteEventLabelMutationResponse = ({
     id,
     apiErrors = [],
     gqlError = null,
@@ -134,7 +135,7 @@ const createDeleteEventLabelMutation = ({
                               customPayload !== undefined
                                   ? customPayload
                                   : {
-                                        __typename: 'DeleteEventLabelPayload',
+                                        __typename: 'DeleteEventLabelMutationPayload',
                                         eventLabel: {
                                             __typename: 'EventLabel',
                                             id
@@ -147,29 +148,53 @@ const createDeleteEventLabelMutation = ({
     };
 };
 
+const GET_USER_QUERY = gql`
+    query GetUser($id: String!) {
+        user(id: $id) {
+            id
+            eventLabels {
+                id
+                name
+            }
+        }
+    }
+`;
+
 describe('useEventLabels', () => {
+    let apolloCache;
     let mockUser;
     let mockAuthContextValue;
 
     beforeEach(() => {
         jest.clearAllMocks();
 
+        apolloCache = new InMemoryCache();
         mockUser = createMockUser();
         mockAuthContextValue = createMockAuthContextValue({ user: mockUser });
     });
 
-    const renderHookWithProviders = (mocks = []) => {
+    const renderHookWithProviders = ({ mocks = [], authContextValue = mockAuthContextValue } = {}) => {
         const wrapper = ({ children }) => (
-            <MockedProvider
-                mocks={mocks}
-                defaultOptions={{ watchQuery: { errorPolicy: 'all' } }}
-                cache={new InMemoryCache()}
-            >
-                <AuthContext.Provider value={mockAuthContextValue}>{children}</AuthContext.Provider>
+            <MockedProvider mocks={mocks} defaultOptions={{ watchQuery: { errorPolicy: 'all' } }} cache={apolloCache}>
+                <AuthContext.Provider value={authContextValue}>{children}</AuthContext.Provider>
             </MockedProvider>
         );
 
         return renderHook(() => useEventLabels(), { wrapper });
+    };
+
+    const prepopulateCache = (startingEventLabels = []) => {
+        apolloCache.writeQuery({
+            query: GET_USER_QUERY,
+            variables: { id: mockUser.id },
+            data: {
+                user: {
+                    __typename: 'User',
+                    id: mockUser.id,
+                    eventLabels: startingEventLabels
+                }
+            }
+        });
     };
 
     describe('hook initialization', () => {
@@ -196,207 +221,196 @@ describe('useEventLabels', () => {
     });
 
     describe('createEventLabel', () => {
-        it('creates event label successfully', async () => {
-            const mocks = [
-                createCreateEventLabelMutation({
+        it.each([
+            [
+                'creates event label successfully',
+                {
                     id: 'temp-mocked-uuid-value',
                     serverGeneratedId: 'new-label-id',
                     name: 'New Label'
-                })
-            ];
-
-            const { result } = renderHookWithProviders(mocks);
-
-            let payload;
-            await act(async () => {
-                payload = await result.current.createEventLabel({ name: 'New Label' });
-            });
-
-            expect(payload).toEqual(
-                expect.objectContaining({
-                    eventLabel: {
-                        __typename: 'EventLabel',
-                        id: 'new-label-id',
-                        name: 'New Label'
-                    },
-                    errors: []
-                })
-            );
-        });
-
-        it('handles gql errors gracefully and returns null', async () => {
-            const mocks = [
-                createCreateEventLabelMutation({
-                    id: 'temp-mocked-uuid-value',
-                    name: 'New Label',
-                    gqlError: new Error('Network error')
-                })
-            ];
-
-            const { result } = renderHookWithProviders(mocks);
-
-            let payload;
-            await act(async () => {
-                payload = await result.current.createEventLabel({ name: 'New Label' });
-            });
-
-            expect(payload).toBeNull();
-        });
-
-        it('returns null when mutation result is empty', async () => {
-            const mocks = [
-                createCreateEventLabelMutation({
+                },
+                [{ id: 'new-label-id', name: 'New Label' }],
+                0
+            ],
+            [
+                'handles when mutation result is empty',
+                {
                     id: 'temp-mocked-uuid-value',
                     name: 'New Label',
                     customPayload: null
-                })
-            ];
+                },
+                [],
+                0
+            ],
+            [
+                'handles gql errors gracefully',
+                {
+                    id: 'temp-mocked-uuid-value',
+                    name: 'New Label',
+                    gqlError: new Error('Network error')
+                },
+                [],
+                1
+            ]
+        ])('%s', async (_, mockConfig, expectedLabels, onErrorCallCount) => {
+            prepopulateCache();
+            const mockOnError = jest.fn();
 
-            const { result } = renderHookWithProviders(mocks);
+            const mocks = [createCreateEventLabelMutationResponse(mockConfig)];
 
-            let payload;
+            const { result } = renderHookWithProviders({ mocks });
+
             await act(async () => {
-                payload = await result.current.createEventLabel({ name: 'New Label' });
+                result.current.createEventLabel({ input: { name: 'New Label' }, onError: mockOnError });
             });
 
-            expect(payload).toBeNull();
+            await waitFor(() => {
+                const cachedData = apolloCache.readQuery({
+                    query: GET_USER_QUERY,
+                    variables: { id: mockUser.id }
+                });
+
+                expect(cachedData?.user?.eventLabels).toHaveLength(expectedLabels.length);
+
+                expectedLabels.forEach((expectedLabel, index) => {
+                    expect(cachedData?.user?.eventLabels[index]).toMatchObject(expectedLabel);
+                });
+
+                expect(mockOnError).toHaveBeenCalledTimes(onErrorCallCount);
+            });
         });
     });
 
     describe('updateEventLabel', () => {
-        it('updates event label successfully', async () => {
-            const mocks = [
-                createUpdateEventLabelMutation({
+        it.each([
+            [
+                'updates event label successfully',
+                {
                     id: 'existing-label-id',
                     name: 'Updated Label'
-                })
-            ];
-
-            const { result } = renderHookWithProviders(mocks);
-
-            let payload;
-            await act(async () => {
-                payload = await result.current.updateEventLabel({ id: 'existing-label-id', name: 'Updated Label' });
-            });
-
-            expect(payload).toEqual(
-                expect.objectContaining({
-                    eventLabel: {
+                },
+                [
+                    {
                         __typename: 'EventLabel',
                         id: 'existing-label-id',
                         name: 'Updated Label'
-                    },
-                    errors: []
-                })
-            );
-        });
-
-        it('handles gql errors gracefully and returns null', async () => {
-            const mocks = [
-                createUpdateEventLabelMutation({
-                    id: 'existing-label-id',
-                    name: 'Updated Label',
-                    gqlError: new Error('Network error')
-                })
-            ];
-
-            const { result } = renderHookWithProviders(mocks);
-
-            let payload;
-            await act(async () => {
-                payload = await result.current.updateEventLabel({ id: 'existing-label-id', name: 'Updated Label' });
-            });
-
-            expect(payload).toBeNull();
-        });
-
-        it('returns null when mutation result is empty', async () => {
-            const mocks = [
-                createUpdateEventLabelMutation({
+                    }
+                ],
+                0
+            ],
+            [
+                'handles when mutation result is empty and does not update the label',
+                {
                     id: 'existing-label-id',
                     name: 'Updated Label',
                     customPayload: null
-                })
-            ];
+                },
+                [
+                    {
+                        __typename: 'EventLabel',
+                        id: 'existing-label-id',
+                        name: 'Old Label'
+                    }
+                ],
+                0
+            ],
+            [
+                'handles gql errors gracefully and does not update the label',
+                {
+                    id: 'existing-label-id',
+                    name: 'Updated Label',
+                    gqlError: new Error('Network error')
+                },
+                [
+                    {
+                        __typename: 'EventLabel',
+                        id: 'existing-label-id',
+                        name: 'Old Label'
+                    }
+                ],
+                1
+            ]
+        ])('%s', async (_, mockConfig, expectedLabels, onErrorCallCount) => {
+            prepopulateCache([{ __typename: 'EventLabel', id: 'existing-label-id', name: 'Old Label' }]);
+            const mockOnError = jest.fn();
 
-            const { result } = renderHookWithProviders(mocks);
+            const mocks = [createUpdateEventLabelMutationResponse(mockConfig)];
+            const { result } = renderHookWithProviders({ mocks });
 
-            let payload;
             await act(async () => {
-                payload = await result.current.updateEventLabel({ id: 'existing-label-id', name: 'Updated Label' });
+                result.current.updateEventLabel({
+                    input: { id: mockConfig.id, name: mockConfig.name },
+                    onError: mockOnError
+                });
             });
 
-            expect(payload).toBeNull();
+            await waitFor(() => {
+                const cachedData = apolloCache.readQuery({
+                    query: GET_USER_QUERY,
+                    variables: { id: mockUser.id }
+                });
+
+                expect(cachedData?.user?.eventLabels).toEqual(expectedLabels);
+                expect(mockOnError).toHaveBeenCalledTimes(onErrorCallCount);
+            });
         });
     });
 
     describe('deleteEventLabel', () => {
-        it('deletes event label successfully', async () => {
-            const mocks = [
-                createDeleteEventLabelMutation({
-                    id: 'label-to-delete'
-                })
-            ];
-
-            const { result } = renderHookWithProviders(mocks);
-
-            let payload;
-            await act(async () => {
-                payload = await result.current.deleteEventLabel({ id: 'label-to-delete' });
-            });
-
-            expect(payload).toEqual(
-                expect.objectContaining({
-                    eventLabel: {
-                        __typename: 'EventLabel',
-                        id: 'label-to-delete'
-                    },
-                    errors: []
-                })
-            );
-        });
-
-        it('handles gql errors gracefully and returns null', async () => {
-            const mocks = [
-                createDeleteEventLabelMutation({
-                    id: 'label-to-delete',
-                    gqlError: new Error('Network error')
-                })
-            ];
-
-            const { result } = renderHookWithProviders(mocks);
-
-            let payload;
-            await act(async () => {
-                payload = await result.current.deleteEventLabel({ id: 'label-to-delete' });
-            });
-
-            expect(payload).toBeNull();
-        });
-
-        it('returns null when mutation result is empty', async () => {
-            const mocks = [
-                createDeleteEventLabelMutation({
-                    id: 'label-to-delete',
+        it.each([
+            [
+                'deletes event label successfully',
+                {
+                    id: 'existing-label-id'
+                },
+                [],
+                0
+            ],
+            [
+                'returns null when mutation result is empty',
+                {
+                    id: 'existing-label-id',
                     customPayload: null
-                })
-            ];
+                },
+                [{ __typename: 'EventLabel', id: 'existing-label-id', name: 'Test Label' }],
+                0
+            ],
+            [
+                'handles gql errors gracefully and does not delete the event label',
+                {
+                    id: 'existing-label-id',
+                    gqlError: new Error('Network error')
+                },
+                [{ __typename: 'EventLabel', id: 'existing-label-id', name: 'Test Label' }],
+                1
+            ]
+        ])('%s', async (_, mockConfig, expectedLabels, onErrorCallCount) => {
+            prepopulateCache([{ __typename: 'EventLabel', id: 'existing-label-id', name: 'Test Label' }]);
+            const mockOnError = jest.fn();
 
-            const { result } = renderHookWithProviders(mocks);
+            const mocks = [createDeleteEventLabelMutationResponse(mockConfig)];
+            const { result } = renderHookWithProviders({ mocks });
 
-            let payload;
             await act(async () => {
-                payload = await result.current.deleteEventLabel({ id: 'label-to-delete' });
+                result.current.deleteEventLabel({ input: { id: 'existing-label-id' }, onError: mockOnError });
             });
 
-            expect(payload).toBeNull();
+            await waitFor(() => {
+                const cachedData = apolloCache.readQuery({
+                    query: GET_USER_QUERY,
+                    variables: { id: mockUser.id }
+                });
+
+                expect(cachedData?.user?.eventLabels).toEqual(expectedLabels);
+                expect(mockOnError).toHaveBeenCalledTimes(onErrorCallCount);
+            });
         });
     });
 
     describe('loading states', () => {
         it('shows loading state during create operation', async () => {
             const mocks = [
-                createCreateEventLabelMutation({
+                createCreateEventLabelMutationResponse({
                     id: 'temp-mocked-uuid-value',
                     serverGeneratedId: 'new-label-id',
                     name: 'New Label',
@@ -404,10 +418,10 @@ describe('useEventLabels', () => {
                 })
             ];
 
-            const { result } = renderHookWithProviders(mocks);
+            const { result } = renderHookWithProviders({ mocks });
 
             act(() => {
-                result.current.createEventLabel({ name: 'New Label' });
+                result.current.createEventLabel({ input: { name: 'New Label' } });
             });
 
             expect(result.current.createIsLoading).toBe(true);
@@ -416,17 +430,17 @@ describe('useEventLabels', () => {
 
         it('shows loading state during update operation', async () => {
             const mocks = [
-                createUpdateEventLabelMutation({
+                createUpdateEventLabelMutationResponse({
                     id: 'existing-label-id',
                     name: 'Updated Label',
                     delay: 100
                 })
             ];
 
-            const { result } = renderHookWithProviders(mocks);
+            const { result } = renderHookWithProviders({ mocks });
 
             act(() => {
-                result.current.updateEventLabel({ id: 'existing-label-id', name: 'Updated Label' });
+                result.current.updateEventLabel({ input: { id: 'existing-label-id', name: 'Updated Label' } });
             });
 
             expect(result.current.updateIsLoading).toBe(true);
@@ -435,16 +449,16 @@ describe('useEventLabels', () => {
 
         it('shows loading state during delete operation', async () => {
             const mocks = [
-                createDeleteEventLabelMutation({
+                createDeleteEventLabelMutationResponse({
                     id: 'label-to-delete',
                     delay: 100
                 })
             ];
 
-            const { result } = renderHookWithProviders(mocks);
+            const { result } = renderHookWithProviders({ mocks });
 
             act(() => {
-                result.current.deleteEventLabel({ id: 'label-to-delete' });
+                result.current.deleteEventLabel({ input: { id: 'label-to-delete' } });
             });
 
             expect(result.current.deleteIsLoading).toBe(true);
@@ -458,37 +472,27 @@ describe('useEventLabels', () => {
             const mockAuthContextWithoutUser = createMockAuthContextValue({ user: null });
 
             const mocks = [
-                createCreateEventLabelMutation({
+                createCreateEventLabelMutationResponse({
                     id: 'temp-mocked-uuid-value',
                     serverGeneratedId: 'new-label-id',
                     name: 'New Label'
                 })
             ];
 
-            // Create hook instance with different auth context
-            const { result: resultWithoutUser } = renderHook(() => useEventLabels(), {
-                wrapper: ({ children }) => (
-                    <MockedProvider mocks={mocks}>
-                        <AuthContext.Provider value={mockAuthContextWithoutUser}>{children}</AuthContext.Provider>
-                    </MockedProvider>
-                )
-            });
+            const { result } = renderHookWithProviders({ mocks, authContextValue: mockAuthContextWithoutUser });
 
-            let payload;
             await act(async () => {
-                payload = await resultWithoutUser.current.createEventLabel({ name: 'New Label' });
+                result.current.createEventLabel({ input: { name: 'New Label' } });
             });
 
-            expect(payload).toEqual(
-                expect.objectContaining({
-                    eventLabel: {
-                        __typename: 'EventLabel',
-                        id: 'new-label-id',
-                        name: 'New Label'
-                    },
-                    errors: []
-                })
-            );
+            await waitFor(() => {
+                const cachedData = apolloCache.readQuery({
+                    query: GET_USER_QUERY,
+                    variables: { id: mockUser.id }
+                });
+
+                expect(cachedData).toBeNull();
+            });
         });
 
         it('handles cache update when user is null for delete operation', async () => {
@@ -496,237 +500,32 @@ describe('useEventLabels', () => {
             const mockAuthContextWithoutUser = createMockAuthContextValue({ user: null });
 
             const mocks = [
-                createDeleteEventLabelMutation({
+                createDeleteEventLabelMutationResponse({
                     id: 'label-to-delete'
                 })
             ];
 
-            const { result } = renderHook(() => useEventLabels(), {
-                wrapper: ({ children }) => (
-                    <MockedProvider mocks={mocks}>
-                        <AuthContext.Provider value={mockAuthContextWithoutUser}>{children}</AuthContext.Provider>
-                    </MockedProvider>
-                )
-            });
+            const { result } = renderHookWithProviders({ mocks, authContextValue: mockAuthContextWithoutUser });
 
-            let payload;
             await act(async () => {
-                payload = await result.current.deleteEventLabel({ id: 'label-to-delete' });
+                result.current.deleteEventLabel({ input: { id: 'label-to-delete' } });
             });
 
-            expect(payload).toEqual(
-                expect.objectContaining({
-                    eventLabel: {
-                        __typename: 'EventLabel',
-                        id: 'label-to-delete'
-                    },
-                    errors: []
-                })
-            );
-        });
-    });
+            await waitFor(() => {
+                const cachedData = apolloCache.readQuery({
+                    query: GET_USER_QUERY,
+                    variables: { id: mockUser.id }
+                });
 
-    describe('cache update execution', () => {
-        it('executes cache update logic for successful create operation', async () => {
-            const cache = new InMemoryCache();
-
-            // Pre-populate cache with user data
-            cache.writeQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            eventLabels {
-                                id
-                                name
-                            }
-                        }
-                    }
-                `,
-                variables: { id: mockUser.id },
-                data: {
-                    user: {
-                        __typename: 'User',
-                        id: mockUser.id,
-                        eventLabels: [
-                            {
-                                __typename: 'EventLabel',
-                                id: 'existing-label',
-                                name: 'Existing Label'
-                            }
-                        ]
-                    }
-                }
+                expect(cachedData).toBeNull();
             });
-
-            const mocks = [
-                createCreateEventLabelMutation({
-                    id: 'temp-mocked-uuid-value',
-                    serverGeneratedId: 'new-label-id',
-                    name: 'New Label'
-                })
-            ];
-
-            const { result } = renderHook(() => useEventLabels(), {
-                wrapper: ({ children }) => (
-                    <MockedProvider mocks={mocks} cache={cache}>
-                        <AuthContext.Provider value={mockAuthContextValue}>{children}</AuthContext.Provider>
-                    </MockedProvider>
-                )
-            });
-
-            let payload;
-            await act(async () => {
-                payload = await result.current.createEventLabel({ name: 'New Label' });
-            });
-
-            // Should successfully create the label
-            expect(payload).toEqual(
-                expect.objectContaining({
-                    eventLabel: {
-                        __typename: 'EventLabel',
-                        id: 'new-label-id',
-                        name: 'New Label'
-                    },
-                    errors: []
-                })
-            );
-
-            // Check that cache was updated by reading from it
-            const cachedData = cache.readQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            eventLabels {
-                                id
-                                name
-                            }
-                        }
-                    }
-                `,
-                variables: { id: mockUser.id }
-            });
-
-            // The new label should be added to the cache
-            expect(cachedData?.user?.eventLabels).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        id: 'new-label-id',
-                        name: 'New Label'
-                    })
-                ])
-            );
-        });
-
-        it('executes cache update logic for successful delete operation', async () => {
-            const cache = new InMemoryCache();
-
-            // Pre-populate cache with user data including labels to delete
-            cache.writeQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            eventLabels {
-                                id
-                                name
-                            }
-                        }
-                    }
-                `,
-                variables: { id: mockUser.id },
-                data: {
-                    user: {
-                        __typename: 'User',
-                        id: mockUser.id,
-                        eventLabels: [
-                            {
-                                __typename: 'EventLabel',
-                                id: 'label-to-delete',
-                                name: 'Label to Delete'
-                            },
-                            {
-                                __typename: 'EventLabel',
-                                id: 'label-to-keep',
-                                name: 'Label to Keep'
-                            }
-                        ]
-                    }
-                }
-            });
-
-            const mocks = [
-                createDeleteEventLabelMutation({
-                    id: 'label-to-delete'
-                })
-            ];
-
-            const { result } = renderHook(() => useEventLabels(), {
-                wrapper: ({ children }) => (
-                    <MockedProvider mocks={mocks} cache={cache}>
-                        <AuthContext.Provider value={mockAuthContextValue}>{children}</AuthContext.Provider>
-                    </MockedProvider>
-                )
-            });
-
-            let payload;
-            await act(async () => {
-                payload = await result.current.deleteEventLabel({ id: 'label-to-delete' });
-            });
-
-            // Should successfully delete the label
-            expect(payload).toEqual(
-                expect.objectContaining({
-                    eventLabel: {
-                        __typename: 'EventLabel',
-                        id: 'label-to-delete'
-                    },
-                    errors: []
-                })
-            );
-
-            // Check that cache was updated by reading from it
-            const cachedData = cache.readQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            eventLabels {
-                                id
-                                name
-                            }
-                        }
-                    }
-                `,
-                variables: { id: mockUser.id }
-            });
-
-            // The deleted label should be removed from the cache
-            expect(cachedData?.user?.eventLabels).toEqual([
-                expect.objectContaining({
-                    id: 'label-to-keep',
-                    name: 'Label to Keep'
-                })
-            ]);
-
-            // Ensure the deleted label is not in the cache
-            expect(cachedData?.user?.eventLabels).not.toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        id: 'label-to-delete'
-                    })
-                ])
-            );
         });
     });
 
     describe('cascade deletion from loggable events', () => {
         it('removes deleted label from events that reference it', async () => {
-            const cache = new InMemoryCache();
-
             // Pre-populate cache with user data including events with labels
-            cache.writeQuery({
+            apolloCache.writeQuery({
                 query: gql`
                     query GetUser($id: String!) {
                         user(id: $id) {
@@ -811,83 +610,78 @@ describe('useEventLabels', () => {
             });
 
             const mocks = [
-                createDeleteEventLabelMutation({
+                createDeleteEventLabelMutationResponse({
                     id: 'label-to-delete'
                 })
             ];
 
-            const { result } = renderHook(() => useEventLabels(), {
-                wrapper: ({ children }) => (
-                    <MockedProvider mocks={mocks} cache={cache}>
-                        <AuthContext.Provider value={mockAuthContextValue}>{children}</AuthContext.Provider>
-                    </MockedProvider>
-                )
-            });
+            const { result } = renderHookWithProviders({ mocks });
 
             await act(async () => {
-                await result.current.deleteEventLabel({ id: 'label-to-delete' });
+                result.current.deleteEventLabel({ input: { id: 'label-to-delete' } });
             });
 
-            // Check that cache was updated by reading from it
-            const cachedData = cache.readQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            loggableEvents {
+            await waitFor(() => {
+                const cachedData = apolloCache.readQuery({
+                    query: gql`
+                        query GetUser($id: String!) {
+                            user(id: $id) {
                                 id
-                                name
-                                labels {
+                                loggableEvents {
                                     id
                                     name
+                                    labels {
+                                        id
+                                        name
+                                    }
                                 }
                             }
                         }
-                    }
-                `,
-                variables: { id: mockUser.id }
-            });
+                    `,
+                    variables: { id: mockUser.id }
+                });
 
-            // Event 1 should have the deleted label removed, keeping the other label
-            expect(cachedData?.user?.loggableEvents[0]).toEqual(
-                expect.objectContaining({
+                // Event 1 should have the deleted label removed, keeping the other label
+                expect(cachedData?.user?.loggableEvents[0]).toEqual({
+                    __typename: 'LoggableEvent',
                     id: 'event-1',
+                    name: 'Event with Multiple Labels',
                     labels: [
-                        expect.objectContaining({
+                        {
+                            __typename: 'EventLabel',
                             id: 'label-to-keep',
                             name: 'Label to Keep'
-                        })
+                        }
                     ]
-                })
-            );
+                });
 
-            // Event 2 should have empty labels array after deletion
-            expect(cachedData?.user?.loggableEvents[1]).toEqual(
-                expect.objectContaining({
+                // Event 2 should have empty labels array after deletion
+                expect(cachedData?.user?.loggableEvents[1]).toEqual({
+                    __typename: 'LoggableEvent',
                     id: 'event-2',
+                    name: 'Event with Single Label',
                     labels: []
-                })
-            );
+                });
 
-            // Event 3 should remain unchanged (didn't have the deleted label)
-            expect(cachedData?.user?.loggableEvents[2]).toEqual(
-                expect.objectContaining({
+                // Event 3 should remain unchanged (didn't have the deleted label)
+                expect(cachedData?.user?.loggableEvents[2]).toEqual({
+                    __typename: 'LoggableEvent',
                     id: 'event-3',
+                    name: 'Event with No Target Label',
                     labels: [
-                        expect.objectContaining({
+                        {
+                            __typename: 'EventLabel',
                             id: 'label-to-keep',
                             name: 'Label to Keep'
-                        })
+                        }
                     ]
-                })
-            );
+                });
+            });
         });
 
         it('handles events with empty or null labels gracefully', async () => {
-            const cache = new InMemoryCache();
-
             // Pre-populate cache with events that have null/empty labels
-            cache.writeQuery({
+            apolloCache.writeQuery({
                 query: gql`
                     query GetUser($id: String!) {
                         user(id: $id) {
@@ -938,172 +732,52 @@ describe('useEventLabels', () => {
             });
 
             const mocks = [
-                createDeleteEventLabelMutation({
+                createDeleteEventLabelMutationResponse({
                     id: 'label-to-delete'
                 })
             ];
 
-            const { result } = renderHook(() => useEventLabels(), {
-                wrapper: ({ children }) => (
-                    <MockedProvider mocks={mocks} cache={cache}>
-                        <AuthContext.Provider value={mockAuthContextValue}>{children}</AuthContext.Provider>
-                    </MockedProvider>
-                )
-            });
+            const { result } = renderHookWithProviders({ mocks });
 
             await act(async () => {
-                await result.current.deleteEventLabel({ id: 'label-to-delete' });
+                result.current.deleteEventLabel({ input: { id: 'label-to-delete' } });
             });
 
-            // Check that cache was updated by reading from it
-            const cachedData = cache.readQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            loggableEvents {
+            await waitFor(() => {
+                const cachedData = apolloCache.readQuery({
+                    query: gql`
+                        query GetUser($id: String!) {
+                            user(id: $id) {
                                 id
-                                name
-                                labels {
+                                loggableEvents {
                                     id
                                     name
-                                }
-                            }
-                        }
-                    }
-                `,
-                variables: { id: mockUser.id }
-            });
-
-            // Events with empty/null labels should remain unchanged
-            expect(cachedData?.user?.loggableEvents[0]).toEqual(
-                expect.objectContaining({
-                    id: 'event-1',
-                    labels: []
-                })
-            );
-
-            expect(cachedData?.user?.loggableEvents[1]).toEqual(
-                expect.objectContaining({
-                    id: 'event-2',
-                    labels: null
-                })
-            );
-        });
-
-        it('only updates events that actually had the deleted label', async () => {
-            const cache = new InMemoryCache();
-
-            // Pre-populate cache with mixed scenarios
-            cache.writeQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            eventLabels {
-                                id
-                                name
-                            }
-                            loggableEvents {
-                                id
-                                name
-                                labels {
-                                    id
-                                    name
-                                }
-                            }
-                        }
-                    }
-                `,
-                variables: { id: mockUser.id },
-                data: {
-                    user: {
-                        __typename: 'User',
-                        id: mockUser.id,
-                        eventLabels: [
-                            {
-                                __typename: 'EventLabel',
-                                id: 'label-to-delete',
-                                name: 'Label to Delete'
-                            }
-                        ],
-                        loggableEvents: [
-                            {
-                                __typename: 'LoggableEvent',
-                                id: 'event-with-label',
-                                name: 'Event with Target Label',
-                                labels: [
-                                    {
-                                        __typename: 'EventLabel',
-                                        id: 'label-to-delete',
-                                        name: 'Label to Delete'
+                                    labels {
+                                        id
+                                        name
                                     }
-                                ]
-                            },
-                            {
-                                __typename: 'LoggableEvent',
-                                id: 'event-without-label',
-                                name: 'Event without Target Label',
-                                labels: []
-                            }
-                        ]
-                    }
-                }
-            });
-
-            const mocks = [
-                createDeleteEventLabelMutation({
-                    id: 'label-to-delete'
-                })
-            ];
-
-            const { result } = renderHook(() => useEventLabels(), {
-                wrapper: ({ children }) => (
-                    <MockedProvider mocks={mocks} cache={cache}>
-                        <AuthContext.Provider value={mockAuthContextValue}>{children}</AuthContext.Provider>
-                    </MockedProvider>
-                )
-            });
-
-            await act(async () => {
-                await result.current.deleteEventLabel({ id: 'label-to-delete' });
-            });
-
-            // Check that cache was updated correctly
-            const cachedData = cache.readQuery({
-                query: gql`
-                    query GetUser($id: String!) {
-                        user(id: $id) {
-                            id
-                            loggableEvents {
-                                id
-                                name
-                                labels {
-                                    id
-                                    name
                                 }
                             }
                         }
-                    }
-                `,
-                variables: { id: mockUser.id }
+                    `,
+                    variables: { id: mockUser.id }
+                });
+
+                // Events with empty/null labels should remain unchanged
+                expect(cachedData?.user?.loggableEvents[0]).toEqual(
+                    expect.objectContaining({
+                        id: 'event-1',
+                        labels: []
+                    })
+                );
+
+                expect(cachedData?.user?.loggableEvents[1]).toEqual(
+                    expect.objectContaining({
+                        id: 'event-2',
+                        labels: null
+                    })
+                );
             });
-
-            // Event with label should have empty labels after deletion
-            expect(cachedData?.user?.loggableEvents[0]).toEqual(
-                expect.objectContaining({
-                    id: 'event-with-label',
-                    labels: []
-                })
-            );
-
-            // Event without label should remain unchanged
-            expect(cachedData?.user?.loggableEvents[1]).toEqual(
-                expect.objectContaining({
-                    id: 'event-without-label',
-                    labels: []
-                })
-            );
         });
     });
 });

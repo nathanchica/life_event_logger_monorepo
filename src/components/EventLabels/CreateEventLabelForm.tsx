@@ -26,7 +26,7 @@ const CreateEventLabelForm = ({ onCancel, onSuccess, existingLabelNames }: Props
 
     const handleCreateLabel = () => {
         if (validationError === null) {
-            createEventLabel({ name: newLabelName.trim() });
+            createEventLabel({ input: { name: newLabelName.trim() } });
             setNewLabelName('');
             onSuccess();
         }

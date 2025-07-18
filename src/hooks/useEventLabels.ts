@@ -1,4 +1,4 @@
-import { gql, useMutation, Reference } from '@apollo/client';
+import { gql, useMutation, Reference, ApolloError } from '@apollo/client';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useAuth } from '../providers/AuthProvider';
@@ -242,7 +242,11 @@ export const useEventLabels = () => {
 
                         // Remove label from all loggable events that had it
                         existingLoggableEventsRefs.forEach((loggableEventRef: Reference) => {
-                            const labels = (readField('labels', loggableEventRef) as Reference[]) || [];
+                            const labels: readonly Reference[] | undefined = readField('labels', loggableEventRef);
+
+                            // istanbul ignore next
+                            if (!labels) return;
+
                             const updatedLabels = labels.filter(
                                 (labelRef: Reference) =>
                                     readField('id', labelRef) !== data.deleteEventLabel.eventLabel.id
@@ -280,55 +284,63 @@ export const useEventLabels = () => {
     /**
      * Create a new event label
      */
-    const createEventLabel = (
-        input: Omit<CreateEventLabelInput, 'id'>,
-        onCompleted?: (payload: { createEventLabel: CreateEventLabelPayload }) => void
-    ): void => {
-        try {
-            createEventLabelMutation({
-                variables: {
-                    input: {
-                        ...input,
-                        id: `temp-${uuidv4()}` // Temporary ID for offline mode
-                    }
-                },
-                onCompleted
-            });
-        } catch {
-            // Don't throw the error - this allows the optimistic update to persist
-            // even when the network request fails
-            return;
-        }
+    const createEventLabel = ({
+        input,
+        onCompleted,
+        onError
+    }: {
+        input: Omit<CreateEventLabelInput, 'id'>;
+        onCompleted?: (payload: { createEventLabel: CreateEventLabelPayload }) => void;
+        onError?: (error: ApolloError) => void;
+    }): void => {
+        createEventLabelMutation({
+            variables: {
+                input: {
+                    ...input,
+                    id: `temp-${uuidv4()}` // Temporary ID for offline mode
+                }
+            },
+            onCompleted,
+            onError
+        });
     };
 
     /**
      * Update an existing event label
      */
-    const updateEventLabel = (input: UpdateEventLabelInput): void => {
-        try {
-            updateEventLabelMutation({
-                variables: { input }
-            });
-        } catch {
-            // Don't throw the error - this allows the optimistic update to persist
-            // even when the network request fails
-            return;
-        }
+    const updateEventLabel = ({
+        input,
+        onCompleted,
+        onError
+    }: {
+        input: UpdateEventLabelInput;
+        onCompleted?: (payload: { updateEventLabel: UpdateEventLabelPayload }) => void;
+        onError?: (error: ApolloError) => void;
+    }): void => {
+        updateEventLabelMutation({
+            variables: { input },
+            onCompleted,
+            onError
+        });
     };
 
     /**
      * Delete an existing event label
      */
-    const deleteEventLabel = (input: DeleteEventLabelInput): void => {
-        try {
-            deleteEventLabelMutation({
-                variables: { input }
-            });
-        } catch {
-            // Don't throw the error - this allows the optimistic update to persist
-            // even when the network request fails
-            return;
-        }
+    const deleteEventLabel = ({
+        input,
+        onCompleted,
+        onError
+    }: {
+        input: DeleteEventLabelInput;
+        onCompleted?: (payload: { deleteEventLabel: DeleteEventLabelPayload }) => void;
+        onError?: (error: ApolloError) => void;
+    }): void => {
+        deleteEventLabelMutation({
+            variables: { input },
+            onCompleted,
+            onError
+        });
     };
 
     return {

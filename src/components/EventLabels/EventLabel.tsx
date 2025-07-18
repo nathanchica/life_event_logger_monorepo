@@ -64,7 +64,7 @@ const EventLabel = ({ eventLabelId, isShowingEditActions, existingLabelNames }: 
     const validationError = shouldValidate ? validateEventLabelName(editValue, existingLabelNames) : null;
 
     const handleDelete = () => {
-        deleteEventLabel({ id });
+        deleteEventLabel({ input: { id } });
     };
 
     const handleEditClick = () => {
@@ -79,7 +79,7 @@ const EventLabel = ({ eventLabelId, isShowingEditActions, existingLabelNames }: 
 
     const handleEditSave = () => {
         if (validationError === null) {
-            updateEventLabel({ id, name: editValue.trim() });
+            updateEventLabel({ input: { id, name: editValue.trim() } });
             setIsEditingName(false);
         }
     };
