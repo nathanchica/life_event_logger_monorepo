@@ -33,12 +33,12 @@ type User {
     updatedAt: DateTime!
 
     """
-    All loggable events created by this user
+    All loggable events created by this user, sorted by newest first
     """
     loggableEvents: [LoggableEvent!]!
 
     """
-    All event labels created by this user
+    All event labels created by this user, sorted by oldest first
     """
     eventLabels: [EventLabel!]!
 }

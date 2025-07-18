@@ -317,13 +317,13 @@ export type User = {
     createdAt: Scalars['DateTime']['output'];
     /** User's email address */
     email: Scalars['String']['output'];
-    /** All event labels created by this user */
+    /** All event labels created by this user, sorted by oldest first */
     eventLabels: Array<EventLabel>;
     /** External authentication provider identifier */
     googleId: Scalars['String']['output'];
     /** Unique identifier for the user */
     id: Scalars['ID']['output'];
-    /** All loggable events created by this user */
+    /** All loggable events created by this user, sorted by newest first */
     loggableEvents: Array<LoggableEvent>;
     /** User's display name */
     name: Scalars['String']['output'];
