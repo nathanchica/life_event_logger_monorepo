@@ -28,6 +28,8 @@ Built with:
 - Husky, ESLint, and Prettier for maintaining code standards
 - React Testing Library for testing frontend components
 
+GraphQL Server at https://github.com/nathanchica/life_event_logger_api
+
 ## Architecture
 - **index.ts** - starting point and renders App
 - **App.ts** - renders all providers
