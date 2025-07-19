@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import EventOptionsDropdown from '../EventOptionsDropdown';
 
 describe('EventOptionsDropdown', () => {
+    let user;
     const mockOnDismiss = jest.fn();
     const mockOnEditEventClick = jest.fn();
     const mockOnDeleteEventClick = jest.fn();
@@ -13,6 +14,10 @@ describe('EventOptionsDropdown', () => {
         onEditEventClick: mockOnEditEventClick,
         onDeleteEventClick: mockOnDeleteEventClick
     };
+
+    beforeEach(() => {
+        user = userEvent.setup();
+    });
 
     afterEach(() => {
         jest.clearAllMocks();
@@ -46,7 +51,7 @@ describe('EventOptionsDropdown', () => {
         render(<EventOptionsDropdown {...defaultProps} />);
 
         const menuItem = screen.getByRole('menuitem', { name: menuItemName });
-        await userEvent.click(menuItem);
+        await user.click(menuItem);
 
         expect(expectedCallback).toHaveBeenCalledTimes(1);
         expect(mockOnDismiss).not.toHaveBeenCalled();

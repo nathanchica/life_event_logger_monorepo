@@ -1650,24 +1650,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@date-io/core@npm:^2.14.0":
-  version: 2.14.0
-  resolution: "@date-io/core@npm:2.14.0"
-  checksum: 495d6086366778590a10b554aeeaf0f22e8d7ad7eb2eeffcd16bd2864f68e9f41d956e4d5469a5f012b8bd4ff300409e5649d33bdd5d599a20296738d4f6ed12
+"@date-io/core@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "@date-io/core@npm:3.2.0"
+  checksum: 711e43b449bc29f5f1aaf49e34e722a9fe42238b1ee20e81e3a11692118002872d915c2a289f1ed24e53f88bd220ce3888d7ec0a1705c131e305478f534a3450
   languageName: node
   linkType: hard
 
-"@date-io/moment@npm:^2.14.0":
-  version: 2.14.0
-  resolution: "@date-io/moment@npm:2.14.0"
+"@date-io/date-fns@npm:^3.2.1":
+  version: 3.2.1
+  resolution: "@date-io/date-fns@npm:3.2.1"
   dependencies:
-    "@date-io/core": ^2.14.0
+    "@date-io/core": ^3.2.0
   peerDependencies:
-    moment: ^2.24.0
+    date-fns: ^3.2.0 || ^4.1.0
   peerDependenciesMeta:
-    moment:
+    date-fns:
       optional: true
-  checksum: ceea1f4b2245fda1b81fa9440e84cc4c3d1f8e1285a111effb3ed503e84982f227b8c6ce1cadf1d92738a3a5edb2d9c7eed8b06003c91d086680d9137fd77248
+  checksum: 3c8ab25d604c36b47e8309d50bdb9c0052cb3697a391be030839605449eaff4527e0a9c1bc99e917f40268a6bbff8d8548daaa3bbc864cdcbe79702b53c649db
   languageName: node
   linkType: hard
 
@@ -5930,6 +5930,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"date-fns@npm:^4.1.0":
+  version: 4.1.0
+  resolution: "date-fns@npm:4.1.0"
+  checksum: fb681b242cccabed45494468f64282a7d375ea970e0adbcc5dcc92dcb7aba49b2081c2c9739d41bf71ce89ed68dd73bebfe06ca35129490704775d091895710b
+  languageName: node
+  linkType: hard
+
 "debug@npm:2.6.9, debug@npm:^2.6.0":
   version: 2.6.9
   resolution: "debug@npm:2.6.9"
@@ -9672,7 +9679,7 @@ __metadata:
   resolution: "life_event_logger@workspace:."
   dependencies:
     "@apollo/client": ^3.13.8
-    "@date-io/moment": ^2.14.0
+    "@date-io/date-fns": ^3.2.1
     "@emotion/react": ^11.9.0
     "@emotion/styled": ^11.8.1
     "@fontsource/roboto": ^5.2.6
@@ -9692,6 +9699,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^8.35.1
     "@typescript-eslint/parser": ^8.35.1
     apollo3-cache-persist: ^0.15.0
+    date-fns: ^4.1.0
     dotenv: ^16.0.1
     eslint: ^8.57.1
     eslint-config-prettier: ^8.5.0
@@ -9707,7 +9715,6 @@ __metadata:
     graphql-anywhere: ^4.2.8
     husky: ^8.0.0
     lint-staged: ^16.1.2
-    moment: ^2.29.3
     prettier: ^3.6.2
     react: ^18.1.0
     react-dom: ^18.1.0
@@ -10239,13 +10246,6 @@ __metadata:
   bin:
     mkdirp: bin/cmd.js
   checksum: 0c91b721bb12c3f9af4b77ebf73604baf350e64d80df91754dc509491ae93bf238581e59c7188360cec7cb62fc4100959245a42cfe01834efedc5e9d068376c2
-  languageName: node
-  linkType: hard
-
-"moment@npm:^2.29.3":
-  version: 2.29.3
-  resolution: "moment@npm:2.29.3"
-  checksum: 2e780e36d9a1823c08a1b6313cbb08bd01ecbb2a9062095820a34f42c878991ccba53abaa6abb103fd5c01e763724f295162a8c50b7e95b4f1c992ef0772d3f0
   languageName: node
   linkType: hard
 

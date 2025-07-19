@@ -8,7 +8,7 @@ import ListItem from '@mui/material/ListItem';
 import Stack from '@mui/material/Stack';
 import { visuallyHidden } from '@mui/utils';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import moment, { Moment } from 'moment';
+import { subDays, isSameDay } from 'date-fns';
 
 type Props = {
     eventId: string;
@@ -19,35 +19,34 @@ type Props = {
 
 const EventDatepicker = ({ eventId, isShowing, disabledDates, onAccept }: Props) => {
     const getDefaultDate = () => {
-        const today = moment();
-        const isDateDisabled = (date: Moment) => {
-            return disabledDates.some(
-                (disabledDate: Date) => disabledDate.toDateString() === date.toDate().toDateString()
-            );
+        const today = new Date();
+        const isDateDisabled = (date: Date) => {
+            return disabledDates.some((disabledDate: Date) => isSameDay(disabledDate, date));
         };
 
         if (!isDateDisabled(today)) {
             return today;
         }
 
-        let pastDate = today.clone().subtract(1, 'day');
+        let pastDate = subDays(today, 1);
         while (isDateDisabled(pastDate)) {
-            pastDate = pastDate.subtract(1, 'day');
+            pastDate = subDays(pastDate, 1);
         }
 
         return pastDate;
     };
 
-    const [inputValue, setInputValue] = useState<Moment | null>(getDefaultDate);
+    const [inputValue, setInputValue] = useState<Date | null>(getDefaultDate);
 
-    const inputValueIsValid =
-        inputValue && !disabledDates.some((date) => date.toDateString() === inputValue.toDate().toDateString());
+    const inputValueIsValid = inputValue && !disabledDates.some((date) => isSameDay(date, inputValue));
 
-    const handleInputChange = (newDate: Moment | null) => {
+    const handleInputChange = (newDate: Date | null) => {
         setInputValue(newDate);
     };
 
-    const handleDatepickerAccept = (newDate: Moment | null) => {
+    const handleDatepickerAccept = (newDate: Date | null) => {
+        // safety check, impractical to test else case since the datepicker should always return a valid date
+        /* istanbul ignore else */
         if (newDate) {
             setInputValue(newDate);
         }
@@ -55,7 +54,7 @@ const EventDatepicker = ({ eventId, isShowing, disabledDates, onAccept }: Props)
 
     const handleConfirm = () => {
         if (inputValueIsValid) {
-            onAccept(inputValue!.toDate());
+            onAccept(inputValue!);
         }
     };
 
@@ -71,6 +70,8 @@ const EventDatepicker = ({ eventId, isShowing, disabledDates, onAccept }: Props)
         }
     }, [isShowing]);
 
+    const helperText = inputValueIsValid ? 'Pick a date to log an event for' : 'Selected date is already logged';
+
     return (
         <Collapse in={isShowing} orientation="vertical">
             <ListItem disablePadding>
@@ -84,17 +85,15 @@ const EventDatepicker = ({ eventId, isShowing, disabledDates, onAccept }: Props)
                 >
                     <DatePicker
                         label="Event date"
-                        format="MM/D/YYYY"
+                        format="MM/d/yyyy"
                         value={inputValue}
                         onChange={handleInputChange}
-                        shouldDisableDate={(date) =>
-                            disabledDates.some((record: Date) => record.toDateString() === date.toDate().toDateString())
-                        }
+                        shouldDisableDate={(date) => disabledDates.some((record: Date) => isSameDay(record, date))}
                         onAccept={handleDatepickerAccept}
                         slotProps={{
                             textField: {
                                 size: 'small',
-                                helperText: 'Pick a date to log an event for',
+                                helperText,
                                 'aria-describedby': `datepicker-help-${eventId}`,
                                 onKeyDown: handleKeyDown
                             }

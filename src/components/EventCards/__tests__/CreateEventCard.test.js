@@ -1,5 +1,5 @@
 import { MockedProvider } from '@apollo/client/testing';
-import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -19,7 +19,7 @@ describe('CreateEventCard', () => {
         return render(
             <MockedProvider mocks={[]} addTypename={false}>
                 <ViewOptionsContext.Provider value={mockViewOptionsValue}>
-                    <LocalizationProvider dateAdapter={AdapterMoment}>{component}</LocalizationProvider>
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>{component}</LocalizationProvider>
                 </ViewOptionsContext.Provider>
             </MockedProvider>
         );

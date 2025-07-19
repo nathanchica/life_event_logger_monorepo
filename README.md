@@ -15,3 +15,14 @@ Built with:
 - yarn for package dependency management
 - Husky, ESLint, and Prettier for maintaining code standards
 - React Testing Library for testing frontend components
+
+## Migrations
+
+### Moment.js to date-fns (January 2025)
+
+When this project started in 2022, Moment.js was the go-to date library. Since then, Moment.js entered maintenance mode and newer alternatives emerged. We migrated to date-fns for its smaller bundle size and modern, tree-shakeable architecture.
+
+**Key changes:**
+- Replaced `moment` with `date-fns` functions like `subDays()` and `isSameDay()`
+- Updated MUI date adapter from `AdapterMoment` to `AdapterDateFns`
+- Changed from Moment objects to native JavaScript Date objects

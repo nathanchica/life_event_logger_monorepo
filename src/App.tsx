@@ -1,4 +1,4 @@
-import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
@@ -13,7 +13,7 @@ import ViewOptionsProvider from './providers/ViewOptionsProvider';
 const App = () => {
     return (
         <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
-            <LocalizationProvider dateAdapter={AdapterMoment}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <AuthProvider>
                     <ViewOptionsProvider>
                         <EventLoggerPage />

@@ -5,6 +5,11 @@ import WarningThresholdForm from '../WarningThresholdForm';
 
 describe('WarningThresholdForm', () => {
     const mockOnChange = jest.fn();
+    let user;
+
+    beforeEach(() => {
+        user = userEvent.setup();
+    });
 
     afterEach(() => {
         jest.clearAllMocks();
@@ -67,7 +72,7 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
+            await user.click(unitSelect);
 
             expect(screen.getByRole('option', { name: 'Days' })).toBeInTheDocument();
             expect(screen.getByRole('option', { name: 'Months' })).toBeInTheDocument();
@@ -78,8 +83,8 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Months' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Months' }));
 
             expect(screen.getByText('Enter a number between 0-12')).toBeInTheDocument();
         });
@@ -88,8 +93,8 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Years' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Years' }));
 
             expect(screen.getByText('Enter a number between 0-10')).toBeInTheDocument();
         });
@@ -101,14 +106,14 @@ describe('WarningThresholdForm', () => {
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
 
             // Change to months
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Months' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Months' }));
 
             expect(numberInput).toHaveAttribute('max', '12');
 
             // Change to years
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Years' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Years' }));
 
             expect(numberInput).toHaveAttribute('max', '10');
         });
@@ -120,8 +125,8 @@ describe('WarningThresholdForm', () => {
 
             const numberInput = screen.getByLabelText('Warning threshold number');
 
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '15');
+            await user.clear(numberInput);
+            await user.type(numberInput, '15');
 
             expect(numberInput).toHaveValue(15);
             expect(mockOnChange).toHaveBeenCalledWith(15);
@@ -132,8 +137,8 @@ describe('WarningThresholdForm', () => {
 
             const numberInput = screen.getByLabelText('Warning threshold number');
 
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '35');
+            await user.clear(numberInput);
+            await user.type(numberInput, '35');
 
             expect(numberInput).toHaveValue(3); // Only accepts valid part of the input
         });
@@ -142,12 +147,12 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Months' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Months' }));
 
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '6');
+            await user.clear(numberInput);
+            await user.type(numberInput, '6');
 
             expect(numberInput).toHaveValue(6);
             expect(mockOnChange).toHaveBeenCalledWith(180); // 6 * 30 days
@@ -157,12 +162,12 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Months' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Months' }));
 
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '15');
+            await user.clear(numberInput);
+            await user.type(numberInput, '15');
 
             expect(numberInput).toHaveValue(1); // Should remain at original value
         });
@@ -171,12 +176,12 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Years' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Years' }));
 
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '3');
+            await user.clear(numberInput);
+            await user.type(numberInput, '3');
 
             expect(numberInput).toHaveValue(3);
             expect(mockOnChange).toHaveBeenCalledWith(1095); // 3 * 365 days
@@ -186,12 +191,12 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Years' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Years' }));
 
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '15');
+            await user.clear(numberInput);
+            await user.type(numberInput, '15');
 
             expect(numberInput).toHaveValue(1); // Should remain at original value
         });
@@ -200,7 +205,7 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
+            await user.clear(numberInput);
 
             expect(numberInput).toHaveValue(null);
             expect(mockOnChange).toHaveBeenCalledWith(0);
@@ -213,15 +218,15 @@ describe('WarningThresholdForm', () => {
 
             // Set to maximum for days (31)
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '31');
+            await user.clear(numberInput);
+            await user.type(numberInput, '31');
 
             expect(numberInput).toHaveValue(31);
 
             // Change to months (max 12), should reset to 1
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Months' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Months' }));
 
             expect(numberInput).toHaveValue(1);
             expect(mockOnChange).toHaveBeenCalledWith(30); // 1 * 30 days
@@ -232,15 +237,15 @@ describe('WarningThresholdForm', () => {
 
             // Set to 5 for days
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '5');
+            await user.clear(numberInput);
+            await user.type(numberInput, '5');
 
             expect(numberInput).toHaveValue(5);
 
             // Change to months (max 12), should preserve 5
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Months' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Months' }));
 
             expect(numberInput).toHaveValue(5);
             expect(mockOnChange).toHaveBeenCalledWith(150); // 5 * 30 days
@@ -255,18 +260,18 @@ describe('WarningThresholdForm', () => {
             const unitSelect = screen.getByLabelText('Warning threshold time unit');
 
             // Test days
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '7');
+            await user.clear(numberInput);
+            await user.type(numberInput, '7');
             expect(mockOnChange).toHaveBeenCalledWith(7);
 
             // Test months
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Months' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Months' }));
             expect(mockOnChange).toHaveBeenCalledWith(210); // 7 * 30
 
             // Test years
-            await userEvent.click(unitSelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Years' }));
+            await user.click(unitSelect);
+            await user.click(screen.getByRole('option', { name: 'Years' }));
             expect(mockOnChange).toHaveBeenCalledWith(2555); // 7 * 365
         });
     });
@@ -276,7 +281,7 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
+            await user.clear(numberInput);
 
             expect(numberInput).toHaveValue(null);
             expect(mockOnChange).toHaveBeenCalledWith(0);
@@ -287,8 +292,8 @@ describe('WarningThresholdForm', () => {
 
             const numberInput = screen.getByLabelText('Warning threshold number');
 
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, '-5');
+            await user.clear(numberInput);
+            await user.type(numberInput, '-5');
 
             expect(numberInput).toHaveValue(null); // Invalid input results in empty field
         });
@@ -297,8 +302,8 @@ describe('WarningThresholdForm', () => {
             render(<WarningThresholdForm onChange={mockOnChange} initialThresholdInDays={1} />);
 
             const numberInput = screen.getByLabelText('Warning threshold number');
-            await userEvent.clear(numberInput);
-            await userEvent.type(numberInput, 'abc');
+            await user.clear(numberInput);
+            await user.type(numberInput, 'abc');
 
             expect(numberInput).toHaveValue(null);
             expect(mockOnChange).toHaveBeenCalledWith(0);

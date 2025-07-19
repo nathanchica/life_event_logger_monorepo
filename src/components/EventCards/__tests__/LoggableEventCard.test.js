@@ -1,4 +1,4 @@
-import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -26,7 +26,7 @@ describe('LoggableEventCard', () => {
         const viewOptionsContext = createMockViewOptionsContextValue();
 
         return render(
-            <LocalizationProvider dateAdapter={AdapterMoment}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <ViewOptionsContext.Provider value={viewOptionsContext}>
                     <LoggableEventCard eventId="event-1" />
                 </ViewOptionsContext.Provider>
