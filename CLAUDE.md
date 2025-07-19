@@ -182,25 +182,39 @@ Use `@testing-library/user-event` for more realistic user interactions:
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-// Click interactions
-await userEvent.click(screen.getByRole('button', { name: /save/i }));
+describe('ComponentName', () => {
+  let user;
 
-// Type interactions
-await userEvent.type(screen.getByLabelText(/name/i), 'New Name');
+  beforeEach(() => {
+    user = userEvent.setup();
+  });
 
-// Clear and type
-await userEvent.clear(screen.getByLabelText(/email/i));
-await userEvent.type(screen.getByLabelText(/email/i), 'test@example.com');
+  it('handles user interactions', async () => {
+    renderWithProviders(<Component />);
 
-// Select text in input
-await userEvent.selectOptions(screen.getByRole('combobox'), ['option-value']);
+    // Click interactions
+    await user.click(screen.getByRole('button', { name: /save/i }));
 
-// Hover interactions
-await userEvent.hover(screen.getByText('Hover me'));
-await userEvent.unhover(screen.getByText('Hover me'));
+    // Type interactions
+    await user.type(screen.getByLabelText(/name/i), 'New Name');
+
+    // Clear and type
+    await user.clear(screen.getByLabelText(/email/i));
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
+
+    // Select text in input
+    await user.selectOptions(screen.getByRole('combobox'), ['option-value']);
+
+    // Hover interactions
+    await user.hover(screen.getByText('Hover me'));
+    await user.unhover(screen.getByText('Hover me'));
+
+    // Keyboard interactions
+    await user.keyboard('{Enter}');
+    await user.keyboard('{Escape}');
+  });
+});
 ```
-
-**Note**: This project uses an older version of userEvent that doesn't support `.setup()`. Use the direct methods as shown above.
 
 #### When to use fireEvent
 Only use fireEvent for edge cases where userEvent doesn't support the interaction:
@@ -334,7 +348,7 @@ it('shows content when expanded', async () => {
   expect(screen.getByTestId('collapsible-content')).not.toBeVisible();
   
   // Click to expand
-  await userEvent.click(toggleButton);
+  await user.click(toggleButton);
   
   // Content should now be visible
   expect(screen.getByTestId('collapsible-content')).toBeVisible();
@@ -373,7 +387,7 @@ await waitFor(() => {
 });
 
 // For userEvent async operations
-await userEvent.click(submitButton);
+await user.click(submitButton);
 await waitFor(() => {
   expect(screen.getByText('Success')).toBeInTheDocument();
 });
@@ -387,16 +401,6 @@ The project uses Material-UI which can cause "act" warnings in tests. These are 
 #### TypeScript in Tests
 Test files use `.js` extension but can still import TypeScript files. Type checking is not enforced in test files.
 
-#### Older userEvent Version
-This project uses an older version of `@testing-library/user-event` that doesn't support the `.setup()` pattern. Use the direct methods instead:
-```javascript
-// Don't do this (newer version)
-const user = userEvent.setup();
-await user.click(button);
-
-// Do this instead (older version)
-await userEvent.click(button);
-```
 
 ### 10. Running Tests
 ```bash
@@ -424,12 +428,12 @@ it('accepts current date when picker is used', async () => {
   renderWithProviders();
   
   const dateInput = screen.getByLabelText(/event date/i);
-  await userEvent.click(dateInput);
+  await user.click(dateInput);
   
   // Interact with the actual MUI dialog
   const okButton = await screen.findByRole('button', { name: /ok/i });
   if (okButton) {
-    await userEvent.click(okButton);
+    await user.click(okButton);
     expect(mockOnAccept).toHaveBeenCalled();
   }
 });

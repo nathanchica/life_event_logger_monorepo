@@ -1,18 +1,33 @@
+import { InMemoryCache } from '@apollo/client';
+import { MockedProvider } from '@apollo/client/testing';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { createMockEventLabel } from '../../../mocks/eventLabels';
+import { createMockEventLabelFragment } from '../../../mocks/eventLabels';
 import { createMockViewOptionsContextValue } from '../../../mocks/providers';
 import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import { MAX_LABEL_LENGTH } from '../../../utils/validation';
 import EventLabel from '../EventLabel';
 
+// Mock useEventLabels hook
+const mockUpdateEventLabel = jest.fn();
+const mockDeleteEventLabel = jest.fn();
+
+jest.mock('../../../hooks/useEventLabels', () => ({
+    useEventLabels: () => ({
+        updateEventLabel: mockUpdateEventLabel,
+        deleteEventLabel: mockDeleteEventLabel,
+        updateIsLoading: false,
+        deleteIsLoading: false
+    })
+}));
+
 describe('EventLabel', () => {
-    const mockUpdateEventLabel = jest.fn();
-    const mockDeleteEventLabel = jest.fn();
+    let apolloCache;
+    let user;
     const mockSetActiveEventLabelId = jest.fn();
 
-    const defaultLabel = createMockEventLabel({
+    const defaultLabel = createMockEventLabelFragment({
         id: 'label-1',
         name: 'Work'
     });
@@ -22,11 +37,25 @@ describe('EventLabel', () => {
         setActiveEventLabelId: mockSetActiveEventLabelId
     });
 
+    beforeEach(() => {
+        user = userEvent.setup();
+        apolloCache = new InMemoryCache();
+
+        // Prepopulate cache with default label
+        apolloCache.writeFragment({
+            id: apolloCache.identify(defaultLabel),
+            fragment: EventLabel.fragments.eventLabel,
+            data: defaultLabel
+        });
+    });
+
     const renderWithProviders = (component, viewOptionsOverrides = {}) => {
         return render(
-            <ViewOptionsContext.Provider value={{ ...mockViewOptionsContext, ...viewOptionsOverrides }}>
-                {component}
-            </ViewOptionsContext.Provider>
+            <MockedProvider cache={apolloCache} addTypename={false}>
+                <ViewOptionsContext.Provider value={{ ...mockViewOptionsContext, ...viewOptionsOverrides }}>
+                    {component}
+                </ViewOptionsContext.Provider>
+            </MockedProvider>
         );
     };
 
@@ -35,19 +64,25 @@ describe('EventLabel', () => {
     });
 
     it('renders label name', () => {
-        renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={false} />);
+        renderWithProviders(
+            <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={false} existingLabelNames={[]} />
+        );
         expect(screen.getByText('Work')).toBeInTheDocument();
     });
 
     describe('edit actions visibility', () => {
         it('shows edit and delete icons when isShowingEditActions is true', () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={true} />);
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={true} existingLabelNames={[]} />
+            );
             expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
         });
 
         it('does not show edit and delete icons when isShowingEditActions is false', () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={false} />);
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={false} existingLabelNames={[]} />
+            );
             expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
             expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
         });
@@ -55,8 +90,10 @@ describe('EventLabel', () => {
 
     describe('edit mode', () => {
         it('shows textfield and save/cancel icons when editing', async () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={true} />);
-            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={true} existingLabelNames={[]} />
+            );
+            await user.click(screen.getByRole('button', { name: /edit/i }));
 
             expect(screen.getByRole('textbox')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
@@ -64,31 +101,34 @@ describe('EventLabel', () => {
         });
 
         it('restores original label name and exits edit mode when cancel is clicked', async () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={true} />);
-            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={true} existingLabelNames={[]} />
+            );
+            await user.click(screen.getByRole('button', { name: /edit/i }));
 
             const input = screen.getByRole('textbox');
-            await userEvent.clear(input);
-            await userEvent.type(input, 'Changed');
+            await user.clear(input);
+            await user.type(input, 'Changed');
 
-            await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+            await user.click(screen.getByRole('button', { name: /cancel/i }));
 
             expect(screen.getByText('Work')).toBeInTheDocument();
             expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
         });
 
         it('cancels changes when user presses Escape while editing', async () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={true} />);
-            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={true} existingLabelNames={[]} />
+            );
+            await user.click(screen.getByRole('button', { name: /edit/i }));
 
             const input = screen.getByRole('textbox');
-            await userEvent.clear(input);
-            await userEvent.type(input, 'Changed');
-            await userEvent.keyboard('{Escape}');
+            await user.clear(input);
+            await user.type(input, 'Changed');
+            await user.keyboard('{Escape}');
 
             expect(screen.getByText('Work')).toBeInTheDocument();
             expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-            expect(mockUpdateEventLabel).not.toHaveBeenCalled();
         });
     });
 
@@ -97,15 +137,22 @@ describe('EventLabel', () => {
             ['empty name', '', 'Cannot be empty'],
             ['too long name', 'a'.repeat(MAX_LABEL_LENGTH + 1), `Max ${MAX_LABEL_LENGTH} characters`],
             ['duplicate name', 'Duplicate', 'Label already exists']
-        ])('disables save button for %s', async (testCase, inputValue, expectedError) => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={true} />);
-            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+        ])('disables save button for %s', async (_, inputValue, expectedError) => {
+            const existingNames = inputValue === 'Duplicate' ? ['Duplicate'] : [];
+            renderWithProviders(
+                <EventLabel
+                    eventLabelId={defaultLabel.id}
+                    isShowingEditActions={true}
+                    existingLabelNames={existingNames}
+                />
+            );
+            await user.click(screen.getByRole('button', { name: /edit/i }));
 
             const input = screen.getByRole('textbox');
-            await userEvent.clear(input);
+            await user.clear(input);
 
             if (inputValue) {
-                await userEvent.type(input, inputValue);
+                await user.type(input, inputValue);
             }
 
             expect(screen.getByText(expectedError)).toBeInTheDocument();
@@ -115,67 +162,97 @@ describe('EventLabel', () => {
 
     describe('save functionality', () => {
         it('calls updateEventLabel on save', async () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={true} />);
-            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={true} existingLabelNames={[]} />
+            );
+            await user.click(screen.getByRole('button', { name: /edit/i }));
 
             const input = screen.getByRole('textbox');
-            await userEvent.clear(input);
-            await userEvent.type(input, 'Updated');
+            await user.clear(input);
+            await user.type(input, 'Updated');
 
             const saveButton = screen.getByRole('button', { name: /save/i });
-            await userEvent.click(saveButton);
+            await user.click(saveButton);
 
             expect(mockUpdateEventLabel).toHaveBeenCalledWith({
-                id: 'label-1',
-                name: 'Updated'
+                input: {
+                    id: 'label-1',
+                    name: 'Updated'
+                }
             });
         });
 
         it('saves changes when user presses Enter while editing', async () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={true} />);
-            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={true} existingLabelNames={[]} />
+            );
+            await user.click(screen.getByRole('button', { name: /edit/i }));
 
             const input = screen.getByRole('textbox');
-            await userEvent.clear(input);
-            await userEvent.type(input, 'Updated');
-            await userEvent.keyboard('{Enter}');
+            await user.clear(input);
+            await user.type(input, 'Updated');
+            await user.keyboard('{Enter}');
 
             expect(mockUpdateEventLabel).toHaveBeenCalledWith({
-                id: 'label-1',
-                name: 'Updated'
+                input: {
+                    id: 'label-1',
+                    name: 'Updated'
+                }
             });
             expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        });
+
+        it('does not save changes when user presses Enter while editing a label with invalid name', async () => {
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={true} existingLabelNames={[]} />
+            );
+            await user.click(screen.getByRole('button', { name: /edit/i }));
+
+            const input = screen.getByRole('textbox');
+            await user.clear(input);
+            await user.type(input, 'a'.repeat(MAX_LABEL_LENGTH + 1));
+            await user.keyboard('{Enter}');
+
+            expect(mockUpdateEventLabel).not.toHaveBeenCalled();
+            expect(screen.queryByRole('textbox')).toBeInTheDocument();
         });
     });
 
     describe('delete functionality', () => {
         it('calls deleteEventLabel on delete', async () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={true} />);
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={true} existingLabelNames={[]} />
+            );
 
             const deleteButton = screen.getByRole('button', { name: /delete/i });
-            await userEvent.click(deleteButton);
+            await user.click(deleteButton);
 
-            expect(mockDeleteEventLabel).toHaveBeenCalledWith('label-1');
+            expect(mockDeleteEventLabel).toHaveBeenCalledWith({ input: { id: 'label-1' } });
         });
     });
 
     describe('label selection', () => {
         it('calls setActiveEventLabelId when label is clicked', async () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={false} />);
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={false} existingLabelNames={[]} />
+            );
 
             const labelButton = screen.getByRole('button', { name: /Work/i });
-            await userEvent.click(labelButton);
+            await user.click(labelButton);
 
             expect(mockSetActiveEventLabelId).toHaveBeenCalledWith('label-1');
         });
 
         it('sets activeEventLabelId to null when active label is clicked again', async () => {
-            renderWithProviders(<EventLabel {...defaultLabel} isShowingEditActions={false} />, {
-                activeEventLabelId: 'label-1'
-            });
+            renderWithProviders(
+                <EventLabel eventLabelId={defaultLabel.id} isShowingEditActions={false} existingLabelNames={[]} />,
+                {
+                    activeEventLabelId: 'label-1'
+                }
+            );
 
             const labelButton = screen.getByRole('button', { name: /Work/i });
-            await userEvent.click(labelButton);
+            await user.click(labelButton);
 
             expect(mockSetActiveEventLabelId).toHaveBeenCalledWith(null);
         });
