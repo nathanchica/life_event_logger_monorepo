@@ -133,8 +133,12 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     invariant(user, 'User is not authenticated');
 
     const isDarkMode = theme.palette.mode === 'dark';
+    const isCreatingNewEvent = !eventIdToEdit;
 
-    const { complete: userLabelsAndEventsDataComplete, data: userLabelsAndEventsData } = useFragment({
+    /**
+     * Fetch all user labels and events (only ids and names of each) for validation purposes
+     */
+    const { data: userLabelsAndEventsData } = useFragment({
         fragment: USER_LABELS_AND_EVENTS_FRAGMENT,
         fragmentName: 'UserLabelsAndEventsFragment',
         from: {
@@ -142,30 +146,27 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
             id: user.id
         }
     });
-    const { complete: loggableEventDataComplete, data: loggableEventData } = useFragment({
+    /**
+     * Fetch the full loggable event data if editing an existing event.
+     * If creating a new event, this will be undefined and the default values will be used.
+     */
+    const { data: loggableEventData } = useFragment({
         fragment: EDIT_EVENT_CARD_FRAGMENT,
         fragmentName: 'EditEventCardFragment',
         from: {
             __typename: 'LoggableEvent',
-            id: eventIdToEdit
+            // if creating a new event, use a placeholder id to avoid console warning. won't be used in mutation
+            id: isCreatingNewEvent ? 'placeholder-new-event' : eventIdToEdit
         }
     });
 
-    const allEventLabels: Array<EventLabel> = userLabelsAndEventsDataComplete
-        ? userLabelsAndEventsData.eventLabels.map(createEventLabelFromFragment)
-        : [];
-    const allLoggableEvents: Array<LoggableEvent> = userLabelsAndEventsDataComplete
-        ? userLabelsAndEventsData.loggableEvents.map(createCoreLoggableEventFromFragment)
-        : [];
-    const existingEventNames: Array<string> = userLabelsAndEventsDataComplete
-        ? allLoggableEvents.map(({ name }) => name)
-        : [];
-    const isCreatingNewEvent = !eventIdToEdit;
+    const allEventLabels: Array<EventLabel> = userLabelsAndEventsData.eventLabels.map(createEventLabelFromFragment);
+    const allLoggableEvents: Array<LoggableEvent> = userLabelsAndEventsData.loggableEvents.map(
+        createCoreLoggableEventFromFragment
+    );
+    const existingEventNames: Array<string> = allLoggableEvents.map(({ name }) => name);
 
-    const eventToEdit =
-        loggableEventDataComplete && !isCreatingNewEvent
-            ? createLoggableEventFromFragment(loggableEventData)
-            : EVENT_DEFAULT_VALUES;
+    const eventToEdit = !isCreatingNewEvent ? createLoggableEventFromFragment(loggableEventData) : EVENT_DEFAULT_VALUES;
 
     /** Event name */
     const [eventNameInputValue, setEventNameInputValue] = useState(eventToEdit.name);
@@ -216,8 +217,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         if (isCreatingNewEvent && activeEventLabel) {
             return [activeEventLabel];
         }
-        // If editing, pre-populate with existing labels
-        return eventToEdit.labelIds ? allEventLabels.filter(({ id }) => eventToEdit.labelIds.includes(id)) : [];
+        // pre-populate with existing labels
+        return allEventLabels.filter(({ id }) => eventToEdit.labelIds.includes(id));
     });
 
     /** Handlers */
@@ -248,6 +249,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
     const handleNewEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
+        // safety check, the form won't call this handler if the event name is invalid so ignoring coverage for else
+        /* istanbul ignore else */
         if (eventNameIsValid) {
             createLoggableEvent({
                 input: {
@@ -262,6 +265,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
     const handleUpdateEventSubmit = (event: SyntheticEvent) => {
         event.preventDefault();
+        // safety check, the form won't call this handler if the event name is invalid so ignoring coverage for else
+        /* istanbul ignore else */
         if (eventNameIsValid && eventIdToEdit) {
             updateLoggableEvent({
                 input: {
@@ -390,7 +395,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 };
 
 EditEventCard.fragments = {
-    loggableEvent: EDIT_EVENT_CARD_FRAGMENT
+    loggableEvent: EDIT_EVENT_CARD_FRAGMENT,
+    userLabelsAndEvents: USER_LABELS_AND_EVENTS_FRAGMENT
 };
 
 export default EditEventCard;
