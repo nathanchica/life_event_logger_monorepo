@@ -3,7 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { createMockEventLabel } from '../../mocks/eventLabels';
-import { createMockViewOptionsContextValue } from '../../mocks/providers';
+import { createMockViewOptionsContextValue, createMockAuthContextValue } from '../../mocks/providers';
+import { AuthContext } from '../../providers/AuthProvider';
 import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import Sidebar from '../Sidebar';
 
@@ -21,11 +22,30 @@ jest.mock('@mui/material/ClickAwayListener', () => {
     };
 });
 
+// Mock EventLabelList
+jest.mock('../EventLabels/EventLabelList', () => {
+    return function MockEventLabelList({ isShowingEditActions }) {
+        return (
+            <div data-testid="event-label-list">
+                {isShowingEditActions && (
+                    <>
+                        <button aria-label="edit">Edit Label 1</button>
+                        <button aria-label="edit">Edit Label 2</button>
+                        <button aria-label="edit">Edit Label 3</button>
+                    </>
+                )}
+            </div>
+        );
+    };
+});
+
 describe('Sidebar', () => {
+    let user;
     const mockOnCollapseSidebarClick = jest.fn();
     const mockEnableDarkTheme = jest.fn();
     const mockEnableLightTheme = jest.fn();
     const mockSetActiveEventLabelId = jest.fn();
+    const mockLogout = jest.fn();
 
     const defaultProps = {
         isCollapsed: false,
@@ -40,6 +60,7 @@ describe('Sidebar', () => {
     ];
 
     beforeEach(() => {
+        user = userEvent.setup();
         jest.clearAllMocks();
     });
 
@@ -53,6 +74,10 @@ describe('Sidebar', () => {
             setActiveEventLabelId: mockSetActiveEventLabelId
         });
 
+        const mockAuthValue = createMockAuthContextValue({
+            logout: mockLogout
+        });
+
         const muiTheme = createTheme({
             palette: {
                 mode: theme
@@ -61,7 +86,9 @@ describe('Sidebar', () => {
 
         return render(
             <ThemeProvider theme={muiTheme}>
-                <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
+                <AuthContext.Provider value={mockAuthValue}>
+                    <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
+                </AuthContext.Provider>
             </ThemeProvider>
         );
     };
@@ -73,6 +100,7 @@ describe('Sidebar', () => {
             expect(screen.getByText('Event Log')).toBeInTheDocument();
             expect(screen.getByLabelText('View on GitHub')).toBeInTheDocument();
             expect(screen.getByLabelText('Manage labels')).toBeInTheDocument();
+            expect(screen.getByLabelText('Logout')).toBeInTheDocument();
         });
 
         it('renders sidebar in offline mode', () => {
@@ -111,7 +139,7 @@ describe('Sidebar', () => {
         it('calls onCollapseSidebarClick when hide button is clicked', async () => {
             renderWithProviders(<Sidebar {...defaultProps} />);
 
-            await userEvent.click(screen.getByLabelText('Hide sidebar'));
+            await user.click(screen.getByLabelText('Hide sidebar'));
 
             expect(mockOnCollapseSidebarClick).toHaveBeenCalledTimes(1);
         });
@@ -121,7 +149,7 @@ describe('Sidebar', () => {
         it('calls enableDarkTheme when switching from light to dark', async () => {
             renderWithProviders(<Sidebar {...defaultProps} />, { theme: 'light' });
 
-            await userEvent.click(screen.getByLabelText('Switch to dark mode'));
+            await user.click(screen.getByLabelText('Switch to dark mode'));
 
             expect(mockEnableDarkTheme).toHaveBeenCalledTimes(1);
         });
@@ -129,7 +157,7 @@ describe('Sidebar', () => {
         it('calls enableLightTheme when switching from dark to light', async () => {
             renderWithProviders(<Sidebar {...defaultProps} />, { theme: 'dark' });
 
-            await userEvent.click(screen.getByLabelText('Switch to light mode'));
+            await user.click(screen.getByLabelText('Switch to light mode'));
 
             expect(mockEnableLightTheme).toHaveBeenCalledTimes(1);
         });
@@ -144,37 +172,26 @@ describe('Sidebar', () => {
             expect(manageButton).toBeInTheDocument();
 
             // Click to enter edit mode
-            await userEvent.click(manageButton);
+            await user.click(manageButton);
 
             // Should now show "Stop editing labels"
             expect(screen.getByLabelText('Stop editing labels')).toBeInTheDocument();
             expect(screen.queryByLabelText('Manage labels')).not.toBeInTheDocument();
 
             // Click again to exit edit mode
-            await userEvent.click(screen.getByLabelText('Stop editing labels'));
+            await user.click(screen.getByLabelText('Stop editing labels'));
 
             // Should be back to "Manage labels"
             expect(screen.getByLabelText('Manage labels')).toBeInTheDocument();
             expect(screen.queryByLabelText('Stop editing labels')).not.toBeInTheDocument();
         });
-    });
 
-    describe('Click Away Behavior', () => {
-        it('handles click away', async () => {
-            renderWithProviders(<Sidebar {...defaultProps} />);
-
-            const clickAwayTrigger = screen.getByTestId('click-away-trigger');
-            await userEvent.click(clickAwayTrigger);
-
-            expect(screen.getByText('Event Log')).toBeInTheDocument();
-        });
-
-        it('shows edit icons when in editing mode with event labels', async () => {
+        it('exits editing mode when clicking away', async () => {
             renderWithProviders(<Sidebar {...defaultProps} />, { eventLabels: mockEventLabels });
 
             // Enter editing mode
             const manageButton = screen.getByLabelText('Manage labels');
-            await userEvent.click(manageButton);
+            await user.click(manageButton);
 
             // Verify button changed to "Stop editing labels"
             expect(screen.getByLabelText('Stop editing labels')).toBeInTheDocument();
@@ -185,13 +202,23 @@ describe('Sidebar', () => {
             expect(editButtons).toHaveLength(3); // One for each mock label
 
             const clickAwayTrigger = screen.getByTestId('click-away-trigger');
-            await userEvent.click(clickAwayTrigger);
+            await user.click(clickAwayTrigger);
 
             await waitFor(() => {
                 expect(screen.queryAllByLabelText('edit')).toHaveLength(0); // Edit icons should be removed
                 expect(screen.getByLabelText('Manage labels')).toBeInTheDocument();
                 expect(screen.queryByLabelText('Stop editing labels')).not.toBeInTheDocument();
             });
+        });
+    });
+
+    describe('Logout Functionality', () => {
+        it('calls logout when logout button is clicked', async () => {
+            renderWithProviders(<Sidebar {...defaultProps} />);
+
+            await user.click(screen.getByLabelText('Logout'));
+
+            expect(mockLogout).toHaveBeenCalledTimes(1);
         });
     });
 });

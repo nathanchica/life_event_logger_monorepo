@@ -7,6 +7,7 @@ import { cache, setupCachePersistence } from './cache';
 import LoggableEventCard from '../components/EventCards/LoggableEventCard';
 import EventLabel from '../components/EventLabels/EventLabel';
 import { GET_LOGGABLE_EVENTS_FOR_USER } from '../components/LoggableEventsGQL';
+import { offlineUser } from '../providers/AuthProvider';
 import { LoggableEventFragment, EventLabelFragment } from '../utils/types';
 
 /**
@@ -27,7 +28,7 @@ const readLoggableEventFromCache = (eventId: string): LoggableEventFragment | nu
 /**
  * Helper function to read an EventLabel from the cache
  */
-export const readEventLabelFromCache = (labelId: string): EventLabelFragment | null => {
+const readEventLabelFromCache = (labelId: string): EventLabelFragment | null => {
     try {
         return cache.readFragment<EventLabelFragment>({
             id: `EventLabel:${labelId}`,
@@ -287,7 +288,6 @@ export const createApolloClient = async (isOfflineMode = false) => {
         // Use mock link in offline mode, authenticated HTTP link when online
         link: isOfflineMode ? offlineMockLink : authLink.concat(httpLink),
         cache,
-        // Suppress cache-related warnings during development for cleaner debugging
         defaultOptions: {
             watchQuery: {
                 errorPolicy: 'all'
@@ -325,7 +325,7 @@ export const createApolloClient = async (isOfflineMode = false) => {
             data: {
                 loggedInUser: {
                     __typename: 'User',
-                    id: 'offline',
+                    id: offlineUser.id,
                     loggableEvents: [],
                     eventLabels: []
                 }

@@ -1,120 +1,197 @@
+import { InMemoryCache } from '@apollo/client';
+import { MockedProvider } from '@apollo/client/testing';
 import { render, screen } from '@testing-library/react';
 
-import { createMockLoggableEvent } from '../../mocks/loggableEvent';
-import { createMockLoggableEventsContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
+import { createMockEventLabelFragment } from '../../mocks/eventLabels';
+import { createMockLoggableEventFragment } from '../../mocks/loggableEvent';
+import { createMockAuthContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
+import { createMockUserFragment } from '../../mocks/user';
+import { AuthContext } from '../../providers/AuthProvider';
 import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import LoggableEventsList from '../LoggableEventsList';
 
-// Mock child components to focus on LoggableEventsList logic
+// Mock LoggableEventCard component
 jest.mock('../EventCards/LoggableEventCard', () => {
     return function MockLoggableEventCard({ eventId }) {
-        return <div data-testid={`event-card-${eventId}`}>Event Card {eventId}</div>;
+        return <div data-testid={`loggable-event-card-${eventId}`}>LoggableEventCard {eventId}</div>;
     };
 });
 
-jest.mock('../EventCards/EventCard', () => ({
-    EventCardSkeleton: function MockEventCardSkeleton() {
-        return <div data-testid="event-card-shimmer">Loading...</div>;
-    }
-}));
-
 describe('LoggableEventsList', () => {
+    let apolloCache;
+    const mockUserFragment = createMockUserFragment({ id: 'user-1' });
+
+    const mockEventLabels = [
+        createMockEventLabelFragment({ id: 'label-work', name: 'Work' }),
+        createMockEventLabelFragment({ id: 'label-health', name: 'Health' }),
+        createMockEventLabelFragment({ id: 'label-social', name: 'Social' })
+    ];
+
+    const mockLoggableEvents = [
+        createMockLoggableEventFragment({
+            id: 'event-1',
+            name: 'Work Meeting',
+            labels: [mockEventLabels[0]]
+        }),
+        createMockLoggableEventFragment({
+            id: 'event-2',
+            name: 'Gym Session',
+            labels: [mockEventLabels[1]]
+        }),
+        createMockLoggableEventFragment({
+            id: 'event-3',
+            name: 'Team Building',
+            labels: [mockEventLabels[0], mockEventLabels[2]]
+        })
+    ];
+
+    const renderWithProviders = (options = {}) => {
+        const { viewOptionsValue = {}, loggableEvents = mockLoggableEvents, skipCachePrepopulation = false } = options;
+
+        apolloCache = new InMemoryCache();
+
+        // Write the user fragment with loggable events to cache
+        if (!skipCachePrepopulation) {
+            apolloCache.writeFragment({
+                id: apolloCache.identify(mockUserFragment),
+                fragment: LoggableEventsList.fragments.loggableEventsForUser,
+                data: {
+                    __typename: 'User',
+                    loggableEvents
+                }
+            });
+        }
+
+        const mockAuthValue = createMockAuthContextValue({
+            user: {
+                id: mockUserFragment.id,
+                email: mockUserFragment.email,
+                name: mockUserFragment.name
+            }
+        });
+
+        const mockViewOptionsValue = createMockViewOptionsContextValue(viewOptionsValue);
+
+        return render(
+            <MockedProvider cache={apolloCache} addTypename={false}>
+                <AuthContext.Provider value={mockAuthValue}>
+                    <ViewOptionsContext.Provider value={mockViewOptionsValue}>
+                        <LoggableEventsList />
+                    </ViewOptionsContext.Provider>
+                </AuthContext.Provider>
+            </MockedProvider>
+        );
+    };
+
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    const renderWithProviders = (component, { viewOptionsValue } = {}) => {
-        const defaultViewOptionsValue = createMockViewOptionsContextValue();
+    afterEach(() => {
+        if (apolloCache) {
+            apolloCache.reset();
+        }
+    });
 
-        return render(
-            <ViewOptionsContext.Provider value={viewOptionsValue || defaultViewOptionsValue}>
-                {component}
-            </ViewOptionsContext.Provider>
-        );
-    };
+    describe('event filtering', () => {
+        it('shows all events when no activeEventLabelId is set', () => {
+            renderWithProviders({ viewOptionsValue: { activeEventLabelId: null } });
 
-    describe('Rendering events', () => {
+            const listItems = screen.getAllByRole('listitem');
+            expect(listItems).toHaveLength(3);
+
+            expect(screen.getByTestId('loggable-event-card-event-1')).toBeInTheDocument();
+            expect(screen.getByTestId('loggable-event-card-event-2')).toBeInTheDocument();
+            expect(screen.getByTestId('loggable-event-card-event-3')).toBeInTheDocument();
+        });
+
         it.each([
-            ['no events', []],
-            ['single event', [createMockLoggableEvent({ id: 'event-1', name: 'Single Event' })]],
-            [
-                'multiple events',
-                [
-                    createMockLoggableEvent({ id: 'event-1', name: 'First Event' }),
-                    createMockLoggableEvent({ id: 'event-2', name: 'Second Event' }),
-                    createMockLoggableEvent({ id: 'event-3', name: 'Third Event' })
-                ]
-            ]
-        ])('renders %s correctly', (_, events) => {
-            const eventsValue = createMockLoggableEventsContextValue({
-                dataIsLoaded: true,
-                loggableEvents: events
-            });
+            ['work label', 'label-work', ['event-1', 'event-3']],
+            ['health label', 'label-health', ['event-2']],
+            ['social label', 'label-social', ['event-3']]
+        ])('filters events by %s', (_, activeEventLabelId, expectedEventIds) => {
+            renderWithProviders({ viewOptionsValue: { activeEventLabelId } });
 
-            renderWithProviders(<LoggableEventsList />, { eventsValue });
+            const listItems = screen.getAllByRole('listitem');
+            expect(listItems).toHaveLength(expectedEventIds.length);
+
+            for (const eventId of expectedEventIds) {
+                expect(screen.getByTestId(`loggable-event-card-${eventId}`)).toBeInTheDocument();
+            }
+        });
+
+        it('shows no events when filtering by non-existent label', () => {
+            renderWithProviders({ viewOptionsValue: { activeEventLabelId: 'non-existent-label' } });
 
             const listItems = screen.queryAllByRole('listitem');
-            expect(listItems).toHaveLength(events.length);
-
-            events.forEach((event) => {
-                expect(screen.getByTestId(`event-card-${event.id}`)).toBeInTheDocument();
-            });
+            expect(listItems).toHaveLength(0);
         });
     });
 
-    describe('Label filtering', () => {
-        const labelId1 = 'label-1';
-        const labelId2 = 'label-2';
-
-        const mockEvents = [
-            createMockLoggableEvent({
-                id: 'event-1',
-                name: 'Event with Label 1',
-                labelIds: [labelId1]
-            }),
-            createMockLoggableEvent({
-                id: 'event-2',
-                name: 'Event with Label 2',
-                labelIds: [labelId2]
-            }),
-            createMockLoggableEvent({
-                id: 'event-3',
-                name: 'Event with both labels',
-                labelIds: [labelId1, labelId2]
-            }),
-            createMockLoggableEvent({
-                id: 'event-4',
-                name: 'Event with no labels',
-                labelIds: []
-            }),
-            createMockLoggableEvent({
-                id: 'event-5',
-                name: 'Event with null labels',
-                labelIds: null
-            })
-        ];
-
-        it.each([
-            ['null', null, 5],
-            ['undefined', undefined, 5],
-            ['empty string', '', 5],
-            ['non-existent label', 'non-existent-label', 0],
-            ['label-1', labelId1, 2],
-            ['label-2', labelId2, 2]
-        ])('filters correctly with %s activeEventLabelId', (_, activeEventLabelId, expectedCount) => {
-            const eventsValue = createMockLoggableEventsContextValue({
-                dataIsLoaded: true,
-                loggableEvents: mockEvents
-            });
-
-            const viewOptionsValue = createMockViewOptionsContextValue({
-                activeEventLabelId
-            });
-
-            renderWithProviders(<LoggableEventsList />, { eventsValue, viewOptionsValue });
+    describe('with empty events', () => {
+        it('renders no list items when loggableEvents is empty', () => {
+            renderWithProviders({ loggableEvents: [], viewOptionsValue: { activeEventLabelId: null } });
 
             const listItems = screen.queryAllByRole('listitem');
-            expect(listItems).toHaveLength(expectedCount);
+            expect(listItems).toHaveLength(0);
+        });
+    });
+
+    describe('when fragment is not complete', () => {
+        it('renders no list items when useFragment complete is false', () => {
+            renderWithProviders({ skipCachePrepopulation: true });
+
+            const listItems = screen.queryAllByRole('listitem');
+            expect(listItems).toHaveLength(0);
+        });
+
+        it('renders no list items when fragment is incomplete even with active filter', () => {
+            renderWithProviders({
+                skipCachePrepopulation: true,
+                viewOptionsValue: { activeEventLabelId: 'label-work' }
+            });
+
+            const listItems = screen.queryAllByRole('listitem');
+            expect(listItems).toHaveLength(0);
+        });
+    });
+
+    describe('events with no labels', () => {
+        it('shows events without labels when no filter is active', () => {
+            const eventsWithoutLabels = [
+                createMockLoggableEventFragment({
+                    id: 'event-no-labels',
+                    name: 'No Labels Event',
+                    labels: []
+                })
+            ];
+
+            renderWithProviders({
+                viewOptionsValue: { activeEventLabelId: null },
+                loggableEvents: eventsWithoutLabels
+            });
+
+            const listItems = screen.getAllByRole('listitem');
+            expect(listItems).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-no-labels')).toBeInTheDocument();
+        });
+
+        it('hides events without labels when filter is active', () => {
+            const eventsWithoutLabels = [
+                createMockLoggableEventFragment({
+                    id: 'event-no-labels',
+                    name: 'No Labels Event',
+                    labels: []
+                })
+            ];
+
+            renderWithProviders({
+                viewOptionsValue: { activeEventLabelId: 'label-work' },
+                loggableEvents: eventsWithoutLabels
+            });
+
+            const listItems = screen.queryAllByRole('listitem');
+            expect(listItems).toHaveLength(0);
         });
     });
 });

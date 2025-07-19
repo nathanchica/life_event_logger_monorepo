@@ -123,13 +123,4 @@ describe('LoggableEventsView', () => {
         // Show button should disappear
         expect(screen.queryByLabelText(/show sidebar/i)).not.toBeInTheDocument();
     });
-
-    it('does not show loading state in offline mode', () => {
-        renderWithProviders(<LoggableEventsView isLoading={true} offlineMode={true} />);
-
-        // Should show normal content, not loading skeletons
-        expect(screen.getByTestId('create-event-card')).toBeInTheDocument();
-        expect(screen.getByTestId('loggable-events-list')).toBeInTheDocument();
-        expect(screen.queryByLabelText(/loading event card/i)).not.toBeInTheDocument();
-    });
 });

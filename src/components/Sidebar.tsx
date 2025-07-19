@@ -44,7 +44,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
     const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());
 
     const handleClickAway = () => {
-        if (isEditingLabels) stopEditingLabels();
+        stopEditingLabels();
     };
 
     return (

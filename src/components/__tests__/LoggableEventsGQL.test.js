@@ -1,27 +1,19 @@
 import { MockedProvider } from '@apollo/client/testing';
-import { render, screen, waitFor } from '@testing-library/react';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { render, screen } from '@testing-library/react';
 
 import { createMockEventLabelFragment } from '../../mocks/eventLabels';
 import { createMockLoggableEventFragment } from '../../mocks/loggableEvent';
-import { createMockAuthContextValue } from '../../mocks/providers';
+import { createMockAuthContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
 import { createMockUser } from '../../mocks/user';
 import { AuthContext } from '../../providers/AuthProvider';
+import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import LoggableEventsGQL, { GET_LOGGABLE_EVENTS_FOR_USER } from '../LoggableEventsGQL';
 
-jest.mock('../LoggableEventsView', () => {
-    return function MockLoggableEventsView({ isLoading, isShowingFetchError }) {
-        return (
-            <div data-testid="loggable-events-view">
-                {isLoading && <span>Loading</span>}
-                {isShowingFetchError && <span>Error</span>}
-                Loggable Events View
-            </div>
-        );
-    };
-});
+const mockUser = createMockUser();
 
-const createGetLoggableEventsForUserMock = (
-    userId = createMockUser().id,
+const createGetLoggableEventsForUserMock = ({
     loggableEvents = [
         createMockLoggableEventFragment(),
         createMockLoggableEventFragment({ id: 'event-2', name: 'Test Event 2' })
@@ -30,16 +22,16 @@ const createGetLoggableEventsForUserMock = (
         createMockEventLabelFragment({ id: 'label-1', name: 'Work' }),
         createMockEventLabelFragment({ id: 'label-2', name: 'Personal' })
     ]
-) => {
+} = {}) => {
     return {
         request: {
-            query: GET_LOGGABLE_EVENTS_FOR_USER,
-            variables: { userId }
+            query: GET_LOGGABLE_EVENTS_FOR_USER
         },
         result: {
             data: {
-                user: {
+                loggedInUser: {
                     __typename: 'User',
+                    id: mockUser.id,
                     loggableEvents,
                     eventLabels
                 }
@@ -48,140 +40,95 @@ const createGetLoggableEventsForUserMock = (
     };
 };
 
-const createGetLoggableEventsForUserErrorMock = (userId = createMockUser().id) => ({
+const createGetLoggableEventsForUserErrorMock = () => ({
     request: {
-        query: GET_LOGGABLE_EVENTS_FOR_USER,
-        variables: { userId }
+        query: GET_LOGGABLE_EVENTS_FOR_USER
     },
     error: new Error('GraphQL Error: Unable to fetch loggable events')
 });
 
 describe('LoggableEventsGQL', () => {
-    let mockLoadLoggableEvents;
-    let mockLoadEventLabels;
-
     beforeEach(() => {
         jest.clearAllMocks();
-        mockLoadLoggableEvents = jest.fn();
-        mockLoadEventLabels = jest.fn();
     });
 
     const renderWithProviders = (
         component,
-        { authContextValue = createMockAuthContextValue(), apolloMocks = [] } = {}
+        {
+            authContextValue = createMockAuthContextValue({ user: mockUser }),
+            viewOptionsContextValue = {},
+            apolloMocks = []
+        } = {}
     ) => {
+        const defaultAuthContextValue = createMockAuthContextValue(authContextValue);
+        const defaultViewOptionsValue = createMockViewOptionsContextValue(viewOptionsContextValue);
         return render(
             <MockedProvider mocks={apolloMocks} addTypename={false}>
-                <AuthContext.Provider value={authContextValue}>{component}</AuthContext.Provider>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <ViewOptionsContext.Provider value={defaultViewOptionsValue}>
+                        <AuthContext.Provider value={defaultAuthContextValue}>{component}</AuthContext.Provider>
+                    </ViewOptionsContext.Provider>
+                </LocalizationProvider>
             </MockedProvider>
         );
     };
 
+    it('renders loading state initially', async () => {
+        const apolloMocks = [createGetLoggableEventsForUserMock()];
+
+        renderWithProviders(<LoggableEventsGQL />, { apolloMocks });
+
+        expect(await screen.findAllByLabelText(/Loading event card/)).toHaveLength(3);
+    });
+
     it('throws error when user is not authenticated', () => {
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+
         const authContextValue = createMockAuthContextValue({ user: null });
 
         expect(() => {
             renderWithProviders(<LoggableEventsGQL />, { authContextValue });
-        }).toThrow('User is not authenticated, please log in.');
+        }).toThrow('Invariant failed: User is not authenticated');
+
+        console.error.mockRestore();
     });
 
-    it('renders LoggableEventsView when data is loaded', async () => {
-        const mockUser = createMockUser();
+    it.each([
+        ['offline mode', { isOfflineMode: true }],
+        ['online mode', { isOfflineMode: false }]
+    ])('renders LoggableEventsView in %s when data is loaded', async (_, authContextValue) => {
         const apolloMocks = [
-            createGetLoggableEventsForUserMock(mockUser.id, [
-                createMockLoggableEventFragment(),
-                createMockLoggableEventFragment({ id: 'event-2', name: 'Test Event 2', labels: [] })
-            ])
+            createGetLoggableEventsForUserMock({
+                loggableEvents: [
+                    createMockLoggableEventFragment(),
+                    createMockLoggableEventFragment({ id: 'event-2', name: 'Test Event 2', labels: [] })
+                ]
+            })
+        ];
+
+        renderWithProviders(<LoggableEventsGQL />, { apolloMocks, authContextValue });
+
+        expect(await screen.findByLabelText('Add event')).toBeInTheDocument();
+    });
+
+    it('handles GraphQL query errors', async () => {
+        const apolloMocks = [createGetLoggableEventsForUserErrorMock()];
+
+        renderWithProviders(<LoggableEventsGQL />, { apolloMocks });
+
+        expect(await screen.findByText(/Sorry, something went wrong/)).toBeInTheDocument();
+    });
+
+    it('handles empty data arrays', async () => {
+        const apolloMocks = [
+            createGetLoggableEventsForUserMock({
+                loggableEvents: [],
+                eventLabels: []
+            })
         ];
 
         renderWithProviders(<LoggableEventsGQL />, { apolloMocks });
 
-        expect(await screen.findByTestId('loggable-events-view')).toBeInTheDocument();
-
-        await waitFor(() => {
-            expect(mockLoadLoggableEvents).toHaveBeenCalledWith([
-                expect.objectContaining({
-                    id: 'event-1',
-                    name: 'Test Event 1',
-                    timestamps: [new Date('2023-01-01T00:00:00Z')],
-                    warningThresholdInDays: 7,
-                    labelIds: ['label-1', 'label-2']
-                }),
-                expect.objectContaining({
-                    id: 'event-2',
-                    name: 'Test Event 2',
-                    timestamps: [new Date('2023-01-01T00:00:00Z')],
-                    warningThresholdInDays: 7,
-                    labelIds: []
-                })
-            ]);
-            expect(mockLoadEventLabels).toHaveBeenCalledWith([
-                expect.objectContaining({
-                    id: 'label-1',
-                    name: 'Work'
-                }),
-                expect.objectContaining({
-                    id: 'label-2',
-                    name: 'Personal'
-                })
-            ]);
-        });
-    });
-
-    it('calls context functions when data is successfully fetched', async () => {
-        const mockUser = createMockUser();
-        const apolloMocks = [createGetLoggableEventsForUserMock(mockUser.id)];
-
-        renderWithProviders(<LoggableEventsGQL />, { apolloMocks });
-
-        // Wait for the component to render without errors (this validates the basic flow)
-        expect(await screen.findByTestId('loggable-events-view')).toBeInTheDocument();
-    });
-
-    it('handles GraphQL query errors', async () => {
-        const mockUser = createMockUser();
-        const apolloMocks = [createGetLoggableEventsForUserErrorMock(mockUser.id)];
-
-        renderWithProviders(<LoggableEventsGQL />, { apolloMocks });
-
-        // Wait for the error to be passed to LoggableEventsView
-        expect(await screen.findByText('Error')).toBeInTheDocument();
-    });
-
-    it('renders loading state initially', async () => {
-        const mockUser = createMockUser();
-        const apolloMocks = [createGetLoggableEventsForUserMock(mockUser.id)];
-
-        renderWithProviders(<LoggableEventsGQL />, { apolloMocks });
-
-        // Component should render (validates loading state handling)
-        expect(await screen.findByTestId('loggable-events-view')).toBeInTheDocument();
-    });
-
-    it('handles empty data arrays', async () => {
-        const mockUser = createMockUser();
-        const apolloMocks = [createGetLoggableEventsForUserMock(mockUser.id, [], [])];
-
-        renderWithProviders(<LoggableEventsGQL />, { apolloMocks });
-
-        expect(await screen.findByTestId('loggable-events-view')).toBeInTheDocument();
-
-        await waitFor(() => {
-            expect(mockLoadLoggableEvents).toHaveBeenCalledWith([]);
-            expect(mockLoadEventLabels).toHaveBeenCalledWith([]);
-        });
-    });
-
-    it('uses correct user ID in GraphQL query', async () => {
-        const mockUser = createMockUser({ id: 'specific-user-id' });
-        const authContextValue = createMockAuthContextValue({ user: mockUser });
-        const apolloMocks = [createGetLoggableEventsForUserMock('specific-user-id')];
-
-        renderWithProviders(<LoggableEventsGQL />, {
-            authContextValue,
-            apolloMocks
-        });
-
-        expect(await screen.findByTestId('loggable-events-view')).toBeInTheDocument();
+        expect(await screen.findByLabelText('Add event')).toBeInTheDocument();
     });
 });

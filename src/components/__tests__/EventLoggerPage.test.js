@@ -1,121 +1,88 @@
 import { render, screen } from '@testing-library/react';
 
 import { createMockAuthContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
-import { AuthContext } from '../../providers/AuthProvider';
+import { createMockUser } from '../../mocks/user';
+import { AuthContext, offlineUser } from '../../providers/AuthProvider';
 import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import EventLoggerPage from '../EventLoggerPage';
 
-// Mock child components
-jest.mock('../LoggableEventsGQL', () => {
-    return function MockLoggableEventsGQL() {
-        return <div data-testid="loggable-events-gql">Loggable Events GQL</div>;
-    };
-});
+// Mock Google OAuth to avoid provider errors
+jest.mock('@react-oauth/google', () => ({
+    GoogleOAuthProvider: ({ children }) => children,
+    GoogleLogin: () => <div>Google Login</div>,
+    useGoogleOneTapLogin: () => null
+}));
 
-jest.mock('../LoggableEventsView', () => {
-    return function MockLoggableEventsView({ offlineMode }) {
-        return <div data-testid="loggable-events-view">Loggable Events View{offlineMode && ' (Offline Mode)'}</div>;
-    };
-});
-
-jest.mock('../LoginView', () => {
-    return function MockLoginView() {
-        return <div data-testid="login-view">Login View</div>;
-    };
-});
+// Mock LoggableEventsGQL component
+jest.mock('../LoggableEventsGQL', () => ({
+    __esModule: true,
+    ...jest.requireActual('../LoggableEventsGQL'),
+    default: () => <div>LoggableEventsGQL</div>
+}));
 
 describe('EventLoggerPage', () => {
-    const renderWithProviders = (
-        component,
-        {
-            authContextValue = createMockAuthContextValue(),
-            viewOptionsContextValue = createMockViewOptionsContextValue()
-        } = {}
-    ) => {
+    let mockUser;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockUser = createMockUser();
+    });
+
+    const renderWithProviders = (options = {}) => {
+        const { authValue = {}, viewOptionsValue = {} } = options;
+
+        const defaultAuthValue = createMockAuthContextValue({
+            isAuthenticated: true,
+            isOfflineMode: false,
+            user: mockUser,
+            ...authValue
+        });
+
+        const defaultViewOptionsValue = createMockViewOptionsContextValue({
+            theme: 'light',
+            ...viewOptionsValue
+        });
+
         return render(
-            <AuthContext.Provider value={authContextValue}>
-                <ViewOptionsContext.Provider value={viewOptionsContextValue}>{component}</ViewOptionsContext.Provider>
+            <AuthContext.Provider value={defaultAuthValue}>
+                <ViewOptionsContext.Provider value={defaultViewOptionsValue}>
+                    <EventLoggerPage />
+                </ViewOptionsContext.Provider>
             </AuthContext.Provider>
         );
     };
 
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+    it('shows nothing while Apollo Client is being initialized', async () => {
+        renderWithProviders();
 
-    it('renders LoginView when not authenticated and not offline', () => {
-        const authContextValue = createMockAuthContextValue({
-            isAuthenticated: false,
-            isOfflineMode: false
-        });
-
-        renderWithProviders(<EventLoggerPage />, { authContextValue });
-
-        expect(screen.getByTestId('login-view')).toBeInTheDocument();
-        expect(screen.queryByTestId('loggable-events-gql')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('loggable-events-view')).not.toBeInTheDocument();
+        // Initially, should show nothing while Apollo Client loads
+        expect(screen.queryByLabelText('Hide sidebar')).not.toBeInTheDocument();
+        expect(screen.queryByText('Sign in to get started')).not.toBeInTheDocument();
     });
 
     it.each([
-        ['light mode', 'light'],
-        ['dark mode', 'dark']
-    ])('renders LoggableEventsView in %s with offline mode when in offline mode', (_, theme) => {
-        const authContextValue = createMockAuthContextValue({
-            isAuthenticated: false,
-            isOfflineMode: true
-        });
-        const viewOptionsContextValue = createMockViewOptionsContextValue({
-            theme
-        });
-
-        renderWithProviders(<EventLoggerPage />, { authContextValue, viewOptionsContextValue });
-
-        expect(screen.getByTestId('loggable-events-view')).toBeInTheDocument();
-        expect(screen.getByText('Loggable Events View (Offline Mode)')).toBeInTheDocument();
-        expect(screen.queryByTestId('login-view')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('loggable-events-gql')).not.toBeInTheDocument();
-    });
-
-    it('renders LoggableEventsGQL when authenticated and not offline', () => {
-        const authContextValue = createMockAuthContextValue({
-            isAuthenticated: true,
-            isOfflineMode: false
-        });
-
-        renderWithProviders(<EventLoggerPage />, { authContextValue });
-
-        expect(screen.getByTestId('loggable-events-gql')).toBeInTheDocument();
-        expect(screen.queryByTestId('login-view')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('loggable-events-view')).not.toBeInTheDocument();
-    });
-
-    it('prioritizes offline mode over authentication status', () => {
-        const authContextValue = createMockAuthContextValue({
-            isAuthenticated: true,
-            isOfflineMode: true
-        });
-
-        renderWithProviders(<EventLoggerPage />, { authContextValue });
-
-        expect(screen.getByTestId('loggable-events-view')).toBeInTheDocument();
-        expect(screen.getByText('Loggable Events View (Offline Mode)')).toBeInTheDocument();
-        expect(screen.queryByTestId('login-view')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('loggable-events-gql')).not.toBeInTheDocument();
+        ['authenticated user', { isAuthenticated: true }, 'LoggableEventsGQL'],
+        ['unauthenticated user', { isAuthenticated: false }, 'Sign in to get started'],
+        [
+            'authenticated user in offline mode',
+            { isAuthenticated: true, isOfflineMode: true, user: offlineUser },
+            'LoggableEventsGQL'
+        ],
+        [
+            'unauthenticated user in offline mode',
+            { isAuthenticated: false, isOfflineMode: true, user: offlineUser },
+            'Sign in to get started'
+        ]
+    ])('renders correct content for %s', async (_, authValue, expectedText) => {
+        renderWithProviders({ authValue });
+        expect(await screen.findByText(expectedText)).toBeInTheDocument();
     });
 
     it.each([
-        ['not authenticated, not offline', false, false, 'login-view'],
-        ['not authenticated, offline', false, true, 'loggable-events-view'],
-        ['authenticated, not offline', true, false, 'loggable-events-gql'],
-        ['authenticated, offline', true, true, 'loggable-events-view']
-    ])('renders correct component when %s', (_, isAuthenticated, isOfflineMode, expectedTestId) => {
-        const authContextValue = createMockAuthContextValue({
-            isAuthenticated,
-            isOfflineMode
-        });
-
-        renderWithProviders(<EventLoggerPage />, { authContextValue });
-
-        expect(screen.getByTestId(expectedTestId)).toBeInTheDocument();
+        ['light theme', 'light'],
+        ['dark theme', 'dark']
+    ])('renders with %s', async (_, theme) => {
+        renderWithProviders({ viewOptionsValue: { theme } });
+        expect(await screen.findByText('LoggableEventsGQL')).toBeInTheDocument();
     });
 });

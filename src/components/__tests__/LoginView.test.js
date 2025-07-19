@@ -26,14 +26,23 @@ jest.mock('@react-oauth/google', () => ({
 describe('LoginView', () => {
     const mockLogin = jest.fn();
     const mockSetOfflineMode = jest.fn();
-    const theme = createTheme();
     const mockUser = createMockUser();
+    let user;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        user = userEvent.setup();
     });
 
-    const renderWithProviders = (mocks = []) => {
+    const renderWithProviders = (options = {}) => {
+        const { mocks = [], themeMode = 'light' } = options;
+
+        const theme = createTheme({
+            palette: {
+                mode: themeMode
+            }
+        });
+
         const mockAuthValue = createMockAuthContextValue({
             login: mockLogin,
             setOfflineMode: mockSetOfflineMode,
@@ -52,14 +61,14 @@ describe('LoginView', () => {
     };
 
     describe('Initial rendering', () => {
-        it('renders all required elements', () => {
-            renderWithProviders();
+        it.each([['light'], ['dark']])('renders all required elements in %s mode', (themeMode) => {
+            renderWithProviders({ themeMode });
 
-            expect(screen.getByText('Welcome to Life Event Logger')).toBeInTheDocument();
-            expect(screen.getByText('Sign in with your Google account to get started')).toBeInTheDocument();
-            expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
-            expect(screen.getByText('Offline mode lets you explore the app without saving data')).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /continue without signing in/i })).toBeInTheDocument();
+            expect(screen.getByText('Life Event Logger')).toBeInTheDocument();
+            expect(screen.getByText('Track and organize the important moments in your life')).toBeInTheDocument();
+            expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
+            expect(screen.getByText(/Explore the app locally/)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /try offline mode/i })).toBeInTheDocument();
         });
     });
 
@@ -67,13 +76,18 @@ describe('LoginView', () => {
         const loginSuccessMock = {
             request: {
                 query: LOGIN_MUTATION,
-                variables: { googleToken: 'mock-credential' }
+                variables: {
+                    input: {
+                        googleToken: 'mock-credential'
+                    }
+                }
             },
             result: {
                 data: {
-                    login: {
+                    googleOAuthLoginMutation: {
                         token: 'mock-auth-token',
-                        user: mockUser
+                        user: mockUser,
+                        errors: []
                     }
                 }
             }
@@ -82,7 +96,11 @@ describe('LoginView', () => {
         const loginErrorMock = {
             request: {
                 query: LOGIN_MUTATION,
-                variables: { googleToken: 'mock-credential' }
+                variables: {
+                    input: {
+                        googleToken: 'mock-credential'
+                    }
+                }
             },
             error: new Error('Login failed')
         };
@@ -90,30 +108,35 @@ describe('LoginView', () => {
         const loginNoTokenMock = {
             request: {
                 query: LOGIN_MUTATION,
-                variables: { googleToken: 'mock-credential' }
+                variables: {
+                    input: {
+                        googleToken: 'mock-credential'
+                    }
+                }
             },
             result: {
                 data: {
-                    login: {
+                    googleOAuthLoginMutation: {
                         token: null,
-                        user: null
+                        user: null,
+                        errors: []
                     }
                 }
             }
         };
 
         it('shows loading state and calls login on success', async () => {
-            renderWithProviders([loginSuccessMock]);
+            renderWithProviders({ mocks: [loginSuccessMock] });
 
             const googleLoginButton = screen.getByTestId('google-login');
-            userEvent.click(googleLoginButton);
+            await user.click(googleLoginButton);
 
             // Should show loading state
-            expect(screen.getByText('Logging in...')).toBeInTheDocument();
+            expect(screen.getByText('Signing you in...')).toBeInTheDocument();
             expect(screen.getByRole('progressbar')).toBeInTheDocument();
 
             // Login form should be hidden
-            expect(screen.queryByText('Sign in with your Google account to get started')).not.toBeInTheDocument();
+            expect(screen.queryByText('Sign in to get started')).not.toBeInTheDocument();
 
             // Should call login after success
             await waitFor(() => {
@@ -124,35 +147,43 @@ describe('LoginView', () => {
         it.each([
             ['handles login errors', loginErrorMock],
             ['handles null token response', loginNoTokenMock]
-        ])('on %s - %s', async (_, mock) => {
-            renderWithProviders([mock]);
+        ])('%s', async (_, mock) => {
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            renderWithProviders({ mocks: [mock] });
 
             const googleLoginButton = screen.getByTestId('google-login');
-            userEvent.click(googleLoginButton);
+            await user.click(googleLoginButton);
 
             // Should return to normal state
             await waitFor(() => {
-                expect(screen.getByText('Sign in with your Google account to get started')).toBeInTheDocument();
+                expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
             });
 
             // Should not call login
             expect(mockLogin).not.toHaveBeenCalled();
+
+            console.error.mockRestore();
         });
 
         it('handles Google login onError callback', async () => {
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+
             renderWithProviders();
 
             const googleLoginErrorButton = screen.getByTestId('google-login-error');
-            userEvent.click(googleLoginErrorButton);
+            await user.click(googleLoginErrorButton);
 
             // Should not show loading state since error is immediate
-            expect(screen.queryByText('Logging in...')).not.toBeInTheDocument();
+            expect(screen.queryByText('Signing you in...')).not.toBeInTheDocument();
 
             // Should remain on login screen
-            expect(screen.getByText('Sign in with your Google account to get started')).toBeInTheDocument();
+            expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
 
             // Should not call login
             expect(mockLogin).not.toHaveBeenCalled();
+
+            console.error.mockRestore();
         });
     });
 
@@ -160,8 +191,8 @@ describe('LoginView', () => {
         it('calls setOfflineMode when offline button is clicked', async () => {
             renderWithProviders();
 
-            const offlineButton = screen.getByRole('button', { name: /continue without signing in/i });
-            userEvent.click(offlineButton);
+            const offlineButton = screen.getByRole('button', { name: /try offline mode/i });
+            await user.click(offlineButton);
 
             expect(mockSetOfflineMode).toHaveBeenCalledWith(true);
         });

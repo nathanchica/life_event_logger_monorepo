@@ -156,7 +156,73 @@ it.each([
 });
 ```
 
-### 5. Mock Function Best Practices
+### 5. Function Argument Patterns
+
+#### Prefer Single Options Object for renderWithProviders
+Use a single options object instead of multiple parameters for better maintainability and readability:
+
+```javascript
+// Good - Single options object
+const renderWithProviders = (options = {}) => {
+  const { 
+    viewOptionsValue = {}, 
+    loggableEvents = mockLoggableEvents,
+    skipCachePrepopulation = false,
+    authValue = {},
+    theme = 'light'
+  } = options;
+  
+  // ... rest of function
+};
+
+// Usage
+renderWithProviders({ 
+  viewOptionsValue: { activeEventLabelId: 'label-1' },
+  loggableEvents: customEvents 
+});
+
+renderWithProviders({ skipCachePrepopulation: true });
+
+// Bad - Multiple separate parameters
+const renderWithProviders = (
+  viewOptionsValue = {}, 
+  loggableEvents = mockLoggableEvents, 
+  skipCache = false
+) => {
+  // ... function body
+};
+
+// Usage is less clear and order-dependent
+renderWithProviders({ activeEventLabelId: 'label-1' }, customEvents, true);
+```
+
+**Benefits of options object pattern:**
+- **Named parameters** - Clear what each option does
+- **Order independent** - Can pass options in any order
+- **Extensible** - Easy to add new options without breaking existing calls
+- **Optional parameters** - Only specify what you need to change
+- **Self-documenting** - Code reads like configuration
+
+#### Apply to Other Test Helper Functions
+Use the same pattern for other test utilities:
+
+```javascript
+// Good
+const createMockEvent = (options = {}) => {
+  const { name = 'Default Event', labels = [], timestamps = [] } = options;
+  return { id: 'event-1', name, labels, timestamps };
+};
+
+// Usage
+createMockEvent({ name: 'Custom Event', labels: [label1] });
+
+// Bad
+const createMockEvent = (name = 'Default Event', labels = [], timestamps = []) => {
+  return { id: 'event-1', name, labels, timestamps };
+};
+```
+
+### 6. Mock Function Best Practices
 - Always clear mocks before each test:
 ```javascript
 beforeEach(() => {
@@ -173,7 +239,7 @@ describe('ComponentName', () => {
 });
 ```
 
-### 6. Testing User Interactions
+### 7. Testing User Interactions
 
 #### Prefer userEvent over fireEvent
 Use `@testing-library/user-event` for more realistic user interactions:
@@ -229,7 +295,7 @@ fireEvent.mouseEnter(element);
 fireEvent.mouseLeave(element);
 ```
 
-### 7. Common Test Patterns
+### 8. Common Test Patterns
 
 #### Testing with Multiple Providers
 When a component needs multiple contexts:
@@ -247,35 +313,78 @@ const renderWithProviders = (component) => {
 };
 ```
 
-#### Testing GraphQL Components
-For components using Apollo Client:
+#### Testing GraphQL Components with Cache Prepopulation
+For components using Apollo Client fragments, prefer cache prepopulation over mocked queries:
+
 ```javascript
+import { InMemoryCache } from '@apollo/client';
 import { MockedProvider } from '@apollo/client/testing';
 
-const mocks = [
-  {
-    request: {
-      query: YOUR_QUERY,
-      variables: { /* your variables */ }
-    },
-    result: {
-      data: { /* your mock data */ }
-    }
-  }
-];
+describe('ComponentName', () => {
+  let apolloCache;
+  const mockUserFragment = createMockUserFragment({ id: 'user-1' });
 
-const renderWithProviders = (component) => {
-  return render(
-    <MockedProvider mocks={mocks} addTypename={false}>
-      <LoggableEventsContext.Provider value={mockContextValue}>
-        {component}
-      </LoggableEventsContext.Provider>
-    </MockedProvider>
-  );
-};
+  const renderWithProviders = (options = {}) => {
+    const { 
+      viewOptionsValue = {}, 
+      loggableEvents = mockLoggableEvents,
+      skipCachePrepopulation = false 
+    } = options;
+    
+    apolloCache = new InMemoryCache();
+    
+    // Write fragment data to cache to simulate loaded state
+    if (!skipCachePrepopulation) {
+      apolloCache.writeFragment({
+        id: apolloCache.identify(mockUserFragment),
+        fragment: ComponentName.fragments.fragmentName,
+        data: {
+          __typename: 'User',
+          loggableEvents
+        }
+      });
+    }
+
+    return render(
+      <MockedProvider cache={apolloCache} addTypename={false}>
+        <AuthContext.Provider value={mockAuthValue}>
+          <ViewOptionsContext.Provider value={mockViewOptionsValue}>
+            {component}
+          </ViewOptionsContext.Provider>
+        </AuthContext.Provider>
+      </MockedProvider>
+    );
+  };
+
+  afterEach(() => {
+    if (apolloCache) {
+      apolloCache.reset();
+    }
+  });
+
+  // Test when fragment is complete (cache populated)
+  it('renders data when fragment is complete', () => {
+    renderWithProviders();
+    expect(screen.getByText('Expected Content')).toBeInTheDocument();
+  });
+
+  // Test when fragment is incomplete (cache not populated)
+  it('renders empty state when fragment is incomplete', () => {
+    renderWithProviders({ skipCachePrepopulation: true });
+    const items = screen.queryAllByRole('listitem');
+    expect(items).toHaveLength(0);
+  });
+});
 ```
 
-### 8. Common Testing Utilities
+**Why use cache prepopulation over mocked queries:**
+- More accurately simulates real Apollo Client behavior
+- Tests the actual `useFragment` hook behavior 
+- Allows testing incomplete fragment states (loading states)
+- Doesn't require complex query mocking setup
+- Tests integration with actual GraphQL fragments
+
+### 9. Common Testing Utilities
 
 #### Testing with User-Centric Queries
 ```javascript
@@ -393,7 +502,7 @@ await waitFor(() => {
 });
 ```
 
-### 9. Known Issues and Workarounds
+### 10. Known Issues and Workarounds
 
 #### Material-UI Act Warnings
 The project uses Material-UI which can cause "act" warnings in tests. These are generally harmless and relate to internal MUI state updates. Focus on actual test failures rather than these warnings.
@@ -402,7 +511,7 @@ The project uses Material-UI which can cause "act" warnings in tests. These are 
 Test files use `.js` extension but can still import TypeScript files. Type checking is not enforced in test files.
 
 
-### 10. Running Tests
+### 11. Running Tests
 ```bash
 # Run all tests
 yarn test
@@ -417,7 +526,7 @@ yarn test src/components/EventCards/__tests__/EventRecord.test.js
 yarn test --coverage
 ```
 
-### 11. Testing Complex Components
+### 12. Testing Complex Components
 
 When testing components that integrate with complex third-party libraries (like MUI date pickers):
 
@@ -458,7 +567,7 @@ If achieving 100% coverage requires complex mocking:
 4. Consider if the untested code is critical - internal implementation details may not need testing
 5. Document why certain lines can't be tested without mocking
 
-### 12. Test Coverage Goals
+### 13. Test Coverage Goals
 - Aim for high coverage on business logic and user interactions
 - Don't test implementation details
 - Focus on testing behavior, not internal state

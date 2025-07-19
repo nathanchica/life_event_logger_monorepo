@@ -66,4 +66,8 @@ const LoggableEventsList = () => {
     );
 };
 
+LoggableEventsList.fragments = {
+    loggableEventsForUser: LOGGABLE_EVENTS_FOR_USER_FRAGMENT
+};
+
 export default LoggableEventsList;
