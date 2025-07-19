@@ -1,35 +1,31 @@
-import { createMockEventLabel } from '../../mocks/eventLabels';
-import { createMockLoggableEvent } from '../../mocks/loggableEvent';
 import {
     validateEventLabelName,
     validateEventName,
     isEventNameValid,
     getEventNameValidationErrorText,
     MAX_LABEL_LENGTH,
-    MAX_EVENT_NAME_LENGTH
+    MAX_EVENT_NAME_LENGTH,
+    EventLabelNameValidationError,
+    EventNameValidationError
 } from '../validation';
 
 describe('validation', () => {
     describe('validateEventLabelName', () => {
-        const mockEventLabels = [
-            createMockEventLabel({ id: 'label-1', name: 'Work' }),
-            createMockEventLabel({ id: 'label-2', name: 'Personal' }),
-            createMockEventLabel({ id: 'label-3', name: 'Health' })
-        ];
+        const existingLabelNames = ['Work', 'Personal', 'Health'];
 
         it.each([
             ['valid label name', 'New Label', null],
-            ['empty string', '', 'EmptyName'],
-            ['whitespace-only string', '   ', 'EmptyName'],
+            ['empty string', '', EventLabelNameValidationError.EmptyName],
+            ['whitespace-only string', '   ', EventLabelNameValidationError.EmptyName],
             ['name at max length', 'a'.repeat(MAX_LABEL_LENGTH), null],
-            ['name exceeding max length', 'a'.repeat(MAX_LABEL_LENGTH + 1), 'TooLongName'],
-            ['exact duplicate', 'Work', 'DuplicateName'],
-            ['case-insensitive duplicate', 'work', 'DuplicateName'],
-            ['uppercase duplicate', 'WORK', 'DuplicateName'],
-            ['duplicate with whitespace', ' Work ', 'DuplicateName'],
+            ['name exceeding max length', 'a'.repeat(MAX_LABEL_LENGTH + 1), EventLabelNameValidationError.TooLongName],
+            ['exact duplicate', 'Work', EventLabelNameValidationError.DuplicateName],
+            ['case-insensitive duplicate', 'work', EventLabelNameValidationError.DuplicateName],
+            ['uppercase duplicate', 'WORK', EventLabelNameValidationError.DuplicateName],
+            ['duplicate with whitespace', ' Work ', EventLabelNameValidationError.DuplicateName],
             ['special characters', 'Work-2023!', null]
         ])('returns correct result for %s', (_, name, expected) => {
-            const result = validateEventLabelName(name, mockEventLabels);
+            const result = validateEventLabelName(name, existingLabelNames);
             expect(result).toBe(expected);
         });
 
@@ -40,24 +36,18 @@ describe('validation', () => {
     });
 
     describe('validateEventName', () => {
-        const mockLoggableEvents = [
-            createMockLoggableEvent({ id: 'event-1', name: 'Exercise' }),
-            createMockLoggableEvent({ id: 'event-2', name: 'Study' }),
-            createMockLoggableEvent({ id: 'event-3', name: 'Sleep' })
-        ];
+        const existingEventNames = ['Exercise', 'Study', 'Sleep'];
 
         it.each([
-            ['valid event name', 'New Event', undefined, null],
-            ['empty string', '', undefined, 'EmptyName'],
-            ['whitespace-only string', '   ', undefined, 'EmptyName'],
-            ['name at max length', 'a'.repeat(MAX_EVENT_NAME_LENGTH), undefined, null],
-            ['name exceeding max length', 'a'.repeat(MAX_EVENT_NAME_LENGTH + 1), undefined, 'TooLongName'],
-            ['exact duplicate', 'Exercise', undefined, 'DuplicateName'],
-            ['special characters', 'Exercise-2023!', undefined, null],
-            ['editing existing event with same name', 'Exercise', 'event-1', null],
-            ['editing event with different existing name', 'Study', 'event-1', 'DuplicateName']
-        ])('returns correct result for %s', (_, name, eventIdToEdit, expected) => {
-            const result = validateEventName(name, mockLoggableEvents, eventIdToEdit);
+            ['valid event name', 'New Event', null],
+            ['empty string', '', EventNameValidationError.EmptyName],
+            ['whitespace-only string', '   ', EventNameValidationError.EmptyName],
+            ['name at max length', 'a'.repeat(MAX_EVENT_NAME_LENGTH), null],
+            ['name exceeding max length', 'a'.repeat(MAX_EVENT_NAME_LENGTH + 1), EventNameValidationError.TooLongName],
+            ['exact duplicate', 'Exercise', EventNameValidationError.DuplicateName],
+            ['special characters', 'Exercise-2023!', null]
+        ])('returns correct result for %s', (_, name, expected) => {
+            const result = validateEventName(name, existingEventNames);
             expect(result).toBe(expected);
         });
 
@@ -68,38 +58,30 @@ describe('validation', () => {
     });
 
     describe('isEventNameValid', () => {
-        const mockLoggableEvents = [
-            createMockLoggableEvent({ id: 'event-1', name: 'Exercise' }),
-            createMockLoggableEvent({ id: 'event-2', name: 'Study' })
-        ];
+        const existingEventNames = ['Exercise', 'Study'];
 
         it.each([
-            ['valid event name', 'New Event', undefined, true],
-            ['empty event name', '', undefined, false],
-            ['duplicate event name', 'Exercise', undefined, false],
-            ['too long event name', 'a'.repeat(MAX_EVENT_NAME_LENGTH + 1), undefined, false],
-            ['editing existing event with same name', 'Exercise', 'event-1', true]
-        ])('returns %s for %s', (_, name, eventIdToEdit, expected) => {
-            const result = isEventNameValid(name, mockLoggableEvents, eventIdToEdit);
+            ['valid event name', 'New Event', true],
+            ['empty event name', '', false],
+            ['duplicate event name', 'Exercise', false],
+            ['too long event name', 'a'.repeat(MAX_EVENT_NAME_LENGTH + 1), false]
+        ])('returns %s for %s', (_, name, expected) => {
+            const result = isEventNameValid(name, existingEventNames);
             expect(result).toBe(expected);
         });
     });
 
     describe('getEventNameValidationErrorText', () => {
-        const mockLoggableEvents = [
-            createMockLoggableEvent({ id: 'event-1', name: 'Exercise' }),
-            createMockLoggableEvent({ id: 'event-2', name: 'Study' })
-        ];
+        const existingEventNames = ['Exercise', 'Study'];
 
         it.each([
-            ['valid event name', 'New Event', undefined, null],
-            ['empty name', '', undefined, 'Event name is required'],
-            ['whitespace-only name', '   ', undefined, 'Event name is required'],
-            ['too long name', 'a'.repeat(MAX_EVENT_NAME_LENGTH + 1), undefined, 'Event name is too long'],
-            ['duplicate name', 'Exercise', undefined, 'That event name already exists'],
-            ['editing existing event with same name', 'Exercise', 'event-1', null]
-        ])('returns correct error text for %s', (_, name, eventIdToEdit, expected) => {
-            const result = getEventNameValidationErrorText(name, mockLoggableEvents, eventIdToEdit);
+            ['valid event name', 'New Event', null],
+            ['empty name', '', 'Event name is required'],
+            ['whitespace-only name', '   ', 'Event name is required'],
+            ['too long name', 'a'.repeat(MAX_EVENT_NAME_LENGTH + 1), 'Event name is too long'],
+            ['duplicate name', 'Exercise', 'That event name already exists']
+        ])('returns correct error text for %s', (_, name, expected) => {
+            const result = getEventNameValidationErrorText(name, existingEventNames);
             expect(result).toBe(expected);
         });
     });

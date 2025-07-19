@@ -16,6 +16,9 @@ module.exports = {
     overrides: [
         {
             files: ["**/*.test.js", "**/*.test.jsx", "**/*.test.ts", "**/*.test.tsx"],
+            env: {
+                node: true
+            },
             rules: {
                 "react/prop-types": "off"
             }

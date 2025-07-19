@@ -2,7 +2,7 @@
 
 // No imports needed - validation functions work with primitive types
 
-enum EventLabelNameValidationError {
+export enum EventLabelNameValidationError {
     EmptyName = 'EmptyName',
     /** The event label name is too long */
     TooLongName = 'TooLongName',
@@ -13,7 +13,7 @@ enum EventLabelNameValidationError {
 export const MAX_LABEL_LENGTH = 24;
 export const MAX_EVENT_NAME_LENGTH = 24;
 
-enum EventNameValidationError {
+export enum EventNameValidationError {
     EmptyName = 'EmptyName',
     /** The event name is too long */
     TooLongName = 'TooLongName',
