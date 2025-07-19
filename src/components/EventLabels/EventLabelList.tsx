@@ -51,6 +51,7 @@ const EventLabelList = ({ isShowingEditActions }: Props) => {
             id: user.id
         }
     });
+
     const eventLabelsFragments: Array<EventLabelFragment> = complete ? data.eventLabels : [];
     const existingLabelNames = eventLabelsFragments.map((fragment) => fragment.name);
 
@@ -94,6 +95,10 @@ const EventLabelList = ({ isShowingEditActions }: Props) => {
             </List>
         </Box>
     );
+};
+
+EventLabelList.fragments = {
+    eventLabelsForUser: EVENT_LABELS_FOR_USER_FRAGMENT
 };
 
 export default EventLabelList;
