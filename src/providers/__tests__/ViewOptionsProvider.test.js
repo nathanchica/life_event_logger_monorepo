@@ -10,36 +10,41 @@ import ViewOptionsProvider, { ViewOptionsContext, useViewOptions } from '../View
 jest.mock('@mui/material/useMediaQuery');
 
 describe('ViewOptionsProvider', () => {
+    let user;
+
     beforeEach(() => {
+        user = userEvent.setup();
         jest.clearAllMocks();
         useMediaQuery.mockReturnValue(false);
     });
 
+    // Helper function to capture context value
+    const captureContextValue = () => {
+        let contextValue;
+        const TestComponent = () => {
+            contextValue = useContext(ViewOptionsContext);
+            return null;
+        };
+        return { TestComponent, getContextValue: () => contextValue };
+    };
+
+    // Helper function to render with provider
+    const renderWithProvider = (children) => {
+        return render(<ViewOptionsProvider>{children}</ViewOptionsProvider>);
+    };
+
     describe('Component rendering', () => {
         it('renders children correctly', () => {
-            render(
-                <ViewOptionsProvider>
-                    <div>Test Child Component</div>
-                </ViewOptionsProvider>
-            );
+            renderWithProvider(<div>Test Child Component</div>);
 
             expect(screen.getByText('Test Child Component')).toBeInTheDocument();
         });
 
         it('provides context value to children', () => {
-            let contextValue;
-            const TestComponent = () => {
-                contextValue = useContext(ViewOptionsContext);
-                return null;
-            };
+            const { TestComponent, getContextValue } = captureContextValue();
+            renderWithProvider(<TestComponent />);
 
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
-
-            expect(contextValue).toMatchObject({
+            expect(getContextValue()).toMatchObject({
                 theme: 'light',
                 enableLightTheme: expect.any(Function),
                 enableDarkTheme: expect.any(Function),
@@ -50,110 +55,63 @@ describe('ViewOptionsProvider', () => {
     });
 
     describe('Theme management', () => {
-        it('initializes with light theme when user prefers light mode', () => {
-            useMediaQuery.mockReturnValue(false);
+        it.each([
+            ['light mode preference', false, 'light'],
+            ['dark mode preference', true, 'dark']
+        ])('initializes with %s', (_, mediaQueryResult, expectedTheme) => {
+            useMediaQuery.mockReturnValue(mediaQueryResult);
+            const { TestComponent, getContextValue } = captureContextValue();
+            renderWithProvider(<TestComponent />);
 
-            let contextValue;
-            const TestComponent = () => {
-                contextValue = useContext(ViewOptionsContext);
-                return null;
-            };
-
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
-
-            expect(contextValue.theme).toBe('light');
+            expect(getContextValue().theme).toBe(expectedTheme);
         });
 
-        it('initializes with dark theme when user prefers dark mode', () => {
-            useMediaQuery.mockReturnValue(true);
+        it.each([
+            [
+                'switches to light theme when enableLightTheme is called',
+                true,
+                'dark',
+                'enableLightTheme',
+                'Enable Light Theme',
+                'light'
+            ],
+            [
+                'switches to dark theme when enableDarkTheme is called',
+                false,
+                'light',
+                'enableDarkTheme',
+                'Enable Dark Theme',
+                'dark'
+            ]
+        ])('%s', async (_, mediaQueryResult, initialTheme, methodName, buttonText, finalTheme) => {
+            useMediaQuery.mockReturnValue(mediaQueryResult);
 
-            let contextValue;
             const TestComponent = () => {
-                contextValue = useContext(ViewOptionsContext);
-                return null;
-            };
-
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
-
-            expect(contextValue.theme).toBe('dark');
-        });
-
-        it('switches to light theme when enableLightTheme is called', async () => {
-            useMediaQuery.mockReturnValue(true); // Start with dark preference
-
-            const TestComponent = () => {
-                const { theme, enableLightTheme } = useContext(ViewOptionsContext);
+                const context = useContext(ViewOptionsContext);
                 return (
                     <div>
-                        <span>Current theme: {theme}</span>
-                        <button onClick={enableLightTheme}>Enable Light Theme</button>
+                        <span>Current theme: {context.theme}</span>
+                        <button onClick={context[methodName]}>{buttonText}</button>
                     </div>
                 );
             };
 
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
+            renderWithProvider(<TestComponent />);
 
-            expect(screen.getByText('Current theme: dark')).toBeInTheDocument();
+            expect(screen.getByText(`Current theme: ${initialTheme}`)).toBeInTheDocument();
 
-            await userEvent.click(screen.getByRole('button', { name: /enable light theme/i }));
+            await user.click(screen.getByRole('button', { name: new RegExp(buttonText, 'i') }));
 
-            expect(screen.getByText('Current theme: light')).toBeInTheDocument();
-        });
-
-        it('switches to dark theme when enableDarkTheme is called', async () => {
-            useMediaQuery.mockReturnValue(false); // Start with light preference
-
-            const TestComponent = () => {
-                const { theme, enableDarkTheme } = useContext(ViewOptionsContext);
-                return (
-                    <div>
-                        <span>Current theme: {theme}</span>
-                        <button onClick={enableDarkTheme}>Enable Dark Theme</button>
-                    </div>
-                );
-            };
-
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
-
-            expect(screen.getByText('Current theme: light')).toBeInTheDocument();
-
-            await userEvent.click(screen.getByRole('button', { name: /enable dark theme/i }));
-
-            expect(screen.getByText('Current theme: dark')).toBeInTheDocument();
+            expect(screen.getByText(`Current theme: ${finalTheme}`)).toBeInTheDocument();
         });
     });
 
     describe('Active event label management', () => {
         it('initializes activeEventLabelId as null', () => {
-            let contextValue;
-            const TestComponent = () => {
-                contextValue = useContext(ViewOptionsContext);
-                return null;
-            };
+            const { TestComponent, getContextValue } = captureContextValue();
+            renderWithProvider(<TestComponent />);
 
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
-
-            expect(contextValue.activeEventLabelId).toBeNull();
+            expect(getContextValue().activeEventLabelId).toBeNull();
         });
 
         it('updates activeEventLabelId when setActiveEventLabelId is called', async () => {
@@ -168,44 +126,15 @@ describe('ViewOptionsProvider', () => {
                 );
             };
 
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
+            renderWithProvider(<TestComponent />);
 
             expect(screen.getByText('Active ID: none')).toBeInTheDocument();
 
-            await userEvent.click(screen.getByRole('button', { name: /set active label/i }));
+            await user.click(screen.getByRole('button', { name: /set active label/i }));
             expect(screen.getByText('Active ID: label-123')).toBeInTheDocument();
 
-            await userEvent.click(screen.getByRole('button', { name: /clear active label/i }));
+            await user.click(screen.getByRole('button', { name: /clear active label/i }));
             expect(screen.getByText('Active ID: none')).toBeInTheDocument();
-        });
-
-        it.each([
-            ['string ID', 'test-label-id', 'test-label-id'],
-            ['another string ID', 'another-id', 'another-id'],
-            ['null value', null, 'none']
-        ])('handles %s correctly', async (description, setValue, expectedDisplay) => {
-            const TestComponent = () => {
-                const { activeEventLabelId, setActiveEventLabelId } = useContext(ViewOptionsContext);
-                return (
-                    <div>
-                        <span>Active ID: {activeEventLabelId || 'none'}</span>
-                        <button onClick={() => setActiveEventLabelId(setValue)}>Update</button>
-                    </div>
-                );
-            };
-
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
-
-            await userEvent.click(screen.getByRole('button', { name: /update/i }));
-            expect(screen.getByText(`Active ID: ${expectedDisplay}`)).toBeInTheDocument();
         });
     });
 
@@ -217,11 +146,7 @@ describe('ViewOptionsProvider', () => {
                 return null;
             };
 
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
+            renderWithProvider(<TestComponent />);
 
             expect(hookResult).toMatchObject({
                 theme: 'light',
@@ -251,39 +176,14 @@ describe('ViewOptionsProvider', () => {
 
     describe('Media query integration', () => {
         it('checks for dark mode preference on mount', () => {
-            render(
-                <ViewOptionsProvider>
-                    <div>Test</div>
-                </ViewOptionsProvider>
-            );
+            renderWithProvider(<div>Test</div>);
 
             expect(useMediaQuery).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
-        });
-
-        it.each([
-            ['dark mode preference', true, 'dark'],
-            ['light mode preference', false, 'light']
-        ])('respects %s on initial render', (_, mediaQueryResult, expectedTheme) => {
-            useMediaQuery.mockReturnValue(mediaQueryResult);
-
-            let contextValue;
-            const TestComponent = () => {
-                contextValue = useContext(ViewOptionsContext);
-                return null;
-            };
-
-            render(
-                <ViewOptionsProvider>
-                    <TestComponent />
-                </ViewOptionsProvider>
-            );
-
-            expect(contextValue.theme).toBe(expectedTheme);
         });
     });
 
     describe('Context value using mock provider', () => {
-        it('allows testing with mock context values', () => {
+        it('allows testing with mock context values', async () => {
             const mockSetActiveEventLabelId = jest.fn();
             const mockEnableLightTheme = jest.fn();
             const mockEnableDarkTheme = jest.fn();
@@ -318,13 +218,13 @@ describe('ViewOptionsProvider', () => {
             expect(screen.getByText('Theme: dark')).toBeInTheDocument();
             expect(screen.getByText('Active Label: mock-label-id')).toBeInTheDocument();
 
-            userEvent.click(screen.getByRole('button', { name: /update label/i }));
+            await user.click(screen.getByRole('button', { name: /update label/i }));
             expect(mockSetActiveEventLabelId).toHaveBeenCalledWith('new-id');
 
-            userEvent.click(screen.getByRole('button', { name: /light theme/i }));
+            await user.click(screen.getByRole('button', { name: /light theme/i }));
             expect(mockEnableLightTheme).toHaveBeenCalled();
 
-            userEvent.click(screen.getByRole('button', { name: /dark theme/i }));
+            await user.click(screen.getByRole('button', { name: /dark theme/i }));
             expect(mockEnableDarkTheme).toHaveBeenCalled();
         });
     });

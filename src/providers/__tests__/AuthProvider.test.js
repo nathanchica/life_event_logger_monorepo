@@ -38,21 +38,34 @@ describe('AuthProvider', () => {
     const originalLocation = window.location;
     let mockConsoleInfo;
     let mockConsoleError;
+    let user;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        localStorageMock.clear();
-        localStorageMock._reset();
         delete window.location;
-        window.location = { ...originalLocation, search: '' };
+        window.location = {
+            ...originalLocation,
+            search: '',
+            href: 'http://localhost:3000'
+        };
+        // Mock window.history.replaceState
+        Object.defineProperty(window, 'history', {
+            value: {
+                replaceState: jest.fn()
+            },
+            writable: true
+        });
         mockConsoleInfo = jest.spyOn(console, 'info').mockImplementation();
         mockConsoleError = jest.spyOn(console, 'error').mockImplementation();
+        user = userEvent.setup();
     });
 
     afterEach(() => {
         window.location = originalLocation;
         mockConsoleInfo.mockRestore();
         mockConsoleError.mockRestore();
+        jest.clearAllMocks();
+        localStorageMock.clear();
+        localStorageMock._reset();
     });
 
     describe('Component rendering', () => {
@@ -92,7 +105,7 @@ describe('AuthProvider', () => {
     });
 
     describe('Login functionality', () => {
-        it('updates state and localStorage when login is called', () => {
+        it('updates state and localStorage when login is called', async () => {
             const mockUser = createMockUser();
             const mockToken = 'test-token-123';
 
@@ -118,7 +131,7 @@ describe('AuthProvider', () => {
             expect(screen.getByText('Token: none')).toBeInTheDocument();
             expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
 
-            userEvent.click(screen.getByRole('button', { name: /login/i }));
+            await user.click(screen.getByRole('button', { name: /login/i }));
 
             expect(screen.getByText('User: Test User')).toBeInTheDocument();
             expect(screen.getByText('Token: test-token-123')).toBeInTheDocument();
@@ -132,7 +145,7 @@ describe('AuthProvider', () => {
             ['standard user', { id: 'user-1', email: 'user1@test.com', name: 'User One' }, 'token-1'],
             ['admin user', { id: 'admin-1', email: 'admin@test.com', name: 'Admin User' }, 'admin-token'],
             ['guest user', { id: 'guest-1', email: 'guest@test.com', name: 'Guest User' }, 'guest-token']
-        ])('handles login for %s', (_, userData, tokenData) => {
+        ])('handles login for %s', async (_, userData, tokenData) => {
             const mockUser = createMockUser(userData);
 
             const TestComponent = () => {
@@ -152,7 +165,7 @@ describe('AuthProvider', () => {
                 </AuthProvider>
             );
 
-            userEvent.click(screen.getByRole('button', { name: /login/i }));
+            await user.click(screen.getByRole('button', { name: /login/i }));
 
             expect(screen.getByText(`User ID: ${userData.id}`)).toBeInTheDocument();
             expect(screen.getByText(`User Email: ${userData.email}`)).toBeInTheDocument();
@@ -162,7 +175,7 @@ describe('AuthProvider', () => {
     });
 
     describe('Logout functionality', () => {
-        it('clears state and localStorage when logout is called', () => {
+        it('clears state and localStorage when logout is called', async () => {
             const mockUser = createMockUser();
             const mockToken = 'test-token-123';
 
@@ -185,22 +198,50 @@ describe('AuthProvider', () => {
             );
 
             // First login
-            userEvent.click(screen.getByRole('button', { name: /login/i }));
+            await user.click(screen.getByRole('button', { name: /login/i }));
             expect(screen.getByText('User: Test User')).toBeInTheDocument();
             expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
 
             // Then logout
-            userEvent.click(screen.getByRole('button', { name: /logout/i }));
+            await user.click(screen.getByRole('button', { name: /logout/i }));
             expect(screen.getByText('User: none')).toBeInTheDocument();
             expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
 
             expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
             expect(localStorageMock.removeItem).toHaveBeenCalledWith('user');
         });
+
+        it('clears offline mode and URL on logout', async () => {
+            const TestComponent = () => {
+                const { isOfflineMode, setOfflineMode, logout } = useContext(AuthContext);
+                return (
+                    <div>
+                        <span>Offline: {isOfflineMode ? 'yes' : 'no'}</span>
+                        <button onClick={() => setOfflineMode(true)}>Enable Offline</button>
+                        <button onClick={logout}>Logout</button>
+                    </div>
+                );
+            };
+
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+
+            // Enable offline mode first
+            await user.click(screen.getByRole('button', { name: /enable offline/i }));
+            expect(screen.getByText('Offline: yes')).toBeInTheDocument();
+
+            // Then logout should clear offline mode
+            await user.click(screen.getByRole('button', { name: /logout/i }));
+            expect(screen.getByText('Offline: no')).toBeInTheDocument();
+            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', expect.not.stringContaining('offline'));
+        });
     });
 
     describe('Offline mode functionality', () => {
-        it('updates offline mode state when setOfflineMode is called', () => {
+        it('updates offline mode state when setOfflineMode is called', async () => {
             const TestComponent = () => {
                 const { isOfflineMode, setOfflineMode } = useContext(AuthContext);
                 return (
@@ -220,18 +261,49 @@ describe('AuthProvider', () => {
 
             expect(screen.getByText('Offline Mode: no')).toBeInTheDocument();
 
-            userEvent.click(screen.getByRole('button', { name: /enable offline/i }));
+            await user.click(screen.getByRole('button', { name: /enable offline/i }));
             expect(screen.getByText('Offline Mode: yes')).toBeInTheDocument();
             expect(mockConsoleInfo).toHaveBeenCalledWith('Application switched to offline mode.');
 
-            userEvent.click(screen.getByRole('button', { name: /disable offline/i }));
+            await user.click(screen.getByRole('button', { name: /disable offline/i }));
             expect(screen.getByText('Offline Mode: no')).toBeInTheDocument();
+        });
+
+        it('sets offline user and token when enabling offline mode', async () => {
+            const TestComponent = () => {
+                const { user, token, isOfflineMode, setOfflineMode } = useContext(AuthContext);
+                return (
+                    <div>
+                        <span>User: {user?.name || 'none'}</span>
+                        <span>Token: {token || 'none'}</span>
+                        <span>Offline: {isOfflineMode ? 'yes' : 'no'}</span>
+                        <button onClick={() => setOfflineMode(true)}>Enable Offline</button>
+                    </div>
+                );
+            };
+
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+
+            expect(screen.getByText('User: none')).toBeInTheDocument();
+            expect(screen.getByText('Token: none')).toBeInTheDocument();
+            expect(screen.getByText('Offline: no')).toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: /enable offline/i }));
+
+            expect(screen.getByText('User: Offline User')).toBeInTheDocument();
+            expect(screen.getByText('Token: offline-token')).toBeInTheDocument();
+            expect(screen.getByText('Offline: yes')).toBeInTheDocument();
+            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', expect.stringContaining('offline=true'));
         });
 
         it.each([
             ['enables offline mode', true, 'yes'],
             ['disables offline mode', false, 'no']
-        ])('%s correctly', (_, offlineValue, expectedDisplay) => {
+        ])('%s correctly', async (_, offlineValue, expectedDisplay) => {
             const TestComponent = () => {
                 const { isOfflineMode, setOfflineMode } = useContext(AuthContext);
                 return (
@@ -248,8 +320,26 @@ describe('AuthProvider', () => {
                 </AuthProvider>
             );
 
-            userEvent.click(screen.getByRole('button', { name: /update/i }));
+            await user.click(screen.getByRole('button', { name: /update/i }));
             expect(screen.getByText(`Offline: ${expectedDisplay}`)).toBeInTheDocument();
+        });
+
+        it('handles enabling offline mode with URL manipulation', async () => {
+            const TestComponent = () => {
+                const { setOfflineMode } = useContext(AuthContext);
+                return <button onClick={() => setOfflineMode(true)}>Enable Offline</button>;
+            };
+
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+
+            await user.click(screen.getByRole('button', { name: /enable offline/i }));
+
+            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', 'http://localhost:3000/?offline=true');
+            expect(mockConsoleInfo).toHaveBeenCalledWith('Application switched to offline mode.');
         });
     });
 
@@ -399,6 +489,8 @@ describe('AuthProvider', () => {
             );
 
             expect(contextValue.isOfflineMode).toBe(true);
+            expect(contextValue.user?.name).toBe('Offline User');
+            expect(contextValue.token).toBe('offline-token');
             expect(mockConsoleInfo).toHaveBeenCalledWith('Application is in offline mode.');
         });
 
@@ -440,12 +532,14 @@ describe('AuthProvider', () => {
             );
 
             expect(contextValue.isOfflineMode).toBe(true);
+            expect(contextValue.user?.name).toBe('Offline User');
+            expect(contextValue.token).toBe('offline-token');
             expect(mockConsoleInfo).toHaveBeenCalledWith('Application is in offline mode.');
         });
     });
 
     describe('Context value using mock provider', () => {
-        it('allows testing with mock context values', () => {
+        it('allows testing with mock context values', async () => {
             const mockLogin = jest.fn();
             const mockLogout = jest.fn();
             const mockSetOfflineMode = jest.fn();
@@ -487,13 +581,13 @@ describe('AuthProvider', () => {
             expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
             expect(screen.getByText('Offline: yes')).toBeInTheDocument();
 
-            userEvent.click(screen.getByRole('button', { name: /login/i }));
+            await user.click(screen.getByRole('button', { name: /login/i }));
             expect(mockLogin).toHaveBeenCalledWith('new-token', mockUser);
 
-            userEvent.click(screen.getByRole('button', { name: /logout/i }));
+            await user.click(screen.getByRole('button', { name: /logout/i }));
             expect(mockLogout).toHaveBeenCalled();
 
-            userEvent.click(screen.getByRole('button', { name: /go online/i }));
+            await user.click(screen.getByRole('button', { name: /go online/i }));
             expect(mockSetOfflineMode).toHaveBeenCalledWith(false);
         });
     });
