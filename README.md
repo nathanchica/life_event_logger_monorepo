@@ -1,8 +1,11 @@
 # life_event_logger_api
 
-### Project status: In development
+### Project status: Launched
 
-Wrapping up unit tests
+Target milestones reached. Will revisit again when I take on the future plans for the
+[React App](https://github.com/nathanchica/life_event_logger).
+
+Server deployed at Vercel https://life-event-logger-api.vercel.app/
 
 ## Overview
 
@@ -26,12 +29,125 @@ React App at https://github.com/nathanchica/life_event_logger
 
 ## Table of Contents
 
-1. [Architecture](#architecture)
-2. [Authentication Flow](#authentication-flow)
-3. [GraphQL Security Directives](#graphql-security-directives)
-4. [Error Handling Patterns](#error-handling-patterns)
-5. [Testing](#testing)
-6. [ES Module Import Extensions](#es-module-import-extensions)
+1. [Development Setup](#development-setup)
+2. [Architecture](#architecture)
+3. [Authentication Flow](#authentication-flow)
+4. [GraphQL Security Directives](#graphql-security-directives)
+5. [Error Handling Patterns](#error-handling-patterns)
+6. [Testing](#testing)
+7. [ES Module Import Extensions](#es-module-import-extensions)
+
+## Development Setup
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm
+- MongoDB Atlas account (for database)
+- Google OAuth credentials (for authentication)
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/nathanchica/life_event_logger_api.git
+cd life_event_logger_api
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Set up environment variables:
+   Create a `.env` file in the root directory with the following variables:
+
+```env
+# MongoDB Atlas connection string
+DATABASE_URL="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority"
+
+# JWT secret for token generation
+JWT_SECRET="your-secret-key"
+
+# Google OAuth Client ID
+GOOGLE_CLIENT_ID="your-google-client-id"
+
+# Node environment
+NODE_ENV="development"
+```
+
+4. Generate Prisma client:
+
+```bash
+npm run prisma:generate
+```
+
+### Running the Development Server
+
+1. Start the development server:
+
+```bash
+npm run dev
+```
+
+The GraphQL server will start at http://localhost:4000/api/graphql
+
+2. Access GraphQL playground:
+   Navigate to http://localhost:4000/api/graphql in your browser to access the GraphQL playground for testing queries and mutations.
+
+### Running Tests
+
+```bash
+# Run all tests with coverage
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run specific test file
+npm test eventLabel.test.ts
+```
+
+### Database Management
+
+```bash
+# Push schema changes to database
+npm run prisma:push
+
+# Open Prisma Studio (database GUI)
+npm run prisma:studio
+
+# Format Prisma schema
+npm run prisma:format
+```
+
+### Code Quality
+
+```bash
+# Run linting
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Run type checking
+npm run type-check
+
+# Format code with Prettier
+npm run format
+```
+
+### GraphQL Schema Management
+
+```bash
+# Generate TypeScript types from GraphQL schema
+npm run generate
+
+# Watch for schema changes and regenerate types
+npm run generate:watch
+```
 
 ## Architecture
 
@@ -316,6 +432,42 @@ See these blogs about Vitest vs Jest:
 
 - https://www.prisma.io/blog/testing-series-1-8eRB5p0Y8o#why-vitest
 - https://www.wisp.blog/blog/vitest-vs-jest-which-should-i-use-for-my-nextjs-app
+
+\
+As of 2025-07-20, tests coverage is 100%
+
+```bash
+Test Files  5 passed (5)
+      Tests  78 passed (78)
+   Start at  12:10:24
+   Duration  1.03s (transform 324ms, setup 61ms, collect 2.37s, tests 182ms, environment 1ms, prepare 427ms)
+
+ % Coverage report from v8
+----------------------|---------|----------|---------|---------|-------------------
+File                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+----------------------|---------|----------|---------|---------|-------------------
+All files             |     100 |      100 |     100 |     100 |
+ auth                 |     100 |      100 |     100 |     100 |
+  token.ts            |     100 |      100 |     100 |     100 |
+ config               |     100 |      100 |     100 |     100 |
+  env.ts              |     100 |      100 |     100 |     100 |
+ directives           |     100 |      100 |     100 |     100 |
+  auth.ts             |     100 |      100 |     100 |     100 |
+ mocks                |     100 |      100 |     100 |     100 |
+  client.ts           |     100 |      100 |     100 |     100 |
+  context.ts          |     100 |      100 |     100 |     100 |
+ schema               |     100 |      100 |     100 |     100 |
+  index.ts            |     100 |      100 |     100 |     100 |
+ schema/eventLabel    |     100 |      100 |     100 |     100 |
+  index.ts            |     100 |      100 |     100 |     100 |
+ schema/loggableEvent |     100 |      100 |     100 |     100 |
+  index.ts            |     100 |      100 |     100 |     100 |
+ schema/user          |     100 |      100 |     100 |     100 |
+  index.ts            |     100 |      100 |     100 |     100 |
+ utils                |     100 |      100 |     100 |     100 |
+  validation.ts       |     100 |      100 |     100 |     100 |
+----------------------|---------|----------|---------|---------|-------------------
+```
 
 ## ES Module Import Extensions
 
