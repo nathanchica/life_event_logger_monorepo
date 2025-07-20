@@ -1,6 +1,8 @@
 import { faker } from '@faker-js/faker';
 import { LoggableEvent } from '@prisma/client';
 
+import { EventLabelParent } from '../../eventLabel';
+
 export const createMockLoggableEvent = (overrides?: Partial<LoggableEvent>): LoggableEvent => {
     return {
         id: faker.string.uuid(),
@@ -12,5 +14,16 @@ export const createMockLoggableEvent = (overrides?: Partial<LoggableEvent>): Log
         createdAt: faker.date.past(),
         updatedAt: faker.date.recent(),
         ...overrides
+    };
+};
+
+export const createMockLoggableEventWithLabels = (
+    overrides?: Partial<LoggableEvent> & { labels?: EventLabelParent[] }
+) => {
+    const { labels, ...eventOverrides } = overrides || {};
+    const event = createMockLoggableEvent(eventOverrides);
+    return {
+        ...event,
+        labels: labels || []
     };
 };

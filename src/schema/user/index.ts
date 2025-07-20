@@ -73,11 +73,9 @@ const resolvers: Resolvers = {
                     };
                 }
 
-                return {
-                    token: null,
-                    user: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in googleOAuthLoginMutation:', error);
+                throw new Error('Internal server error');
             }
         }
     },

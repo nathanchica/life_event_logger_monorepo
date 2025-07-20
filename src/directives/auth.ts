@@ -33,7 +33,7 @@ interface RequireOwnerDirective {
  * @param resourceId - ID of the resource to validate ownership for
  * @throws {GraphQLError} When resource not found or user doesn't own it
  */
-async function validateResourceOwnership(
+export async function validateResourceOwnership(
     context: GraphQLContext,
     resourceType: ProtectedResourceType,
     resourceId: string
@@ -78,9 +78,8 @@ async function validateResourceOwnership(
         if (error instanceof GraphQLError) {
             throw error;
         }
-        throw new GraphQLError('Failed to verify resource ownership', {
-            extensions: { code: 'INTERNAL_ERROR' }
-        });
+        console.error('Failed to verify resource ownership:', error);
+        throw new Error('Failed to verify resource ownership');
     }
 }
 

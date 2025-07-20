@@ -395,7 +395,7 @@ Add comments to clarify which part of the resolver flow each Prisma mock is hand
 prismaMock.loggableEvent.findFirst.mockResolvedValue(null);
 
 // Mock for validateLabelOwnership - checking if labels belong to user
-prismaMock.eventLabel.findMany.mockResolvedValueOnce([{ id: 'label-456' } as any]);
+prismaMock.eventLabel.findMany.mockResolvedValueOnce([{ id: 'label-456' }]);
 
 // Mock for creating the event
 prismaMock.loggableEvent.create.mockResolvedValue(mockEvent);
