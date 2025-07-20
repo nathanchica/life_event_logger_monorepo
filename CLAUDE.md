@@ -386,6 +386,34 @@ await client.request(MUTATION, variables, { user: null, prisma: prismaMock });
 await client.request(MUTATION, variables, { user: otherUser, prisma: prismaMock });
 ```
 
+### 6. Documenting Mock Usage
+
+Add comments to clarify which part of the resolver flow each Prisma mock is handling:
+
+```typescript
+// Mock for checking if event name already exists
+prismaMock.loggableEvent.findFirst.mockResolvedValue(null);
+
+// Mock for validateLabelOwnership - checking if labels belong to user
+prismaMock.eventLabel.findMany.mockResolvedValueOnce([{ id: 'label-456' } as any]);
+
+// Mock for creating the event
+prismaMock.loggableEvent.create.mockResolvedValue(mockEvent);
+
+// Mock for LoggableEvent.user field resolver
+prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+// Mock for LoggableEvent.labels field resolver
+prismaMock.eventLabel.findMany.mockResolvedValueOnce([mockLabel]);
+```
+
+This is especially important when:
+
+- Multiple mocks of the same type are used (e.g., multiple `findMany` calls)
+- The mock's purpose isn't immediately obvious from the test context
+- The mock is for a directive (like `@requireOwner`) or field resolver
+- The mock represents a specific validation or business logic check
+
 ## Complete Example
 
 Here's a complete test file structure following all best practices:

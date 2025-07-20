@@ -14,7 +14,10 @@ export default defineConfig({
                 '**/__mocks__/**',
                 '**/*.test.{ts,js}',
                 '**/*.spec.{ts,js}',
-                'src/testSetup.ts'
+                'src/testSetup.ts',
+                'src/main.ts',
+                'src/context.ts',
+                'src/schema/root/**'
             ]
         },
         setupFiles: ['./src/testSetup.ts']

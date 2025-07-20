@@ -7,6 +7,8 @@ import { Resolvers } from '../../generated/graphql.js';
 import { formatZodError } from '../../utils/validation.js';
 import { UserParent } from '../user/index.js';
 
+export const MAX_EVENT_NAME_LENGTH = 25;
+
 export type LoggableEventParent = {
     id?: string;
     name?: string;
@@ -18,31 +20,24 @@ export type LoggableEventParent = {
 };
 
 const CreateLoggableEventSchema = z.object({
-    name: z.string().min(1, 'Name cannot be empty').max(25, 'Name must be under 25 characters'),
+    name: z
+        .string()
+        .min(1, 'Name cannot be empty')
+        .max(MAX_EVENT_NAME_LENGTH, `Name must be under ${MAX_EVENT_NAME_LENGTH} characters`),
     warningThresholdInDays: z.number().int().min(0, 'Warning threshold must be a positive number'),
     labelIds: z.array(z.string()).optional()
 });
 
 const UpdateLoggableEventSchema = z.object({
     id: z.string().min(1, 'ID is required'),
-    name: z.string().min(1, 'Name cannot be empty').max(25, 'Name must be under 25 characters').optional(),
+    name: z
+        .string()
+        .min(1, 'Name cannot be empty')
+        .max(MAX_EVENT_NAME_LENGTH, `Name must be under ${MAX_EVENT_NAME_LENGTH} characters`)
+        .optional(),
     warningThresholdInDays: z.number().int().min(0, 'Warning threshold must be a positive number').optional(),
     timestamps: z.array(z.date()).optional(),
     labelIds: z.array(z.string()).optional()
-});
-
-const DeleteLoggableEventSchema = z.object({
-    id: z.string().min(1, 'ID is required')
-});
-
-const AddTimestampToEventSchema = z.object({
-    id: z.string().min(1, 'Event ID is required'),
-    timestamp: z.date()
-});
-
-const RemoveTimestampFromEventSchema = z.object({
-    id: z.string().min(1, 'Event ID is required'),
-    timestamp: z.date()
 });
 
 /**
@@ -61,13 +56,54 @@ const processTimestamps = (timestamps: Date[]): Date[] => {
 };
 
 /**
+ * Validates that the event name is unique for the user
+ * @returns Validation error if name already exists, null otherwise
+ */
+const validateEventNameUniqueness = async ({
+    name,
+    userId,
+    prisma,
+    excludeEventId
+}: {
+    name: string;
+    userId: string;
+    prisma: PrismaClient;
+    excludeEventId?: string;
+}) => {
+    const whereClause = {
+        name,
+        userId,
+        ...(excludeEventId ? { NOT: { id: excludeEventId } } : {})
+    };
+
+    const existingEvent = await prisma.loggableEvent.findFirst({
+        where: whereClause
+    });
+
+    if (existingEvent) {
+        return {
+            code: 'VALIDATION_ERROR',
+            field: 'name',
+            message: 'An event with this name already exists'
+        };
+    }
+
+    return null;
+};
+
+/**
  * Validates that all provided labelIds exist and belong to the user
- * @param labelIds - Array of label IDs to validate
- * @param userId - ID of the user who should own the labels
- * @param prisma - Prisma client instance
  * @throws {GraphQLError} When some labels don't exist or don't belong to the user
  */
-const validateLabelOwnership = async (labelIds: string[], userId: string, prisma: PrismaClient): Promise<void> => {
+const validateLabelOwnership = async ({
+    labelIds,
+    userId,
+    prisma
+}: {
+    labelIds: string[];
+    userId: string;
+    prisma: PrismaClient;
+}): Promise<void> => {
     const labels = await prisma.eventLabel.findMany({
         where: {
             id: { in: labelIds },
@@ -83,33 +119,30 @@ const validateLabelOwnership = async (labelIds: string[], userId: string, prisma
     }
 };
 
-const updateLoggableEventHelper = async (
-    eventId: string,
-    updateData: Prisma.LoggableEventUpdateInput,
-    prisma: PrismaClient
-) => {
-    try {
-        // Process timestamps if they are being updated
-        if (updateData.timestamps && Array.isArray(updateData.timestamps)) {
-            updateData.timestamps = { set: processTimestamps(updateData.timestamps as Date[]) };
-        }
-
-        const event = await prisma.loggableEvent.update({
-            where: { id: eventId },
-            data: updateData,
-            include: { labels: true }
-        });
-
-        return {
-            loggableEvent: event,
-            errors: []
-        };
-    } catch {
-        return {
-            loggableEvent: null,
-            errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-        };
+const updateLoggableEventHelper = async ({
+    eventId,
+    updateData,
+    prisma
+}: {
+    eventId: string;
+    updateData: Prisma.LoggableEventUpdateInput;
+    prisma: PrismaClient;
+}) => {
+    // Process timestamps if they are being updated
+    if (updateData.timestamps && Array.isArray(updateData.timestamps)) {
+        updateData.timestamps = { set: processTimestamps(updateData.timestamps as Date[]) };
     }
+
+    const event = await prisma.loggableEvent.update({
+        where: { id: eventId },
+        data: updateData,
+        include: { labels: true }
+    });
+
+    return {
+        loggableEvent: event,
+        errors: []
+    };
 };
 
 const resolvers: Resolvers = {
@@ -122,30 +155,27 @@ const resolvers: Resolvers = {
                 invariant(user, 'User should exist after @requireAuth directive validation');
 
                 // Check if name already exists for this user
-                const existingEvent = await prisma.loggableEvent.findFirst({
-                    where: {
-                        name: validatedInput.name,
-                        userId: user.id
-                    }
+                const nameValidationError = await validateEventNameUniqueness({
+                    name: validatedInput.name,
+                    userId: user.id,
+                    prisma
                 });
 
-                if (existingEvent) {
+                if (nameValidationError) {
                     return {
                         tempID: input.id,
                         loggableEvent: null,
-                        errors: [
-                            {
-                                code: 'VALIDATION_ERROR',
-                                field: 'name',
-                                message: 'An event with this name already exists'
-                            }
-                        ]
+                        errors: [nameValidationError]
                     };
                 }
 
                 // Validate labelIds ownership if provided
                 if (validatedInput.labelIds && validatedInput.labelIds.length > 0) {
-                    await validateLabelOwnership(validatedInput.labelIds, user.id, prisma);
+                    await validateLabelOwnership({
+                        labelIds: validatedInput.labelIds,
+                        userId: user.id,
+                        prisma
+                    });
                 }
 
                 const event = await prisma.loggableEvent.create({
@@ -182,11 +212,9 @@ const resolvers: Resolvers = {
                     throw error;
                 }
 
-                return {
-                    tempID: null,
-                    loggableEvent: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in createLoggableEvent:', error);
+                throw new Error('Internal server error');
             }
         },
 
@@ -199,31 +227,28 @@ const resolvers: Resolvers = {
 
                 // Check if name already exists for this user (excluding current event)
                 if (validatedInput.name) {
-                    const existingEvent = await prisma.loggableEvent.findFirst({
-                        where: {
-                            name: validatedInput.name,
-                            userId: user.id,
-                            NOT: { id: validatedInput.id }
-                        }
+                    const nameValidationError = await validateEventNameUniqueness({
+                        name: validatedInput.name,
+                        userId: user.id,
+                        prisma,
+                        excludeEventId: validatedInput.id
                     });
 
-                    if (existingEvent) {
+                    if (nameValidationError) {
                         return {
                             loggableEvent: null,
-                            errors: [
-                                {
-                                    code: 'VALIDATION_ERROR',
-                                    field: 'name',
-                                    message: 'An event with this name already exists'
-                                }
-                            ]
+                            errors: [nameValidationError]
                         };
                     }
                 }
 
                 // Validate labelIds ownership if provided
                 if (validatedInput.labelIds && validatedInput.labelIds.length > 0) {
-                    await validateLabelOwnership(validatedInput.labelIds, user.id, prisma);
+                    await validateLabelOwnership({
+                        labelIds: validatedInput.labelIds,
+                        userId: user.id,
+                        prisma
+                    });
                 }
 
                 const updateData = {
@@ -241,7 +266,11 @@ const resolvers: Resolvers = {
                         : {})
                 };
 
-                return await updateLoggableEventHelper(validatedInput.id, updateData, prisma);
+                return await updateLoggableEventHelper({
+                    eventId: validatedInput.id,
+                    updateData,
+                    prisma
+                });
             } catch (error) {
                 if (error instanceof z.ZodError) {
                     return {
@@ -250,25 +279,18 @@ const resolvers: Resolvers = {
                     };
                 }
 
-                if (error instanceof GraphQLError) {
-                    // Re-throw GraphQL errors (like authorization failures)
-                    throw error;
-                }
-
-                return {
-                    loggableEvent: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in updateLoggableEvent:', error);
+                throw new Error('Internal server error');
             }
         },
 
         deleteLoggableEvent: async (_, { input }, { prisma }) => {
             // Auth and ownership checks handled by @requireOwner directive
             try {
-                const validatedInput = DeleteLoggableEventSchema.parse(input);
-
+                // @requireOwner directive already validated the event exists and user owns it
                 const event = await prisma.loggableEvent.delete({
-                    where: { id: validatedInput.id },
+                    where: { id: input.id },
                     include: { labels: true }
                 });
 
@@ -277,69 +299,53 @@ const resolvers: Resolvers = {
                     errors: []
                 };
             } catch (error) {
-                if (error instanceof z.ZodError) {
-                    return {
-                        loggableEvent: null,
-                        errors: formatZodError(error)
-                    };
-                }
-
-                return {
-                    loggableEvent: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in deleteLoggableEvent:', error);
+                throw new Error('Internal server error');
             }
         },
 
         addTimestampToEvent: async (_, { input }, { prisma }) => {
             // Auth and ownership checks handled by @requireOwner directive
             try {
-                const validatedInput = AddTimestampToEventSchema.parse(input);
-
                 // Get the current event to retrieve existing timestamps
                 // Auth directive already validated the event exists and user owns it
                 const currentEvent = await prisma.loggableEvent.findUnique({
-                    where: { id: validatedInput.id },
+                    where: { id: input.id },
                     select: { timestamps: true }
                 });
 
                 invariant(currentEvent, 'Event should exist after auth directive validation');
 
                 // Add the new timestamp to existing ones
-                const updatedTimestamps = [...currentEvent.timestamps, validatedInput.timestamp];
+                const updatedTimestamps = [...currentEvent.timestamps, new Date(input.timestamp)];
 
-                return await updateLoggableEventHelper(validatedInput.id, { timestamps: updatedTimestamps }, prisma);
+                return await updateLoggableEventHelper({
+                    eventId: input.id,
+                    updateData: { timestamps: updatedTimestamps },
+                    prisma
+                });
             } catch (error) {
-                if (error instanceof z.ZodError) {
-                    return {
-                        loggableEvent: null,
-                        errors: formatZodError(error)
-                    };
-                }
-
-                return {
-                    loggableEvent: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in addTimestampToEvent:', error);
+                throw new Error('Internal server error');
             }
         },
 
         removeTimestampFromEvent: async (_, { input }, { prisma }) => {
             // Auth and ownership checks handled by @requireOwner directive
             try {
-                const validatedInput = RemoveTimestampFromEventSchema.parse(input);
-
                 // Get the current event to retrieve existing timestamps
                 // Auth directive already validated the event exists and user owns it
                 const currentEvent = await prisma.loggableEvent.findUnique({
-                    where: { id: validatedInput.id },
+                    where: { id: input.id },
                     select: { timestamps: true }
                 });
 
                 invariant(currentEvent, 'Event should exist after auth directive validation');
 
                 // Check if the timestamp exists before removing
-                const timestampToRemove = validatedInput.timestamp.getTime();
+                const timestampToRemove = new Date(input.timestamp).getTime();
                 const timestampExists = currentEvent.timestamps.some(
                     (timestamp: Date) => timestamp.getTime() === timestampToRemove
                 );
@@ -356,19 +362,15 @@ const resolvers: Resolvers = {
                     (timestamp: Date) => timestamp.getTime() !== timestampToRemove
                 );
 
-                return await updateLoggableEventHelper(validatedInput.id, { timestamps: updatedTimestamps }, prisma);
+                return await updateLoggableEventHelper({
+                    eventId: input.id,
+                    updateData: { timestamps: updatedTimestamps },
+                    prisma
+                });
             } catch (error) {
-                if (error instanceof z.ZodError) {
-                    return {
-                        loggableEvent: null,
-                        errors: formatZodError(error)
-                    };
-                }
-
-                return {
-                    loggableEvent: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in removeTimestampFromEvent:', error);
+                throw new Error('Internal server error');
             }
         }
     },
@@ -379,7 +381,9 @@ const resolvers: Resolvers = {
                 where: { id: parent.userId }
             });
             if (!user) {
-                throw new Error(`User not found for LoggableEvent ${parent.id}`);
+                throw new GraphQLError(`User not found for LoggableEvent ${parent.id}`, {
+                    extensions: { code: 'NOT_FOUND' }
+                });
             }
             return user;
         },

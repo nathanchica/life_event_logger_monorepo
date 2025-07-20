@@ -7,6 +7,8 @@ import { Resolvers } from '../../generated/graphql.js';
 import { formatZodError } from '../../utils/validation.js';
 import { UserParent } from '../user/index.js';
 
+export const MAX_EVENT_LABEL_NAME_LENGTH = 25;
+
 export type EventLabelParent = {
     id?: string;
     name?: string;
@@ -16,12 +18,19 @@ export type EventLabelParent = {
 };
 
 const CreateEventLabelSchema = z.object({
-    name: z.string().min(1, 'Name cannot be empty').max(25, 'Name must be under 25 characters')
+    name: z
+        .string()
+        .min(1, 'Name cannot be empty')
+        .max(MAX_EVENT_LABEL_NAME_LENGTH, `Name must be under ${MAX_EVENT_LABEL_NAME_LENGTH} characters`)
 });
 
 const UpdateEventLabelSchema = z.object({
     id: z.string().min(1, 'ID is required'),
-    name: z.string().min(1, 'Name cannot be empty').max(25, 'Name must be under 25 characters').optional()
+    name: z
+        .string()
+        .min(1, 'Name cannot be empty')
+        .max(MAX_EVENT_LABEL_NAME_LENGTH, `Name must be under ${MAX_EVENT_LABEL_NAME_LENGTH} characters`)
+        .optional()
 });
 
 const resolvers: Resolvers<GraphQLContext> = {

@@ -4,6 +4,7 @@ import { createTestClient, TestGraphQLClient } from '../../../mocks/client.js';
 import prismaMock from '../../../prisma/__mocks__/client.js';
 import { createMockUserWithRelations } from '../../user/__mocks__/user.js';
 import { createMockEventLabel } from '../__mocks__/eventLabel.js';
+import { MAX_EVENT_LABEL_NAME_LENGTH } from '../index.js';
 
 describe('EventLabel GraphQL', () => {
     let client: TestGraphQLClient;
@@ -51,9 +52,11 @@ describe('EventLabel GraphQL', () => {
                 updatedAt: new Date('2024-01-01')
             });
 
+            // Mock for checking if label name already exists
             prismaMock.eventLabel.findFirst.mockResolvedValue(null);
+            // Mock for creating the label
             prismaMock.eventLabel.create.mockResolvedValue(mockLabel);
-            // Mock the EventLabel.user resolver
+            // Mock for EventLabel.user field resolver
             prismaMock.user.findUnique.mockResolvedValue(mockUser);
 
             const { data, errors } = await client.request(
@@ -112,6 +115,7 @@ describe('EventLabel GraphQL', () => {
                 userId: mockUser.id
             });
 
+            // Mock for checking if label name already exists (returns existing label)
             prismaMock.eventLabel.findFirst.mockResolvedValue(existingLabel);
 
             const { data, errors } = await client.request(
@@ -153,11 +157,11 @@ describe('EventLabel GraphQL', () => {
             },
             {
                 scenario: 'name too long',
-                name: 'a'.repeat(26),
+                name: 'a'.repeat(MAX_EVENT_LABEL_NAME_LENGTH + 1),
                 expectedError: {
                     code: 'VALIDATION_ERROR',
                     field: 'name',
-                    message: 'Name must be under 25 characters'
+                    message: `Name must be under ${MAX_EVENT_LABEL_NAME_LENGTH} characters`
                 }
             }
         ])('should return validation error for $scenario', async ({ name, expectedError }) => {
@@ -186,7 +190,7 @@ describe('EventLabel GraphQL', () => {
             // Mock console.error to suppress expected error output
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-            // Mock database connection error
+            // Mock database failure when checking if label name exists
             prismaMock.eventLabel.findFirst.mockRejectedValue(new Error('Database connection failed'));
 
             const { data, errors } = await client.request(
@@ -220,9 +224,11 @@ describe('EventLabel GraphQL', () => {
                 updatedAt: new Date('2024-01-01')
             });
 
+            // Mock for checking if label name already exists
             prismaMock.eventLabel.findFirst.mockResolvedValue(null);
+            // Mock for creating the label
             prismaMock.eventLabel.create.mockResolvedValue(mockLabel);
-            // Mock the EventLabel.user resolver to return null (user not found)
+            // Mock for EventLabel.user field resolver - returns null to trigger NOT_FOUND error
             prismaMock.user.findUnique.mockResolvedValue(null);
 
             // Mock console.error to suppress expected error output
@@ -286,9 +292,11 @@ describe('EventLabel GraphQL', () => {
                 updatedAt: new Date('2024-01-02')
             });
 
-            // Mock the ownership check
+            // Mock for @requireOwner directive - checking ownership
             prismaMock.eventLabel.findUnique.mockResolvedValue(updatedLabel);
+            // Mock for checking if new name already exists
             prismaMock.eventLabel.findFirst.mockResolvedValue(null);
+            // Mock for updating the label
             prismaMock.eventLabel.update.mockResolvedValue(updatedLabel);
 
             const { data, errors } = await client.request(
@@ -327,10 +335,11 @@ describe('EventLabel GraphQL', () => {
                 userId: mockUser.id
             });
 
-            // Mock the ownership check - return a label owned by the user
+            // Mock for @requireOwner directive - checking ownership
             prismaMock.eventLabel.findUnique.mockResolvedValue(
                 createMockEventLabel({ id: 'label-123', name: 'OldName', userId: mockUser.id })
             );
+            // Mock for checking if new name already exists (returns existing label)
             prismaMock.eventLabel.findFirst.mockResolvedValue(existingLabel);
 
             const { data, errors } = await client.request(
@@ -369,8 +378,9 @@ describe('EventLabel GraphQL', () => {
                 updatedAt: new Date('2024-01-01')
             });
 
-            // Mock the ownership check
+            // Mock for @requireOwner directive - checking ownership
             prismaMock.eventLabel.findUnique.mockResolvedValue(existingLabel);
+            // Mock for updating the label (no actual changes)
             prismaMock.eventLabel.update.mockResolvedValue(existingLabel);
 
             const { data, errors } = await client.request(
@@ -413,11 +423,11 @@ describe('EventLabel GraphQL', () => {
             },
             {
                 scenario: 'name too long',
-                input: { id: 'label-123', name: 'a'.repeat(26) },
+                input: { id: 'label-123', name: 'a'.repeat(MAX_EVENT_LABEL_NAME_LENGTH + 1) },
                 expectedError: {
                     code: 'VALIDATION_ERROR',
                     field: 'name',
-                    message: 'Name must be under 25 characters'
+                    message: `Name must be under ${MAX_EVENT_LABEL_NAME_LENGTH} characters`
                 }
             }
         ])('should return validation error for $scenario in update', async ({ input, expectedError }) => {
@@ -428,7 +438,7 @@ describe('EventLabel GraphQL', () => {
                 userId: mockUser.id
             });
 
-            // Mock the ownership check
+            // Mock for @requireOwner directive - checking ownership
             prismaMock.eventLabel.findUnique.mockResolvedValue(existingLabel);
 
             const { data, errors } = await client.request(
@@ -454,9 +464,9 @@ describe('EventLabel GraphQL', () => {
             // Mock console.error to suppress expected error output
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-            // Mock the ownership check
+            // Mock for @requireOwner directive - checking ownership
             prismaMock.eventLabel.findUnique.mockResolvedValue(existingLabel);
-            // Mock database error during update
+            // Mock database failure during update operation
             prismaMock.eventLabel.update.mockRejectedValue(new Error('Database connection failed'));
 
             const { data, errors } = await client.request(
@@ -487,7 +497,7 @@ describe('EventLabel GraphQL', () => {
                 userId: 'other-user-456'
             });
 
-            // Mock the ownership check - label belongs to different user
+            // Mock for @requireOwner directive - returns label with different userId
             prismaMock.eventLabel.findUnique.mockResolvedValue(otherUserLabel);
 
             // Mock console.error to suppress expected error output
@@ -540,8 +550,9 @@ describe('EventLabel GraphQL', () => {
                 userId: mockUser.id
             });
 
-            // Mock the ownership check
+            // Mock for @requireOwner directive - checking ownership
             prismaMock.eventLabel.findUnique.mockResolvedValue(deletedLabel);
+            // Mock for deleting the label
             prismaMock.eventLabel.delete.mockResolvedValue(deletedLabel);
 
             const { data, errors } = await client.request(
@@ -605,9 +616,9 @@ describe('EventLabel GraphQL', () => {
             // Mock console.error to suppress expected error output
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-            // Mock the ownership check
+            // Mock for @requireOwner directive - checking ownership
             prismaMock.eventLabel.findUnique.mockResolvedValue(labelToDelete);
-            // Mock database error during delete
+            // Mock database failure during delete operation
             prismaMock.eventLabel.delete.mockRejectedValue(new Error('Database connection failed'));
 
             const { data, errors } = await client.request(
@@ -637,7 +648,7 @@ describe('EventLabel GraphQL', () => {
                 userId: 'other-user-789'
             });
 
-            // Mock the ownership check - label belongs to different user
+            // Mock for @requireOwner directive - returns label with different userId
             prismaMock.eventLabel.findUnique.mockResolvedValue(otherUserLabel);
 
             // Mock console.error to suppress expected error output
