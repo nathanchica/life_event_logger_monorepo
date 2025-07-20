@@ -16,5 +16,16 @@
         }
     },
     "include": ["src/**/*", "api/**/*"],
-    "exclude": ["node_modules", "dist", ".vercel", "coverage"]
+    "exclude": [
+        "node_modules",
+        "dist",
+        ".vercel",
+        "coverage",
+        "**/__tests__/**/*",
+        "**/__mocks__/**/*",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "src/testSetup.ts",
+        "src/mocks/**/*"
+    ]
 }

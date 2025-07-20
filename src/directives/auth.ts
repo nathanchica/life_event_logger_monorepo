@@ -106,7 +106,7 @@ function extractResourceId(args: ResourceArgs): string | null {
  */
 export function authDirectiveTransformer(schema: GraphQLSchema): GraphQLSchema {
     return mapSchema(schema, {
-        [MapperKind.OBJECT_FIELD]: (fieldConfig: GraphQLFieldConfig<any, GraphQLContext>) => {
+        [MapperKind.OBJECT_FIELD]: (fieldConfig: GraphQLFieldConfig<unknown, GraphQLContext>) => {
             const requireAuthDirective = getDirective(schema, fieldConfig, 'requireAuth')?.[0];
             const requireOwnerDirective = getDirective(schema, fieldConfig, 'requireOwner')?.[0] as
                 | RequireOwnerDirective

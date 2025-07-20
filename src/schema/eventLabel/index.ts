@@ -1,3 +1,4 @@
+import { GraphQLError } from 'graphql';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
 
@@ -21,10 +22,6 @@ const CreateEventLabelSchema = z.object({
 const UpdateEventLabelSchema = z.object({
     id: z.string().min(1, 'ID is required'),
     name: z.string().min(1, 'Name cannot be empty').max(25, 'Name must be under 25 characters').optional()
-});
-
-const DeleteEventLabelSchema = z.object({
-    id: z.string().min(1, 'ID is required')
 });
 
 const resolvers: Resolvers<GraphQLContext> = {
@@ -80,11 +77,9 @@ const resolvers: Resolvers<GraphQLContext> = {
                     };
                 }
 
-                return {
-                    tempID: null,
-                    eventLabel: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in createEventLabel:', error);
+                throw new Error('Internal server error');
             }
         },
 
@@ -142,21 +137,18 @@ const resolvers: Resolvers<GraphQLContext> = {
                     };
                 }
 
-                return {
-                    eventLabel: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in updateEventLabel:', error);
+                throw new Error('Internal server error');
             }
         },
 
         // Authentication and ownership are handled by @requireOwner directive
         deleteEventLabel: async (_, { input }, { prisma }) => {
             try {
-                const validatedInput = DeleteEventLabelSchema.parse(input);
-
                 // @requireOwner directive already validated the label exists and user owns it
                 const label = await prisma.eventLabel.delete({
-                    where: { id: validatedInput.id }
+                    where: { id: input.id }
                 });
 
                 return {
@@ -164,17 +156,9 @@ const resolvers: Resolvers<GraphQLContext> = {
                     errors: []
                 };
             } catch (error) {
-                if (error instanceof z.ZodError) {
-                    return {
-                        eventLabel: null,
-                        errors: formatZodError(error)
-                    };
-                }
-
-                return {
-                    eventLabel: null,
-                    errors: [{ code: 'INTERNAL_ERROR', field: null, message: 'Something went wrong' }]
-                };
+                // Log the actual error for debugging (will appear in Vercel logs)
+                console.error('Error in deleteEventLabel:', error);
+                throw new Error('Internal server error');
             }
         }
     },
@@ -185,7 +169,9 @@ const resolvers: Resolvers<GraphQLContext> = {
                 where: { id: parent.userId }
             });
             if (!user) {
-                throw new Error(`User not found for EventLabel ${parent.id}`);
+                throw new GraphQLError(`User not found for EventLabel ${parent.id}`, {
+                    extensions: { code: 'NOT_FOUND' }
+                });
             }
             return user;
         }
