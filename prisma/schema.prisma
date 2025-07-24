@@ -18,6 +18,7 @@ model User {
   // Relations
   loggableEvents LoggableEvent[]
   eventLabels    EventLabel[]
+  refreshTokens  RefreshToken[]
 }
 
 model LoggableEvent {
@@ -48,4 +49,19 @@ model EventLabel {
   
   loggableEventIds String[]        @db.ObjectId
   loggableEvents   LoggableEvent[] @relation(fields: [loggableEventIds], references: [id])
+}
+
+model RefreshToken {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  token       String    @unique
+  userId      String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id])
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  userAgent   String?
+  ipAddress   String?
+  
+  @@index([userId])
+  @@index([expiresAt])
 }
