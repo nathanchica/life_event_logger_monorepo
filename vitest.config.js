@@ -16,7 +16,6 @@ export default defineConfig({
                 '**/*.spec.{ts,js}',
                 'src/testSetup.ts',
                 'src/main.ts',
-                'src/context.ts',
                 'src/schema/root/**'
             ]
         },

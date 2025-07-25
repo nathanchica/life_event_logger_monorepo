@@ -13,7 +13,11 @@ const envSchema = z.object({
     // JWT secret for signing tokens
     JWT_SECRET: z.string().min(1),
     // Environment
-    NODE_ENV: z.enum(['development', 'test', 'production']).default('development')
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    // Access token expiration time in seconds
+    ACCESS_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().min(1).default(900),
+    // Refresh token expiration time in days
+    REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().min(1).default(30)
 });
 
 export const env = envSchema.parse(process.env);

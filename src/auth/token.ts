@@ -9,8 +9,7 @@ import { env } from '../config/env.js';
 const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 // Token configuration
-const ACCESS_TOKEN_EXPIRES_IN = '15m'; // 15 minutes
-const REFRESH_TOKEN_EXPIRES_MS = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+const REFRESH_TOKEN_EXPIRES_IN_MS = env.REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000; // Convert days to milliseconds
 
 export interface TokenPayload {
     userId: string;
@@ -47,7 +46,7 @@ export async function verifyGoogleToken(token: string) {
 
 export function generateAccessToken(payload: TokenPayload): string {
     return jwt.sign(payload, env.JWT_SECRET, {
-        expiresIn: ACCESS_TOKEN_EXPIRES_IN
+        expiresIn: env.ACCESS_TOKEN_EXPIRES_IN_SECONDS
     });
 }
 
@@ -85,7 +84,7 @@ export async function createRefreshToken(
 ): Promise<string> {
     const token = generateRefreshToken();
     const hashedToken = hashRefreshToken(token);
-    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_MS);
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN_MS);
 
     await prisma.refreshToken.create({
         data: {

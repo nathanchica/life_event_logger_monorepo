@@ -35,7 +35,9 @@ vi.mock('../../config/env.js', () => ({
     env: {
         GOOGLE_CLIENT_ID: 'mock-google-client-id',
         JWT_SECRET: 'mock-jwt-secret',
-        NODE_ENV: 'test'
+        NODE_ENV: 'test',
+        REFRESH_TOKEN_EXPIRES_IN_DAYS: 30,
+        ACCESS_TOKEN_EXPIRES_IN_SECONDS: 900
     }
 }));
 vi.mock('crypto');
@@ -117,7 +119,7 @@ describe('Token utilities', () => {
             const result = generateAccessToken(payload);
 
             expect(result).toBe(mockToken);
-            expect(jwt.sign).toHaveBeenCalledWith(payload, 'mock-jwt-secret', { expiresIn: '15m' });
+            expect(jwt.sign).toHaveBeenCalledWith(payload, 'mock-jwt-secret', { expiresIn: 900 });
         });
 
         it('should generate different tokens for different users', () => {
@@ -196,7 +198,7 @@ describe('Token utilities', () => {
             const result = generateJWT(payload);
 
             expect(result).toBe(mockToken);
-            expect(jwt.sign).toHaveBeenCalledWith(payload, 'mock-jwt-secret', { expiresIn: '15m' });
+            expect(jwt.sign).toHaveBeenCalledWith(payload, 'mock-jwt-secret', { expiresIn: 900 });
         });
 
         it('should generate different tokens for different users', () => {
