@@ -9,7 +9,8 @@ import { env } from '../config/env.js';
 const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 // Token configuration
-const REFRESH_TOKEN_EXPIRES_IN_MS = env.REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000; // Convert days to milliseconds
+export const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_EXPIRES_IN_MS = env.REFRESH_TOKEN_EXPIRES_IN_DAYS * MILLISECONDS_IN_DAY;
 
 export interface TokenPayload {
     userId: string;
@@ -24,12 +25,6 @@ export interface TokenMetadata {
 export interface RefreshTokenData {
     userId: string;
     tokenId: string;
-}
-
-export interface RequestWithHeaders {
-    headers: {
-        get: (name: string) => string | null;
-    };
 }
 
 export async function verifyGoogleToken(token: string) {
@@ -165,14 +160,4 @@ export async function revokeAllUserTokens(prisma: PrismaClient, userId: string):
     await prisma.refreshToken.deleteMany({
         where: { userId }
     });
-}
-
-export function extractTokenMetadata(request: RequestWithHeaders): TokenMetadata {
-    return {
-        userAgent: request.headers.get('user-agent') || undefined,
-        ipAddress:
-            request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-            request.headers.get('x-real-ip') ||
-            undefined
-    };
 }

@@ -34,6 +34,21 @@ type GenericApiError {
 }
 
 """
+Client type enumeration for different application platforms
+"""
+enum ClientType {
+    """
+    Web-based client
+    """
+    WEB
+
+    """
+    Mobile application client
+    """
+    MOBILE
+}
+
+"""
 Root type for GraphQL queries
 """
 type Query

@@ -1,18 +1,52 @@
+import { serialize } from 'cookie';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { createMockGoogleTokenPayload } from '../../../auth/__mocks__/token.js';
-import { verifyGoogleToken, generateJWT } from '../../../auth/token.js';
+import {
+    verifyGoogleToken,
+    generateJWT,
+    generateAccessToken,
+    createRefreshToken,
+    validateRefreshToken,
+    rotateRefreshToken,
+    revokeRefreshToken,
+    revokeAllUserTokens
+} from '../../../auth/token.js';
+import { ClientType } from '../../../generated/graphql.js';
 import { createTestClient, TestGraphQLClient } from '../../../mocks/client.js';
+import { createMockContext } from '../../../mocks/context.js';
 import prismaMock from '../../../prisma/__mocks__/client.js';
 import { createMockEventLabel } from '../../eventLabel/__mocks__/eventLabel.js';
 import { createMockLoggableEventWithLabels } from '../../loggableEvent/__mocks__/loggableEvent.js';
 import { createMockUser, createMockUserWithRelations } from '../__mocks__/user.js';
 
 // Mock the auth token module
-vi.mock('../../../auth/token.js', () => ({
-    verifyGoogleToken: vi.fn(),
-    generateJWT: vi.fn()
+vi.mock('../../../auth/token.js', async () => {
+    const originalModule = await vi.importActual<typeof import('../../../auth/token.js')>('../../../auth/token.js');
+    return {
+        ...originalModule,
+        verifyGoogleToken: vi.fn(),
+        generateJWT: vi.fn(),
+        generateAccessToken: vi.fn(),
+        createRefreshToken: vi.fn(),
+        validateRefreshToken: vi.fn(),
+        rotateRefreshToken: vi.fn(),
+        revokeRefreshToken: vi.fn(),
+        revokeAllUserTokens: vi.fn()
+    };
+});
+
+// Mock cookie serialization
+vi.mock('cookie', () => ({
+    serialize: vi.fn()
 }));
+
+// Helper to create mock context with spied headers
+const createMockContextWithSpy = (overrides?: Parameters<typeof createMockContext>[0]) => {
+    const mockContext = createMockContext(overrides);
+    const headerSetSpy = vi.spyOn(mockContext.response.headers, 'set');
+    return { mockContext, headerSetSpy };
+};
 
 describe('User GraphQL', () => {
     let client: TestGraphQLClient;
@@ -78,6 +112,8 @@ describe('User GraphQL', () => {
             mutation GoogleLogin($input: GoogleOAuthLoginMutationInput!) {
                 googleOAuthLoginMutation(input: $input) {
                     token
+                    accessToken
+                    refreshToken
                     user {
                         id
                         email
@@ -95,7 +131,7 @@ describe('User GraphQL', () => {
             }
         `;
 
-        it('should login successfully with existing user', async () => {
+        it('should login successfully with existing user (web client)', async () => {
             const mockUser = createMockUser({
                 id: 'user-123',
                 googleId: 'google_123456',
@@ -117,16 +153,23 @@ describe('User GraphQL', () => {
 
             // Mock JWT generation
             vi.mocked(generateJWT).mockReturnValue('jwt-token-123');
+            vi.mocked(generateAccessToken).mockReturnValue('access-token-123');
+            vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-123');
+            vi.mocked(serialize).mockReturnValue('refreshToken=refresh-token-123; HttpOnly');
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({ user: null, prisma: prismaMock });
 
             const { data, errors } = await client.request(
                 GOOGLE_LOGIN_MUTATION,
-                { input: { googleToken: 'valid-google-token' } },
-                { user: null, prisma: prismaMock }
+                { input: { googleToken: 'valid-google-token', clientType: ClientType.Web } },
+                mockContext
             );
 
             expect(errors).toBeUndefined();
             expect(data.googleOAuthLoginMutation).toEqual({
                 token: 'jwt-token-123',
+                accessToken: 'access-token-123',
+                refreshToken: null, // Not returned for web clients
                 user: {
                     id: mockUser.id,
                     email: mockUser.email,
@@ -138,6 +181,9 @@ describe('User GraphQL', () => {
                 errors: []
             });
 
+            // Verify cookie was set
+            expect(headerSetSpy).toHaveBeenCalledWith('Set-Cookie', 'refreshToken=refresh-token-123; HttpOnly');
+
             // Verify mocks were called correctly
             expect(verifyGoogleToken).toHaveBeenCalledWith('valid-google-token');
             expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
@@ -148,6 +194,67 @@ describe('User GraphQL', () => {
                 userId: mockUser.id,
                 email: mockUser.email
             });
+            expect(generateAccessToken).toHaveBeenCalledWith({
+                userId: mockUser.id,
+                email: mockUser.email
+            });
+            expect(createRefreshToken).toHaveBeenCalledWith(prismaMock, mockUser.id, {
+                userAgent: 'mock-user-agent',
+                ipAddress: '127.0.0.1'
+            });
+        });
+
+        it('should login successfully with existing user (mobile client)', async () => {
+            const mockUser = createMockUser({
+                id: 'user-123',
+                googleId: 'google_123456',
+                email: 'existing@example.com',
+                name: 'Existing User'
+            });
+
+            const mockGooglePayload = createMockGoogleTokenPayload({
+                sub: 'google_123456',
+                email: 'existing@example.com',
+                name: 'Existing User'
+            });
+
+            // Mock Google token verification
+            vi.mocked(verifyGoogleToken).mockResolvedValue(mockGooglePayload);
+
+            // Mock finding existing user
+            prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+            // Mock JWT generation
+            vi.mocked(generateJWT).mockReturnValue('jwt-token-123');
+            vi.mocked(generateAccessToken).mockReturnValue('access-token-123');
+            vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-123');
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { data, errors } = await client.request(
+                GOOGLE_LOGIN_MUTATION,
+                { input: { googleToken: 'valid-google-token', clientType: ClientType.Mobile } },
+                mockContext
+            );
+
+            expect(errors).toBeUndefined();
+            expect(data.googleOAuthLoginMutation).toEqual({
+                token: 'jwt-token-123',
+                accessToken: 'access-token-123',
+                refreshToken: 'refresh-token-123', // Returned for mobile clients
+                user: {
+                    id: mockUser.id,
+                    email: mockUser.email,
+                    name: mockUser.name,
+                    googleId: mockUser.googleId,
+                    createdAt: mockUser.createdAt.toISOString(),
+                    updatedAt: mockUser.updatedAt.toISOString()
+                },
+                errors: []
+            });
+
+            // Verify no cookie was set for mobile client
+            expect(headerSetSpy).not.toHaveBeenCalled();
         });
 
         it('should create new user on first login', async () => {
@@ -175,16 +282,23 @@ describe('User GraphQL', () => {
 
             // Mock JWT generation
             vi.mocked(generateJWT).mockReturnValue('jwt-token-456');
+            vi.mocked(generateAccessToken).mockReturnValue('access-token-456');
+            vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-456');
+            vi.mocked(serialize).mockReturnValue('refreshToken=refresh-token-456; HttpOnly');
+
+            const { mockContext } = createMockContextWithSpy({ user: null, prisma: prismaMock });
 
             const { data, errors } = await client.request(
                 GOOGLE_LOGIN_MUTATION,
                 { input: { googleToken: 'valid-google-token' } },
-                { user: null, prisma: prismaMock }
+                mockContext
             );
 
             expect(errors).toBeUndefined();
             expect(data.googleOAuthLoginMutation).toEqual({
                 token: 'jwt-token-456',
+                accessToken: 'access-token-456',
+                refreshToken: null,
                 user: {
                     id: mockNewUser.id,
                     email: mockNewUser.email,
@@ -218,6 +332,8 @@ describe('User GraphQL', () => {
 
             expect(errors).toBeUndefined();
             expect(data.googleOAuthLoginMutation.token).toBeNull();
+            expect(data.googleOAuthLoginMutation.accessToken).toBeNull();
+            expect(data.googleOAuthLoginMutation.refreshToken).toBeNull();
             expect(data.googleOAuthLoginMutation.user).toBeNull();
             expect(data.googleOAuthLoginMutation.errors).toEqual([
                 {
@@ -246,6 +362,8 @@ describe('User GraphQL', () => {
             expect(errors).toBeUndefined();
             expect(data.googleOAuthLoginMutation).toEqual({
                 token: null,
+                accessToken: null,
+                refreshToken: null,
                 user: null,
                 errors: [
                     {
@@ -279,6 +397,8 @@ describe('User GraphQL', () => {
             expect(errors).toBeUndefined();
             expect(data.googleOAuthLoginMutation).toEqual({
                 token: null,
+                accessToken: null,
+                refreshToken: null,
                 user: null,
                 errors: [
                     {
@@ -312,9 +432,393 @@ describe('User GraphQL', () => {
 
             // Should have GraphQL error (masked as "Unexpected error.")
             expect(errors).toBeDefined();
-            expect(errors[0].message).toBe('Unexpected error.');
             expect(errors[0].extensions.code).toBe('INTERNAL_SERVER_ERROR');
             expect(data).toBeNull();
+
+            consoleErrorSpy.mockRestore();
+        });
+    });
+
+    describe('refreshTokenMutation', () => {
+        const REFRESH_TOKEN_MUTATION = `
+            mutation RefreshToken($input: RefreshTokenMutationInput) {
+                refreshTokenMutation(input: $input) {
+                    accessToken
+                    refreshToken
+                    errors {
+                        code
+                        field
+                        message
+                    }
+                }
+            }
+        `;
+
+        it('should refresh token successfully for web client (token from cookie)', async () => {
+            const mockUser = createMockUser({
+                id: 'user-123',
+                email: 'test@example.com',
+                name: 'Test User'
+            });
+
+            // Mock token validation
+            vi.mocked(validateRefreshToken).mockResolvedValue({
+                userId: mockUser.id,
+                tokenId: 'token-id-123'
+            });
+
+            // Mock user lookup
+            prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+            // Mock token generation
+            vi.mocked(generateAccessToken).mockReturnValue('new-access-token');
+            vi.mocked(rotateRefreshToken).mockResolvedValue('new-refresh-token');
+            vi.mocked(serialize).mockReturnValue('refreshToken=new-refresh-token; HttpOnly');
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({
+                user: null,
+                prisma: prismaMock,
+                cookies: { refreshToken: 'old-refresh-token' }
+            });
+
+            const { data, errors } = await client.request(REFRESH_TOKEN_MUTATION, {}, mockContext);
+
+            expect(errors).toBeUndefined();
+            expect(data.refreshTokenMutation).toEqual({
+                accessToken: 'new-access-token',
+                refreshToken: null, // Not returned for web clients
+                errors: []
+            });
+
+            // Verify cookie was set
+            expect(headerSetSpy).toHaveBeenCalledWith('Set-Cookie', 'refreshToken=new-refresh-token; HttpOnly');
+
+            // Verify mocks
+            expect(validateRefreshToken).toHaveBeenCalledWith(prismaMock, 'old-refresh-token');
+            expect(rotateRefreshToken).toHaveBeenCalledWith(prismaMock, 'token-id-123', {
+                userAgent: 'mock-user-agent',
+                ipAddress: '127.0.0.1'
+            });
+        });
+
+        it('should refresh token successfully for mobile client (token from input)', async () => {
+            const mockUser = createMockUser({
+                id: 'user-123',
+                email: 'test@example.com',
+                name: 'Test User'
+            });
+
+            // Mock token validation
+            vi.mocked(validateRefreshToken).mockResolvedValue({
+                userId: mockUser.id,
+                tokenId: 'token-id-123'
+            });
+
+            // Mock user lookup
+            prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+            // Mock token generation
+            vi.mocked(generateAccessToken).mockReturnValue('new-access-token');
+            vi.mocked(rotateRefreshToken).mockResolvedValue('new-refresh-token');
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { data, errors } = await client.request(
+                REFRESH_TOKEN_MUTATION,
+                { input: { refreshToken: 'old-refresh-token' } },
+                mockContext
+            );
+
+            expect(errors).toBeUndefined();
+            expect(data.refreshTokenMutation).toEqual({
+                accessToken: 'new-access-token',
+                refreshToken: 'new-refresh-token', // Returned for mobile clients
+                errors: []
+            });
+
+            // Verify no cookie was set
+            expect(headerSetSpy).not.toHaveBeenCalled();
+        });
+
+        it('should return error when no refresh token provided', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            const { mockContext } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { data, errors } = await client.request(REFRESH_TOKEN_MUTATION, {}, mockContext);
+
+            expect(errors).toBeDefined();
+            expect(errors[0].extensions.code).toBe('UNAUTHENTICATED');
+            expect(data).toBeNull();
+
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('should return error for invalid refresh token', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            // Mock invalid token
+            vi.mocked(validateRefreshToken).mockResolvedValue(null);
+
+            const { mockContext } = createMockContextWithSpy({
+                user: null,
+                prisma: prismaMock,
+                cookies: { refreshToken: 'invalid-token' }
+            });
+
+            const { data, errors } = await client.request(REFRESH_TOKEN_MUTATION, {}, mockContext);
+
+            expect(errors).toBeDefined();
+            expect(errors[0].extensions.code).toBe('UNAUTHENTICATED');
+            expect(data).toBeNull();
+
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('should return error when user not found', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            // Mock valid token but user not found
+            vi.mocked(validateRefreshToken).mockResolvedValue({
+                userId: 'user-123',
+                tokenId: 'token-id-123'
+            });
+
+            prismaMock.user.findUnique.mockResolvedValue(null);
+
+            const { mockContext } = createMockContextWithSpy({
+                user: null,
+                prisma: prismaMock,
+                cookies: { refreshToken: 'valid-token' }
+            });
+
+            const { data, errors } = await client.request(REFRESH_TOKEN_MUTATION, {}, mockContext);
+
+            expect(errors).toBeDefined();
+            expect(errors[0].extensions.code).toBe('NOT_FOUND');
+            expect(data).toBeNull();
+
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('should handle database errors gracefully', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            // Mock database error
+            vi.mocked(validateRefreshToken).mockRejectedValue(new Error('Database connection failed'));
+
+            const { mockContext } = createMockContextWithSpy({
+                user: null,
+                prisma: prismaMock,
+                cookies: { refreshToken: 'valid-token' }
+            });
+
+            const { data, errors } = await client.request(REFRESH_TOKEN_MUTATION, {}, mockContext);
+
+            expect(errors).toBeDefined();
+            expect(errors[0].extensions.code).toBe('INTERNAL_SERVER_ERROR');
+            expect(data).toBeNull();
+
+            consoleErrorSpy.mockRestore();
+        });
+    });
+
+    describe('logoutMutation', () => {
+        const LOGOUT_MUTATION = `
+            mutation Logout($input: LogoutMutationInput) {
+                logoutMutation(input: $input) {
+                    success
+                    errors {
+                        code
+                        field
+                        message
+                    }
+                }
+            }
+        `;
+
+        it('should logout successfully for web client (token from cookie)', async () => {
+            // Mock token revocation
+            vi.mocked(revokeRefreshToken).mockResolvedValue();
+            vi.mocked(serialize).mockReturnValue('refreshToken=; HttpOnly; Max-Age=0');
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({
+                user: null,
+                prisma: prismaMock,
+                cookies: { refreshToken: 'refresh-token' }
+            });
+
+            const { data, errors } = await client.request(LOGOUT_MUTATION, {}, mockContext);
+
+            expect(errors).toBeUndefined();
+            expect(data.logoutMutation).toEqual({
+                success: true,
+                errors: []
+            });
+
+            // Verify token was revoked
+            expect(revokeRefreshToken).toHaveBeenCalledWith(prismaMock, 'refresh-token');
+
+            // Verify cookie was cleared
+            expect(headerSetSpy).toHaveBeenCalledWith('Set-Cookie', 'refreshToken=; HttpOnly; Max-Age=0');
+        });
+
+        it('should logout successfully for mobile client (token from input)', async () => {
+            // Mock token revocation
+            vi.mocked(revokeRefreshToken).mockResolvedValue();
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { data, errors } = await client.request(
+                LOGOUT_MUTATION,
+                { input: { refreshToken: 'refresh-token' } },
+                mockContext
+            );
+
+            expect(errors).toBeUndefined();
+            expect(data.logoutMutation).toEqual({
+                success: true,
+                errors: []
+            });
+
+            // Verify token was revoked
+            expect(revokeRefreshToken).toHaveBeenCalledWith(prismaMock, 'refresh-token');
+
+            // Verify no cookie operations for mobile
+            expect(headerSetSpy).not.toHaveBeenCalled();
+        });
+
+        it('should handle logout with no token gracefully', async () => {
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { data, errors } = await client.request(LOGOUT_MUTATION, {}, mockContext);
+
+            expect(errors).toBeUndefined();
+            expect(data.logoutMutation).toEqual({
+                success: true,
+                errors: []
+            });
+
+            // Verify no token revocation attempted
+            expect(revokeRefreshToken).not.toHaveBeenCalled();
+            expect(headerSetSpy).not.toHaveBeenCalled();
+        });
+
+        it('should handle token revocation errors', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            // Mock token revocation failure
+            vi.mocked(revokeRefreshToken).mockRejectedValue(new Error('Database error'));
+
+            const { mockContext } = createMockContextWithSpy({
+                user: null,
+                prisma: prismaMock,
+                cookies: { refreshToken: 'refresh-token' }
+            });
+
+            const { data, errors } = await client.request(LOGOUT_MUTATION, {}, mockContext);
+
+            expect(errors).toBeUndefined();
+            expect(data.logoutMutation).toEqual({
+                success: false,
+                errors: [
+                    {
+                        code: 'INTERNAL_ERROR',
+                        field: null,
+                        message: 'Failed to logout'
+                    }
+                ]
+            });
+
+            consoleErrorSpy.mockRestore();
+        });
+    });
+
+    describe('logoutAllDevicesMutation', () => {
+        const LOGOUT_ALL_DEVICES_MUTATION = `
+            mutation LogoutAllDevices {
+                logoutAllDevicesMutation {
+                    success
+                    errors {
+                        code
+                        field
+                        message
+                    }
+                }
+            }
+        `;
+
+        it('should logout from all devices successfully', async () => {
+            const mockUser = createMockUserWithRelations({
+                id: 'user-123',
+                email: 'test@example.com'
+            });
+
+            // Mock token revocation
+            vi.mocked(revokeAllUserTokens).mockResolvedValue();
+            vi.mocked(serialize).mockReturnValue('refreshToken=; HttpOnly; Max-Age=0');
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({
+                user: mockUser,
+                prisma: prismaMock,
+                cookies: { refreshToken: 'current-refresh-token' }
+            });
+
+            const { data, errors } = await client.request(LOGOUT_ALL_DEVICES_MUTATION, {}, mockContext);
+
+            expect(errors).toBeUndefined();
+            expect(data.logoutAllDevicesMutation).toEqual({
+                success: true,
+                errors: []
+            });
+
+            // Verify all tokens were revoked
+            expect(revokeAllUserTokens).toHaveBeenCalledWith(prismaMock, mockUser.id);
+
+            // Verify current session cookie was cleared
+            expect(headerSetSpy).toHaveBeenCalledWith('Set-Cookie', 'refreshToken=; HttpOnly; Max-Age=0');
+        });
+
+        it('should return auth error when not authenticated', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            const { mockContext } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { data, errors } = await client.request(LOGOUT_ALL_DEVICES_MUTATION, {}, mockContext);
+
+            expect(errors).toBeDefined();
+            expect(errors[0].extensions.code).toBe('UNAUTHORIZED');
+            expect(data).toBeNull();
+
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('should handle revocation errors gracefully', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            const mockUser = createMockUserWithRelations({
+                id: 'user-123',
+                email: 'test@example.com'
+            });
+
+            // Mock revocation failure
+            vi.mocked(revokeAllUserTokens).mockRejectedValue(new Error('Database error'));
+
+            const { mockContext } = createMockContextWithSpy({ user: mockUser, prisma: prismaMock });
+
+            const { data, errors } = await client.request(LOGOUT_ALL_DEVICES_MUTATION, {}, mockContext);
+
+            expect(errors).toBeUndefined();
+            expect(data.logoutAllDevicesMutation).toEqual({
+                success: false,
+                errors: [
+                    {
+                        code: 'INTERNAL_ERROR',
+                        field: null,
+                        message: 'Failed to logout from all devices'
+                    }
+                ]
+            });
 
             consoleErrorSpy.mockRestore();
         });

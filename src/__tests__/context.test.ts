@@ -161,6 +161,26 @@ describe('createContext', () => {
         });
     });
 
+    describe('request metadata', () => {
+        it('should extract user agent and IP address from request headers', async () => {
+            mockRequest.headers.set('user-agent', 'mock-user-agent');
+            mockRequest.headers.set('x-forwarded-for', '127.0.0.1');
+
+            const context = await createContext(mockYogaContext);
+
+            expect(context.requestMetadata.userAgent).toBe('mock-user-agent');
+            expect(context.requestMetadata.ipAddress).toBe('127.0.0.1');
+        });
+
+        it('should extract IP from x-real-ip if x-forwarded-for not present', async () => {
+            mockRequest.headers.set('x-real-ip', '192.168.1.1');
+
+            const context = await createContext(mockYogaContext);
+
+            expect(context.requestMetadata.ipAddress).toBe('192.168.1.1');
+        });
+    });
+
     describe('edge cases', () => {
         it('should handle authorization header without Bearer prefix', async () => {
             mockRequest.headers.set('authorization', 'just-a-token');

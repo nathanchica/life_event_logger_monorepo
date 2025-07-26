@@ -19,9 +19,7 @@ import {
     validateRefreshToken,
     rotateRefreshToken,
     revokeRefreshToken,
-    revokeAllUserTokens,
-    extractTokenMetadata,
-    type RequestWithHeaders
+    revokeAllUserTokens
 } from '../token.js';
 
 // Mock the external dependencies
@@ -740,85 +738,6 @@ describe('Token utilities', () => {
             expect(prismaMock.refreshToken.deleteMany).toHaveBeenCalledWith({
                 where: { userId }
             });
-        });
-    });
-
-    describe('extractTokenMetadata', () => {
-        it('should extract user agent and IP from request headers', () => {
-            const mockRequest: RequestWithHeaders = {
-                headers: {
-                    get: vi.fn((name: string) => {
-                        const headers: Record<string, string> = {
-                            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                            'x-forwarded-for': '192.168.1.1, 10.0.0.1'
-                        };
-                        return headers[name] || null;
-                    })
-                }
-            };
-
-            const result = extractTokenMetadata(mockRequest);
-
-            expect(result).toEqual({
-                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                ipAddress: '192.168.1.1'
-            });
-            expect(mockRequest.headers.get).toHaveBeenCalledWith('user-agent');
-            expect(mockRequest.headers.get).toHaveBeenCalledWith('x-forwarded-for');
-        });
-
-        it('should extract IP from x-real-ip if x-forwarded-for not present', () => {
-            const mockRequest: RequestWithHeaders = {
-                headers: {
-                    get: vi.fn((name: string) => {
-                        const headers: Record<string, string> = {
-                            'user-agent': 'Mozilla/5.0',
-                            'x-real-ip': '172.16.0.1'
-                        };
-                        return headers[name] || null;
-                    })
-                }
-            };
-
-            const result = extractTokenMetadata(mockRequest);
-
-            expect(result).toEqual({
-                userAgent: 'Mozilla/5.0',
-                ipAddress: '172.16.0.1'
-            });
-            expect(mockRequest.headers.get).toHaveBeenCalledWith('x-real-ip');
-        });
-
-        it('should handle missing headers gracefully', () => {
-            const mockRequest: RequestWithHeaders = {
-                headers: {
-                    get: vi.fn(() => null)
-                }
-            };
-
-            const result = extractTokenMetadata(mockRequest);
-
-            expect(result).toEqual({
-                userAgent: undefined,
-                ipAddress: undefined
-            });
-        });
-
-        it('should extract first IP from x-forwarded-for list', () => {
-            const mockRequest: RequestWithHeaders = {
-                headers: {
-                    get: vi.fn((name: string) => {
-                        if (name === 'x-forwarded-for') {
-                            return '203.0.113.195, 70.41.3.18, 150.172.238.178';
-                        }
-                        return null;
-                    })
-                }
-            };
-
-            const result = extractTokenMetadata(mockRequest);
-
-            expect(result.ipAddress).toBe('203.0.113.195');
         });
     });
 
