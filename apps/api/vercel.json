@@ -1,9 +1,0 @@
-{
-    "buildCommand": "npm run vercel-build",
-    "functions": {
-        "api/graphql.ts": {
-            "maxDuration": 10,
-            "includeFiles": "src/schema/**/*.graphql"
-        }
-    }
-}

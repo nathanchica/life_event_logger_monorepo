@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+build/
+dist/
+.vercel/
+**/build/
+**/dist/
+
+# Coverage
+coverage/
+**/coverage/
+
+# Cache
+.yarn/
+**/.yarn/
+
+# Generated files
+apps/api/src/generated/
+
+# Environment files
+.env*
+
+# Logs
+*.log
