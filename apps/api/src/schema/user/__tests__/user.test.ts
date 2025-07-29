@@ -4,7 +4,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMockGoogleTokenPayload } from '../../../auth/__mocks__/token.js';
 import {
     verifyGoogleToken,
-    generateJWT,
     generateAccessToken,
     createRefreshToken,
     validateRefreshToken,
@@ -26,7 +25,6 @@ vi.mock('../../../auth/token.js', async () => {
     return {
         ...originalModule,
         verifyGoogleToken: vi.fn(),
-        generateJWT: vi.fn(),
         generateAccessToken: vi.fn(),
         createRefreshToken: vi.fn(),
         validateRefreshToken: vi.fn(),
@@ -152,7 +150,6 @@ describe('User GraphQL', () => {
             prismaMock.user.findUnique.mockResolvedValue(mockUser);
 
             // Mock JWT generation
-            vi.mocked(generateJWT).mockReturnValue('jwt-token-123');
             vi.mocked(generateAccessToken).mockReturnValue('access-token-123');
             vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-123');
             vi.mocked(serialize).mockReturnValue('refreshToken=refresh-token-123; HttpOnly');
@@ -167,7 +164,7 @@ describe('User GraphQL', () => {
 
             expect(errors).toBeUndefined();
             expect(data.googleOAuthLoginMutation).toEqual({
-                token: 'jwt-token-123',
+                token: 'access-token-123',
                 accessToken: 'access-token-123',
                 refreshToken: null, // Not returned for web clients
                 user: {
@@ -190,10 +187,6 @@ describe('User GraphQL', () => {
                 where: { googleId: 'google_123456' }
             });
             expect(prismaMock.user.create).not.toHaveBeenCalled();
-            expect(generateJWT).toHaveBeenCalledWith({
-                userId: mockUser.id,
-                email: mockUser.email
-            });
             expect(generateAccessToken).toHaveBeenCalledWith({
                 userId: mockUser.id,
                 email: mockUser.email
@@ -225,7 +218,6 @@ describe('User GraphQL', () => {
             prismaMock.user.findUnique.mockResolvedValue(mockUser);
 
             // Mock JWT generation
-            vi.mocked(generateJWT).mockReturnValue('jwt-token-123');
             vi.mocked(generateAccessToken).mockReturnValue('access-token-123');
             vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-123');
 
@@ -239,7 +231,7 @@ describe('User GraphQL', () => {
 
             expect(errors).toBeUndefined();
             expect(data.googleOAuthLoginMutation).toEqual({
-                token: 'jwt-token-123',
+                token: 'access-token-123',
                 accessToken: 'access-token-123',
                 refreshToken: 'refresh-token-123', // Returned for mobile clients
                 user: {
@@ -281,7 +273,6 @@ describe('User GraphQL', () => {
             prismaMock.user.create.mockResolvedValue(mockNewUser);
 
             // Mock JWT generation
-            vi.mocked(generateJWT).mockReturnValue('jwt-token-456');
             vi.mocked(generateAccessToken).mockReturnValue('access-token-456');
             vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-456');
             vi.mocked(serialize).mockReturnValue('refreshToken=refresh-token-456; HttpOnly');
@@ -296,7 +287,7 @@ describe('User GraphQL', () => {
 
             expect(errors).toBeUndefined();
             expect(data.googleOAuthLoginMutation).toEqual({
-                token: 'jwt-token-456',
+                token: 'access-token-456',
                 accessToken: 'access-token-456',
                 refreshToken: null,
                 user: {

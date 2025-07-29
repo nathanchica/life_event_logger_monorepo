@@ -6,7 +6,6 @@ import { z } from 'zod';
 import {
     createRefreshToken,
     generateAccessToken,
-    generateJWT,
     revokeAllUserTokens,
     revokeRefreshToken,
     rotateRefreshToken,
@@ -85,7 +84,6 @@ const resolvers: Resolvers = {
 
                 // Generate tokens
                 const accessToken = generateAccessToken({ userId: user.id, email: user.email });
-                const token = generateJWT({ userId: user.id, email: user.email }); // For backward compatibility
 
                 // Create refresh token
                 const refreshToken = await createRefreshToken(prisma, user.id, requestMetadata);
@@ -95,7 +93,7 @@ const resolvers: Resolvers = {
                     response.headers.set('Set-Cookie', serialize('refreshToken', refreshToken, COOKIE_OPTIONS));
 
                     return {
-                        token,
+                        token: accessToken,
                         accessToken,
                         refreshToken: undefined,
                         user,
@@ -104,7 +102,7 @@ const resolvers: Resolvers = {
                 } else {
                     // Return refresh token in response for mobile clients
                     return {
-                        token,
+                        token: accessToken,
                         accessToken,
                         refreshToken,
                         user,

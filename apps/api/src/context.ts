@@ -3,7 +3,7 @@ import { User as UserModel } from '@prisma/client';
 import { parse as parseCookie } from 'cookie';
 import type { YogaInitialContext } from 'graphql-yoga';
 
-import { verifyJWT } from './auth/token.js';
+import { verifyAccessToken } from './auth/token.js';
 import { prisma } from './prisma/client.js';
 
 export type RequestMetadata = {
@@ -61,7 +61,7 @@ export async function createContext({ request, ...rest }: YogaInitialContext): P
 
     try {
         // Verify JWT token with better error handling
-        const jwtPayload = verifyJWT(token);
+        const jwtPayload = verifyAccessToken(token);
         if (!jwtPayload || !jwtPayload.userId) {
             return {
                 user: null,

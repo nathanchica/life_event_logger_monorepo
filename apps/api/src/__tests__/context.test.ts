@@ -1,14 +1,14 @@
 import { YogaInitialContext } from 'graphql-yoga';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
-import { verifyJWT } from '../auth/token.js';
+import { verifyAccessToken } from '../auth/token.js';
 import { createContext } from '../context.js';
 import prismaMock from '../prisma/__mocks__/client.js';
 import { createMockUserWithRelations } from '../schema/user/__mocks__/user.js';
 
 // Mock the dependencies
 vi.mock('../auth/token.js', () => ({
-    verifyJWT: vi.fn()
+    verifyAccessToken: vi.fn()
 }));
 
 describe('createContext', () => {
@@ -90,7 +90,7 @@ describe('createContext', () => {
         });
 
         it('should return user when token is valid and user exists', async () => {
-            vi.mocked(verifyJWT).mockReturnValue({
+            vi.mocked(verifyAccessToken).mockReturnValue({
                 userId: 'user-123',
                 email: 'test@example.com'
             });
@@ -98,7 +98,7 @@ describe('createContext', () => {
 
             const context = await createContext(mockYogaContext);
 
-            expect(verifyJWT).toHaveBeenCalledWith('valid-token');
+            expect(verifyAccessToken).toHaveBeenCalledWith('valid-token');
             expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
                 where: { id: 'user-123' }
             });
@@ -106,10 +106,10 @@ describe('createContext', () => {
         });
 
         it('should return null user when JWT payload is missing userId', async () => {
-            vi.mocked(verifyJWT).mockReturnValue({
+            vi.mocked(verifyAccessToken).mockReturnValue({
                 email: 'test@example.com'
                 // Missing userId
-            } as ReturnType<typeof verifyJWT>);
+            } as ReturnType<typeof verifyAccessToken>);
 
             const context = await createContext(mockYogaContext);
 
@@ -118,7 +118,7 @@ describe('createContext', () => {
         });
 
         it('should return null user when JWT verification returns null', async () => {
-            vi.mocked(verifyJWT).mockReturnValue(null);
+            vi.mocked(verifyAccessToken).mockReturnValue(null);
 
             const context = await createContext(mockYogaContext);
 
@@ -127,7 +127,7 @@ describe('createContext', () => {
         });
 
         it('should return null user when user is not found in database', async () => {
-            vi.mocked(verifyJWT).mockReturnValue({
+            vi.mocked(verifyAccessToken).mockReturnValue({
                 userId: 'user-123',
                 email: 'test@example.com'
             });
@@ -139,7 +139,7 @@ describe('createContext', () => {
         });
 
         it('should return null user when JWT verification throws error', async () => {
-            vi.mocked(verifyJWT).mockImplementation(() => {
+            vi.mocked(verifyAccessToken).mockImplementation(() => {
                 throw new Error('Invalid token');
             });
 
@@ -188,13 +188,13 @@ describe('createContext', () => {
             const context = await createContext(mockYogaContext);
 
             // Token without Bearer prefix should not be processed
-            expect(verifyJWT).not.toHaveBeenCalled();
+            expect(verifyAccessToken).not.toHaveBeenCalled();
             expect(context.user).toBeNull();
         });
 
         it('should handle case-insensitive Bearer prefix', async () => {
             mockRequest.headers.set('authorization', 'bearer valid-token');
-            vi.mocked(verifyJWT).mockReturnValue({
+            vi.mocked(verifyAccessToken).mockReturnValue({
                 userId: 'user-123',
                 email: 'test@example.com'
             });
@@ -202,14 +202,14 @@ describe('createContext', () => {
             const context = await createContext(mockYogaContext);
 
             // Case-insensitive 'bearer' should not be processed (must be 'Bearer')
-            expect(verifyJWT).not.toHaveBeenCalled();
+            expect(verifyAccessToken).not.toHaveBeenCalled();
             expect(context.user).toBeNull();
         });
 
         it('should properly extract token with Bearer prefix', async () => {
             mockRequest.headers.set('authorization', 'Bearer valid-token');
             const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            vi.mocked(verifyJWT).mockReturnValue({
+            vi.mocked(verifyAccessToken).mockReturnValue({
                 userId: 'user-123',
                 email: 'test@example.com'
             });
@@ -218,13 +218,13 @@ describe('createContext', () => {
             const context = await createContext(mockYogaContext);
 
             // Should extract token without the Bearer prefix
-            expect(verifyJWT).toHaveBeenCalledWith('valid-token');
+            expect(verifyAccessToken).toHaveBeenCalledWith('valid-token');
             expect(context.user).toEqual(mockUser);
         });
 
         it('should handle database errors gracefully', async () => {
             mockRequest.headers.set('authorization', 'Bearer valid-token');
-            vi.mocked(verifyJWT).mockReturnValue({
+            vi.mocked(verifyAccessToken).mockReturnValue({
                 userId: 'user-123',
                 email: 'test@example.com'
             });
