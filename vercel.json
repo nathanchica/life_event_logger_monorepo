@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:web && cd apps/api && npm run vercel-build",
+  "outputDirectory": "apps/web/build",
+  "framework": null,
+  "functions": {
+    "apps/api/api/*.ts": {
+      "maxDuration": 10,
+      "includeFiles": "apps/api/src/schema/**/*.graphql"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/apps/api/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
+}
