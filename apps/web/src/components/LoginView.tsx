@@ -237,7 +237,7 @@ const LoginView = () => {
                                             >
                                                 Explore the app locally without creating an account.
                                                 <br />
-                                                Changes won&apos;t be permanently saved while in offline mode.
+                                                Changes will only be temporarily saved locally while in offline mode.
                                             </Typography>
                                         </Box>
                                     </Stack>

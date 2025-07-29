@@ -32,7 +32,7 @@ life_event_logger_monorepo/
 ```bash
 # Install dependencies for all apps
 npm install
-cd apps/web && yarn install
+cd apps/web && npm install
 cd ../api && npm install
 
 # Run both apps in development
