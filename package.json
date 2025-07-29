@@ -17,9 +17,11 @@
     "dev:web": "cd apps/web && yarn dev",
     "build": "npm run build:api && npm run build:web",
     "build:api": "cd apps/api && npm run build",
-    "build:web": "cd apps/web && yarn run build"
+    "build:web": "cd apps/web && yarn run build",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.2.0"
+    "concurrently": "^9.2.0",
+    "husky": "^9.1.7"
   }
 }

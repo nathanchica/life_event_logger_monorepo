@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Run web app checks
+echo "Checking web app..."
+cd apps/web
+npx lint-staged
+yarn lint
+yarn typecheck
+
+# Run api app checks
+echo "Checking API app..."
+cd ../api
+npx lint-staged
+npm run lint:fix
+npm run typecheck
+
+cd ../..
