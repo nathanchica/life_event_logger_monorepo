@@ -1,0 +1,25 @@
+{
+  "name": "life_event_logger_monorepo",
+  "version": "1.0.0",
+  "description": "Monorepo for Life Event Logger application, containing CRA frontend repo and GQL Yoga backend repo",
+  "homepage": "https://github.com/nathanchica/life_event_logger_monorepo#readme",
+  "bugs": {
+    "url": "https://github.com/nathanchica/life_event_logger_monorepo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nathanchica/life_event_logger_monorepo.git"
+  },
+  "author": "Nathan Chica",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "cd apps/api && npm run dev",
+    "dev:web": "cd apps/web && yarn dev",
+    "build": "npm run build:api && npm run build:web",
+    "build:api": "cd apps/api && npm run build",
+    "build:web": "cd apps/web && yarn run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
