@@ -9,8 +9,6 @@ import { createMockUser } from '../../schema/user/__mocks__/user.js';
 import { createMockGoogleTokenPayload } from '../__mocks__/token.js';
 import {
     verifyGoogleToken,
-    generateJWT,
-    verifyJWT,
     generateAccessToken,
     verifyAccessToken,
     generateRefreshToken,
@@ -176,107 +174,6 @@ describe('Token utilities', () => {
             });
 
             const result = verifyAccessToken(token);
-
-            expect(result).toBeNull();
-        });
-    });
-
-    describe('generateJWT (backward compatibility)', () => {
-        it('should generate a JWT token with user payload', () => {
-            const mockUser = createMockUser();
-            const payload = {
-                userId: mockUser.id,
-                email: mockUser.email
-            };
-            const mockToken = 'mock.jwt.token';
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(jwt.sign).mockReturnValue(mockToken as any);
-
-            const result = generateJWT(payload);
-
-            expect(result).toBe(mockToken);
-            expect(jwt.sign).toHaveBeenCalledWith(payload, 'mock-jwt-secret', { expiresIn: 900 });
-        });
-
-        it('should generate different tokens for different users', () => {
-            const user1 = createMockUser({ id: 'user-1', email: 'user1@example.com' });
-            const user2 = createMockUser({ id: 'user-2', email: 'user2@example.com' });
-
-            vi.mocked(jwt.sign)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .mockReturnValueOnce('token1' as any)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .mockReturnValueOnce('token2' as any);
-
-            const token1 = generateJWT({ userId: user1.id, email: user1.email });
-            const token2 = generateJWT({ userId: user2.id, email: user2.email });
-
-            expect(token1).not.toBe(token2);
-            expect(jwt.sign).toHaveBeenCalledTimes(2);
-        });
-    });
-
-    describe('verifyJWT (backward compatibility)', () => {
-        it('should verify a valid JWT token and return payload', () => {
-            const token = 'valid.jwt.token';
-            const mockPayload = {
-                userId: 'user-123',
-                email: 'user@example.com',
-                iat: Math.floor(Date.now() / 1000),
-                exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
-            };
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(jwt.verify).mockReturnValue(mockPayload as any);
-
-            const result = verifyJWT(token);
-
-            expect(result).toEqual(mockPayload);
-            expect(jwt.verify).toHaveBeenCalledWith(token, 'mock-jwt-secret');
-        });
-
-        it('should return null when token verification fails', () => {
-            const token = 'invalid.jwt.token';
-            vi.mocked(jwt.verify).mockImplementation(() => {
-                throw new Error('Invalid token');
-            });
-
-            const result = verifyJWT(token);
-
-            expect(result).toBeNull();
-            expect(jwt.verify).toHaveBeenCalledWith(token, 'mock-jwt-secret');
-        });
-
-        it('should return null when token is expired', () => {
-            const token = 'expired.jwt.token';
-            vi.mocked(jwt.verify).mockImplementation(() => {
-                throw new jwt.TokenExpiredError('Token expired', new Date());
-            });
-
-            const result = verifyJWT(token);
-
-            expect(result).toBeNull();
-        });
-
-        it('should return null when token has invalid signature', () => {
-            const token = 'tampered.jwt.token';
-            vi.mocked(jwt.verify).mockImplementation(() => {
-                throw new jwt.JsonWebTokenError('Invalid signature');
-            });
-
-            const result = verifyJWT(token);
-
-            expect(result).toBeNull();
-        });
-
-        it('should return null when token is malformed', () => {
-            const token = 'not-a-jwt';
-            vi.mocked(jwt.verify).mockImplementation(() => {
-                throw new jwt.JsonWebTokenError('jwt malformed');
-            });
-
-            const result = verifyJWT(token);
 
             expect(result).toBeNull();
         });
@@ -767,12 +664,12 @@ describe('Token utilities', () => {
             };
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.mocked(jwt.sign).mockReturnValue('jwt.token' as any);
-            const jwtToken = generateJWT(jwtPayload);
+            const jwtToken = generateAccessToken(jwtPayload);
 
             // Verify JWT
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.mocked(jwt.verify).mockReturnValue(jwtPayload as any);
-            const verifiedPayload = verifyJWT(jwtToken);
+            const verifiedPayload = verifyAccessToken(jwtToken);
 
             expect(verifiedPayload).toEqual(jwtPayload);
         });
