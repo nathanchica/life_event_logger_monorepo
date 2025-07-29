@@ -24,7 +24,7 @@ Built with:
 - apollo3-cache-persist for offline support
 - Material UI for styled components
 - Emotion CSS for custom CSS-in-JS styling
-- yarn for package dependency management
+- npm for package dependency management
 - Husky, ESLint, and Prettier for maintaining code standards
 - React Testing Library for testing frontend components
 
@@ -67,27 +67,24 @@ otherwise you can just use Offline Mode.
 
 ### Prerequisites
 - Node.js 16+
-- Yarn 3
+- npm 7+
 
 ### Setup
 ```bash
 # Install dependencies
-yarn install
+npm install
 
 # Start development server
-yarn start
+npm start
 
 # Run tests
-yarn test
-
-# Run tests with coverage
-yarn test --coverage
+npm test
 
 # Type checking
-yarn typecheck
+npm run typecheck
 
 # Lint and format
-yarn lint
+npm run lint
 ```
 
 ### Environment variables
@@ -110,6 +107,12 @@ Updated to get the most up-to-date styles and learn the new syntax
 #### userEvent v13 to v14 (July 2025)
 
 Greatly reduces console warnings in tests about updates to components not wrapped in act(), reducing noise
+
+#### Yarn to npm (July 2025)
+
+Migrated from Yarn 3 to npm for better monorepo standardization. The backend API already uses npm, so this 
+migration simplifies tooling across the monorepo. This project was started in 2022 when Yarn was the standard for
+web projects, but npm has since caught up.
 
 ## Test coverage
 As of 2025-07-19, only client.ts remains uncovered. Will create tests for it in the future. types.ts only contains

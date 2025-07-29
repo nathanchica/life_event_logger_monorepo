@@ -129,9 +129,6 @@ npm run prisma:format
 # Run linting
 npm run lint
 
-# Fix linting issues
-npm run lint:fix
-
 # Run type checking
 npm run type-check
 

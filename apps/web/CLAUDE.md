@@ -514,16 +514,13 @@ Test files use `.js` extension but can still import TypeScript files. Type check
 ### 11. Running Tests
 ```bash
 # Run all tests
-yarn test
+npm test
 
 # Run tests in watch mode
-yarn test --watch
+npm test -- --watch
 
 # Run a specific test file
-yarn test src/components/EventCards/__tests__/EventRecord.test.js
-
-# Run tests with coverage
-yarn test --coverage
+npm test src/components/EventCards/__tests__/EventRecord.test.js
 ```
 
 ### 12. Testing Complex Components
