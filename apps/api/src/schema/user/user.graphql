@@ -1,0 +1,188 @@
+"""
+Represents an authenticated user in the system
+"""
+type User {
+    """
+    Unique identifier for the user
+    """
+    id: ID!
+
+    """
+    External authentication provider identifier
+    """
+    googleId: String!
+
+    """
+    User's email address
+    """
+    email: String!
+
+    """
+    User's display name
+    """
+    name: String!
+
+    """
+    Timestamp when the user was first created
+    """
+    createdAt: DateTime!
+
+    """
+    Timestamp when the user record was last updated
+    """
+    updatedAt: DateTime!
+
+    """
+    All loggable events created by this user, sorted by newest first
+    """
+    loggableEvents: [LoggableEvent!]!
+
+    """
+    All event labels created by this user, sorted by oldest first
+    """
+    eventLabels: [EventLabel!]!
+}
+
+"""
+Input for Google OAuth login mutation
+"""
+input GoogleOAuthLoginMutationInput {
+    """
+    Google OAuth ID token from frontend
+    """
+    googleToken: String!
+
+    """
+    Client type - defaults to WEB if not specified
+    """
+    clientType: ClientType
+}
+
+"""
+Payload returned after successful Google OAuth login mutation
+"""
+type GoogleOAuthLoginMutationPayload {
+    """
+    JWT token for the authenticated user
+    """
+    token: String @deprecated(reason: "Use accessToken instead. This field will be removed in a future version.")
+
+    """
+    The authenticated user object
+    """
+    user: User
+
+    """
+    JWT access token for API requests
+    """
+    accessToken: String
+
+    """
+    Refresh token (only returned in response body for mobile clients, web clients receive it as httpOnly cookie)
+    """
+    refreshToken: String
+
+    """
+    List of errors that occurred during login
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Input for refresh token mutation
+"""
+input RefreshTokenMutationInput {
+    """
+    Refresh token (required for mobile clients, ignored for web clients using cookies)
+    """
+    refreshToken: String
+}
+
+"""
+Payload returned after successful token refresh
+"""
+type RefreshTokenMutationPayload {
+    """
+    New JWT access token
+    """
+    accessToken: String
+
+    """
+    New refresh token (only returned for mobile clients)
+    """
+    refreshToken: String
+
+    """
+    List of errors that occurred during token refresh
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Input for logout mutation
+"""
+input LogoutMutationInput {
+    """
+    Refresh token (required for mobile clients, ignored for web clients using cookies)
+    """
+    refreshToken: String
+}
+
+"""
+Payload returned after successful logout
+"""
+type LogoutMutationPayload {
+    """
+    Indicates whether logout was successful
+    """
+    success: Boolean!
+
+    """
+    List of errors that occurred during logout
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Payload returned after logging out all devices
+"""
+type LogoutAllDevicesMutationPayload {
+    """
+    Indicates whether logout was successful
+    """
+    success: Boolean!
+
+    """
+    List of errors that occurred during logout
+    """
+    errors: [GenericApiError!]!
+}
+
+extend type Query {
+    """
+    Get the currently authenticated user's profile
+    """
+    loggedInUser: User @requireAuth
+}
+
+extend type Mutation {
+    """
+    Authenticate a user using Google OAuth ID token
+    """
+    googleOAuthLoginMutation(input: GoogleOAuthLoginMutationInput!): GoogleOAuthLoginMutationPayload!
+
+    """
+    Refresh access token using refresh token
+    """
+    refreshTokenMutation(input: RefreshTokenMutationInput): RefreshTokenMutationPayload!
+
+    """
+    Logout current session by revoking the provided refresh token
+    """
+    logoutMutation(input: LogoutMutationInput): LogoutMutationPayload!
+
+    """
+    Logout from all devices by revoking all refresh tokens for the current user
+    """
+    logoutAllDevicesMutation: LogoutAllDevicesMutationPayload! @requireAuth
+}

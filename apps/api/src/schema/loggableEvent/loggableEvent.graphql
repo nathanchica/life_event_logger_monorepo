@@ -1,0 +1,250 @@
+"""
+Represents an event that can be logged with timestamps
+"""
+type LoggableEvent {
+    """
+    Unique identifier for the event
+    """
+    id: ID!
+
+    """
+    Display name for the event
+    """
+    name: String!
+
+    """
+    Array of timestamps when this event occurred
+    """
+    timestamps: [DateTime!]!
+
+    """
+    Number of days since the last event record before a warning will show for this event
+    """
+    warningThresholdInDays: Int!
+
+    """
+    User who owns this event
+    """
+    user: User!
+
+    """
+    Labels associated with this event for categorization
+    """
+    labels: [EventLabel!]!
+
+    """
+    Timestamp when the event was created
+    """
+    createdAt: DateTime!
+
+    """
+    Timestamp when the event was last updated
+    """
+    updatedAt: DateTime!
+}
+
+"""
+Response payload for creating a loggable event
+"""
+type CreateLoggableEventMutationPayload {
+    """
+    Temporary ID for the event, used before creation.
+    """
+    tempID: ID
+
+    """
+    The created loggable event, null if creation failed
+    """
+    loggableEvent: LoggableEvent
+
+    """
+    Array of errors that occurred during creation
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Response payload for updating a loggable event
+"""
+type UpdateLoggableEventMutationPayload {
+    """
+    The updated loggable event, null if update failed
+    """
+    loggableEvent: LoggableEvent
+
+    """
+    Array of errors that occurred during update
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Response payload for deleting a loggable event
+"""
+type DeleteLoggableEventMutationPayload {
+    """
+    The deleted loggable event, null if deletion failed
+    """
+    loggableEvent: LoggableEvent
+
+    """
+    Array of errors that occurred during deletion
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Input for creating a new loggable event
+"""
+input CreateLoggableEventMutationInput {
+    """
+    Temporary ID for the event, used before creation. Will be replaced with the actual ID after creation.
+    """
+    id: ID!
+
+    """
+    Name for the event (max 25 characters, cannot be empty, must be unique per user)
+    """
+    name: String!
+
+    """
+    Number of days since the last event record before a warning will show for this event
+    """
+    warningThresholdInDays: Int!
+
+    """
+    Array of label IDs to associate with this event
+    """
+    labelIds: [String!]
+}
+
+"""
+Input for updating an existing loggable event
+"""
+input UpdateLoggableEventMutationInput {
+    """
+    ID of the loggable event to update
+    """
+    id: ID!
+
+    """
+    Updated name for the event (max 25 characters, cannot be empty, must be unique per user)
+    """
+    name: String
+
+    """
+    Number of days since the last event record before a warning will show for this event
+    """
+    warningThresholdInDays: Int
+
+    """
+    Array of timestamps for this event
+    """
+    timestamps: [DateTime!]
+
+    """
+    Array of label IDs to associate with this event
+    """
+    labelIds: [String!]
+}
+
+"""
+Input for deleting a loggable event
+"""
+input DeleteLoggableEventMutationInput {
+    """
+    ID of the loggable event to delete
+    """
+    id: ID!
+}
+
+"""
+Input for adding a timestamp to a loggable event
+"""
+input AddTimestampToEventMutationInput {
+    """
+    ID of the loggable event to add timestamp to
+    """
+    id: ID!
+
+    """
+    ISO string timestamp to add to the event
+    """
+    timestamp: DateTime!
+}
+
+"""
+Response payload for adding a timestamp to a loggable event
+"""
+type AddTimestampToEventMutationPayload {
+    """
+    The updated loggable event, null if update failed
+    """
+    loggableEvent: LoggableEvent
+
+    """
+    Array of errors that occurred during update
+    """
+    errors: [GenericApiError!]!
+}
+
+"""
+Input for removing a timestamp from a loggable event
+"""
+input RemoveTimestampFromEventMutationInput {
+    """
+    ID of the loggable event to remove timestamp from
+    """
+    id: ID!
+
+    """
+    ISO string timestamp to remove from the event
+    """
+    timestamp: DateTime!
+}
+
+"""
+Response payload for removing a timestamp from a loggable event
+"""
+type RemoveTimestampFromEventMutationPayload {
+    """
+    The updated loggable event, null if update failed
+    """
+    loggableEvent: LoggableEvent
+
+    """
+    Array of errors that occurred during update
+    """
+    errors: [GenericApiError!]!
+}
+
+extend type Mutation {
+    """
+    Create a new loggable event for the authenticated user
+    """
+    createLoggableEvent(input: CreateLoggableEventMutationInput!): CreateLoggableEventMutationPayload! @requireAuth
+
+    """
+    Update an existing loggable event (must be owned by authenticated user)
+    """
+    updateLoggableEvent(input: UpdateLoggableEventMutationInput!): UpdateLoggableEventMutationPayload!
+        @requireOwner(resource: "loggableEvent")
+
+    """
+    Delete a loggable event (must be owned by authenticated user)
+    """
+    deleteLoggableEvent(input: DeleteLoggableEventMutationInput!): DeleteLoggableEventMutationPayload!
+        @requireOwner(resource: "loggableEvent")
+
+    """
+    Add a timestamp to an existing loggable event (must be owned by authenticated user)
+    """
+    addTimestampToEvent(input: AddTimestampToEventMutationInput!): AddTimestampToEventMutationPayload!
+        @requireOwner(resource: "loggableEvent")
+
+    """
+    Remove a timestamp from an existing loggable event (must be owned by authenticated user)
+    """
+    removeTimestampFromEvent(input: RemoveTimestampFromEventMutationInput!): RemoveTimestampFromEventMutationPayload!
+        @requireOwner(resource: "loggableEvent")
+}

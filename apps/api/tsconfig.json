@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ES2022",
+        "lib": ["ES2022", "DOM"],
+        "outDir": "./dist",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "moduleResolution": "node",
+        "noEmit": false,
+        "paths": {
+            "@/*": ["./src/*"]
+        }
+    },
+    "include": ["src/**/*", "api/**/*"],
+    "exclude": [
+        "node_modules",
+        "dist",
+        ".vercel",
+        "coverage",
+        "**/__tests__/**/*",
+        "**/__mocks__/**/*",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "src/testSetup.ts",
+        "src/mocks/**/*"
+    ]
+}
