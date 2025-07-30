@@ -80,7 +80,12 @@
         "vitest-mock-extended": "^3.1.0"
     },
     "lint-staged": {
-        "*.{ts,js}": [
+        "*.ts": [
+            "eslint --fix",
+            "prettier --write",
+            "bash -c 'tsc --noEmit --skipLibCheck --incremental false --tsBuildInfoFile null $(echo ${@} | xargs)' --"
+        ],
+        "*.js": [
             "eslint --fix",
             "prettier --write"
         ],

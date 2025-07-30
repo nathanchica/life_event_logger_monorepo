@@ -8,12 +8,11 @@ Life Event Logger helps you track recurring life events that don't fit into trad
 
 ## Why Monorepo?
 
-This project was restructured as a monorepo to enable secure cookie-based authentication:
+This project was restructured as a monorepo to enable secure cookie-based authentication in a single Vercel project:
 
-- **Single Domain Deployment**: Both frontend and API are served from the same Vercel domain
+- **Cost Effective**: No need for a custom domain to let two separate Vercel projects use the same domain
 - **Secure Cookie Sharing**: HTTP-only cookies work seamlessly for refresh token authentication
 - **No CORS Issues**: Same-origin requests eliminate cross-domain complexities
-- **Cost Effective**: No need for a custom domain to enable cookie sharing between frontend and backend
 
 ## Project Structure
 
@@ -47,11 +46,9 @@ vercel --prod
 
 ## Features
 
-- **Frontend**: React app with Material UI, Apollo Client, and offline support
-- **Backend**: GraphQL API with JWT authentication, Prisma ORM, and PostgreSQL
-- **Shared Domain**: Frontend at `/`, API at `/api/*`
-- **Type Safety**: Full TypeScript across both applications
-- **Code Quality**: Automated linting, formatting, and type checking on commit
+- **Frontend**: React TypeScript app with Material UI, Apollo GraphQL, and offline support via apollo3-cache-persist
+- **Backend**: GraphQL Yoga API with JWT authentication, Prisma ORM, and MongoDB Atlas database
+- **Authentication**: Google OAuth login with JWT tokens, secure cookie storage, and refresh token implementation
 
 See individual app READMEs for detailed information:
 - [Frontend Documentation](./apps/web/README.md)

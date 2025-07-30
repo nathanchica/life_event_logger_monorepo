@@ -76,6 +76,20 @@
             "node_modules/(?!@ngrx|(?!deck.gl)|ng-dynamic)"
         ]
     },
+    "lint-staged": {
+        "src/**/*.{ts,tsx}": [
+            "prettier --write",
+            "eslint --fix",
+            "bash -c 'tsc --noEmit --skipLibCheck --incremental false --tsBuildInfoFile null $(echo ${@} | xargs)' --"
+        ],
+        "src/**/*.{js,jsx}": [
+            "prettier --write",
+            "eslint --fix"
+        ],
+        "src/**/*.{css,md,json}": [
+            "prettier --write"
+        ]
+    },
     "devDependencies": {
         "@testing-library/jest-dom": "^5.16.4",
         "@testing-library/react": "^13.2.0",
