@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 import invariant from 'tiny-invariant';
 
+import { tokenStorage } from '../apollo/tokenStorage';
 import { User } from '../utils/types';
 
 export type AuthContextType = {
@@ -39,16 +40,17 @@ const AuthProvider = ({ children }: Props) => {
 
     const login = (newToken: string, newUser: User) => {
         setToken(newToken);
+        tokenStorage.setAccessToken(newToken);
         setUser(newUser);
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('user', JSON.stringify(newUser));
+        // Only store non-sensitive user info for UX after page refresh
+        sessionStorage.setItem('user', JSON.stringify(newUser));
     };
 
     const logout = () => {
         setToken(null);
         setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        tokenStorage.clear();
+        sessionStorage.removeItem('user');
 
         setIsOfflineMode(false);
 
@@ -63,6 +65,7 @@ const AuthProvider = ({ children }: Props) => {
         if (isOffline) {
             setUser(offlineUser);
             setToken('offline-token'); // Simulate an offline token
+            tokenStorage.setAccessToken('offline-token');
 
             // Add the offline parameter to the URL without redirecting
             const url = new URL(window.location.href);
@@ -82,18 +85,18 @@ const AuthProvider = ({ children }: Props) => {
             console.info('Application is in offline mode.');
         }
 
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
+        // Only restore user info from sessionStorage (not token)
+        const storedUser = sessionStorage.getItem('user');
 
-        if (storedToken && storedUser) {
+        if (storedUser) {
             try {
                 const parsedUser = JSON.parse(storedUser);
-                setToken(storedToken);
                 setUser(parsedUser);
+                // Note: Token will need to be refreshed on page load
+                // This will be handled by the refresh token flow
             } catch (error) {
                 console.error('Error parsing stored user data:', error);
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
             }
         }
     }, []);
