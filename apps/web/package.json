@@ -80,7 +80,7 @@
         "src/**/*.{ts,tsx}": [
             "prettier --write",
             "eslint --fix",
-            "bash -c 'tsc --noEmit --skipLibCheck --incremental false --tsBuildInfoFile null $(echo ${@} | xargs)' --"
+            "tsc-files --noEmit"
         ],
         "src/**/*.{js,jsx}": [
             "prettier --write",

@@ -73,6 +73,7 @@
         "lint-staged": "^16.1.2",
         "prettier": "^3.6.2",
         "prisma": "^6.11.1",
+        "tsc-files": "^1.1.4",
         "tsx": "^4.20.3",
         "typescript": "^5.8.3",
         "vercel": "^44.2.13",
@@ -83,7 +84,7 @@
         "*.ts": [
             "eslint --fix",
             "prettier --write",
-            "bash -c 'tsc --noEmit --skipLibCheck --incremental false --tsBuildInfoFile null $(echo ${@} | xargs)' --"
+            "tsc-files --noEmit"
         ],
         "*.js": [
             "eslint --fix",
