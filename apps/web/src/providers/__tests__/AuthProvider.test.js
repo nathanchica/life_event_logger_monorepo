@@ -3,12 +3,16 @@ import { useContext } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { tokenStorage } from '../../apollo/tokenStorage';
 import { createMockAuthContextValue } from '../../mocks/providers';
 import { createMockUser } from '../../mocks/user';
 import AuthProvider, { AuthContext, useAuth } from '../AuthProvider';
 
-// Create localStorage mock
-const createLocalStorageMock = () => {
+// Mock tokenStorage
+jest.mock('../../apollo/tokenStorage');
+
+// Create sessionStorage mock
+const createSessionStorageMock = () => {
     let store = {};
     return {
         getItem: jest.fn((key) => store[key] || null),
@@ -27,10 +31,10 @@ const createLocalStorageMock = () => {
     };
 };
 
-const localStorageMock = createLocalStorageMock();
+const sessionStorageMock = createSessionStorageMock();
 
-Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock,
+Object.defineProperty(window, 'sessionStorage', {
+    value: sessionStorageMock,
     writable: true
 });
 
@@ -64,8 +68,11 @@ describe('AuthProvider', () => {
         mockConsoleInfo.mockRestore();
         mockConsoleError.mockRestore();
         jest.clearAllMocks();
-        localStorageMock.clear();
-        localStorageMock._reset();
+        sessionStorageMock.clear();
+        sessionStorageMock._reset();
+        tokenStorage.clear.mockClear();
+        tokenStorage.setAccessToken.mockClear();
+        tokenStorage.getAccessToken.mockClear();
     });
 
     describe('Component rendering', () => {
@@ -105,7 +112,7 @@ describe('AuthProvider', () => {
     });
 
     describe('Login functionality', () => {
-        it('updates state and localStorage when login is called', async () => {
+        it('updates state, sessionStorage and tokenStorage when login is called', async () => {
             const mockUser = createMockUser();
             const mockToken = 'test-token-123';
 
@@ -137,8 +144,8 @@ describe('AuthProvider', () => {
             expect(screen.getByText('Token: test-token-123')).toBeInTheDocument();
             expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
 
-            expect(localStorageMock.setItem).toHaveBeenCalledWith('token', mockToken);
-            expect(localStorageMock.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith(mockToken);
+            expect(sessionStorageMock.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
         });
 
         it.each([
@@ -169,13 +176,13 @@ describe('AuthProvider', () => {
 
             expect(screen.getByText(`User ID: ${userData.id}`)).toBeInTheDocument();
             expect(screen.getByText(`User Email: ${userData.email}`)).toBeInTheDocument();
-            expect(localStorageMock.setItem).toHaveBeenCalledWith('token', tokenData);
-            expect(localStorageMock.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith(tokenData);
+            expect(sessionStorageMock.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
         });
     });
 
     describe('Logout functionality', () => {
-        it('clears state and localStorage when logout is called', async () => {
+        it('clears state, sessionStorage and tokenStorage when logout is called', async () => {
             const mockUser = createMockUser();
             const mockToken = 'test-token-123';
 
@@ -207,8 +214,8 @@ describe('AuthProvider', () => {
             expect(screen.getByText('User: none')).toBeInTheDocument();
             expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
 
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith('user');
+            expect(tokenStorage.clear).toHaveBeenCalled();
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
         });
 
         it('clears offline mode and URL on logout', async () => {
@@ -297,6 +304,7 @@ describe('AuthProvider', () => {
             expect(screen.getByText('User: Offline User')).toBeInTheDocument();
             expect(screen.getByText('Token: offline-token')).toBeInTheDocument();
             expect(screen.getByText('Offline: yes')).toBeInTheDocument();
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
             expect(window.history.replaceState).toHaveBeenCalledWith({}, '', expect.stringContaining('offline=true'));
         });
 
@@ -384,14 +392,12 @@ describe('AuthProvider', () => {
         });
     });
 
-    describe('Initial state from localStorage', () => {
-        it('loads user and token from localStorage on mount', () => {
+    describe('Initial state from sessionStorage', () => {
+        it('loads user from sessionStorage on mount', () => {
             const mockUser = createMockUser();
-            const mockToken = 'stored-token';
 
-            // Set up localStorage before rendering
-            localStorageMock.getItem.mockImplementation((key) => {
-                if (key === 'token') return mockToken;
+            // Set up sessionStorage before rendering
+            sessionStorageMock.getItem.mockImplementation((key) => {
                 if (key === 'user') return JSON.stringify(mockUser);
                 return null;
             });
@@ -408,17 +414,16 @@ describe('AuthProvider', () => {
                 </AuthProvider>
             );
 
-            expect(localStorageMock.getItem).toHaveBeenCalledWith('token');
-            expect(localStorageMock.getItem).toHaveBeenCalledWith('user');
+            expect(sessionStorageMock.getItem).toHaveBeenCalledWith('user');
             expect(contextValue.user).toEqual(mockUser);
-            expect(contextValue.token).toEqual(mockToken);
-            expect(contextValue.isAuthenticated).toBe(true);
+            // Note: token is not restored from storage, will need refresh
+            expect(contextValue.token).toBeNull();
+            expect(contextValue.isAuthenticated).toBe(false);
         });
 
-        it('handles corrupted user data in localStorage', () => {
-            // Set up localStorage with invalid JSON
-            localStorageMock.getItem.mockImplementation((key) => {
-                if (key === 'token') return 'test-token';
+        it('handles corrupted user data in sessionStorage', () => {
+            // Set up sessionStorage with invalid JSON
+            sessionStorageMock.getItem.mockImplementation((key) => {
                 if (key === 'user') return 'invalid-json{';
                 return null;
             });
@@ -436,22 +441,18 @@ describe('AuthProvider', () => {
             );
 
             expect(mockConsoleError).toHaveBeenCalledWith('Error parsing stored user data:', expect.any(Error));
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith('user');
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
             expect(contextValue.user).toBeNull();
             expect(contextValue.token).toBeNull();
             expect(contextValue.isAuthenticated).toBe(false);
         });
 
         it.each([
-            ['no stored data', null, null, false],
-            ['only token stored', 'test-token', null, false],
-            ['only user stored', null, JSON.stringify(createMockUser()), false],
-            ['both stored', 'test-token', JSON.stringify(createMockUser()), true]
-        ])('handles %s correctly', (_, storedToken, storedUser, shouldAuthenticate) => {
-            // Set up localStorage mock
-            localStorageMock.getItem.mockImplementation((key) => {
-                if (key === 'token') return storedToken;
+            ['no stored data', null, false],
+            ['user stored', JSON.stringify(createMockUser()), false] // false because no token
+        ])('handles %s correctly', (_, storedUser, shouldAuthenticate) => {
+            // Set up sessionStorage mock
+            sessionStorageMock.getItem.mockImplementation((key) => {
                 if (key === 'user') return storedUser;
                 return null;
             });
@@ -491,6 +492,7 @@ describe('AuthProvider', () => {
             expect(contextValue.isOfflineMode).toBe(true);
             expect(contextValue.user?.name).toBe('Offline User');
             expect(contextValue.token).toBe('offline-token');
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
             expect(mockConsoleInfo).toHaveBeenCalledWith('Application is in offline mode.');
         });
 
@@ -534,6 +536,7 @@ describe('AuthProvider', () => {
             expect(contextValue.isOfflineMode).toBe(true);
             expect(contextValue.user?.name).toBe('Offline User');
             expect(contextValue.token).toBe('offline-token');
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
             expect(mockConsoleInfo).toHaveBeenCalledWith('Application is in offline mode.');
         });
     });

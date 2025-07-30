@@ -3,6 +3,7 @@ import { setContext } from '@apollo/client/link/context';
 import { OperationDefinitionNode } from 'graphql';
 
 import { cache, setupCachePersistence } from './cache';
+import { tokenStorage } from './tokenStorage';
 
 import LoggableEventCard from '../components/EventCards/LoggableEventCard';
 import EventLabel from '../components/EventLabels/EventLabel';
@@ -259,7 +260,7 @@ const httpLink = createHttpLink({
 
 // Auth link to add authorization token to requests
 const authLink = setContext((_, { headers }) => {
-    const token = localStorage.getItem('token');
+    const token = tokenStorage.getAccessToken();
     return {
         headers: {
             ...headers,
