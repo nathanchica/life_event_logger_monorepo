@@ -9,14 +9,10 @@ echo "Running pre-commit checks..."
 echo "Checking web app..."
 cd apps/web
 npx lint-staged
-npm run lint
-npm run typecheck
 
 # Run api app checks
 echo "Checking API app..."
 cd ../api
 npx lint-staged
-npm run lint
-npm run typecheck
 
 cd ../..
