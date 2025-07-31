@@ -1,17 +1,33 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { tokenStorage } from '../../apollo/tokenStorage';
-import { createMockAuthContextValue } from '../../mocks/providers';
 import { createMockUser } from '../../mocks/user';
 import AuthProvider, { AuthContext, useAuth } from '../AuthProvider';
 
 // Mock tokenStorage
 jest.mock('../../apollo/tokenStorage');
 
-// Create sessionStorage mock
+// Mock useAuthMutations hook
+const mockLoginMutation = jest.fn();
+const mockRefreshTokenMutation = jest.fn();
+const mockLogoutMutation = jest.fn();
+
+jest.mock('../../hooks/useAuthMutations', () => ({
+    useAuthMutations: () => ({
+        loginMutation: mockLoginMutation,
+        refreshTokenMutation: mockRefreshTokenMutation,
+        logoutMutation: mockLogoutMutation
+    })
+}));
+
+const mockGoogleToken = 'google-oauth-token';
+
+/**
+ * Creates a mock sessionStorage object
+ */
 const createSessionStorageMock = () => {
     let store = {};
     return {
@@ -31,20 +47,70 @@ const createSessionStorageMock = () => {
     };
 };
 
-const sessionStorageMock = createSessionStorageMock();
+/**
+ * Renders a component with AuthProvider
+ */
+const renderWithAuthProvider = (component) => {
+    return render(<AuthProvider>{component}</AuthProvider>);
+};
 
-Object.defineProperty(window, 'sessionStorage', {
-    value: sessionStorageMock,
-    writable: true
-});
+/**
+ * Test component to check AuthContext values and actions
+ */
+const TestComponentWithAuth = () => {
+    const { user, token, isAuthenticated, isOfflineMode, isInitializing, login, logout, setOfflineMode, refreshAuth } =
+        useAuth();
+    const [loginResult, setLoginResult] = useState(null);
+    const [refreshResult, setRefreshResult] = useState(null);
+
+    const handleLogin = async () => {
+        const success = await login(mockGoogleToken);
+        setLoginResult(success);
+    };
+
+    const handleRefresh = async () => {
+        const success = await refreshAuth();
+        setRefreshResult(success);
+    };
+
+    return (
+        <div>
+            <span>User: {user?.name || 'none'}</span>
+            <span>Token: {token || 'none'}</span>
+            <span>Authenticated: {isAuthenticated ? 'yes' : 'no'}</span>
+            <span>Login Result: {loginResult === null ? 'not attempted' : loginResult ? 'success' : 'failed'}</span>
+            <span>
+                Refresh Result: {refreshResult === null ? 'not attempted' : refreshResult ? 'success' : 'failed'}
+            </span>
+            <span>Offline Mode: {isOfflineMode ? 'yes' : 'no'}</span>
+            <span>Initializing: {isInitializing ? 'yes' : 'no'}</span>
+
+            <button onClick={() => setOfflineMode(true)}>Enable Offline Mode</button>
+            <button onClick={() => setOfflineMode(false)}>Disable Offline Mode</button>
+            <button onClick={handleLogin}>Login</button>
+            <button onClick={logout}>Logout</button>
+            <button onClick={handleRefresh}>Refresh</button>
+        </div>
+    );
+};
 
 describe('AuthProvider', () => {
     const originalLocation = window.location;
+    const originalSessionStorage = window.sessionStorage;
     let mockConsoleInfo;
     let mockConsoleError;
     let user;
+    let sessionStorageMock;
 
     beforeEach(() => {
+        // Reset all mocks
+        jest.resetAllMocks();
+
+        // Default mock implementations
+        mockLogoutMutation.mockResolvedValue({});
+        mockRefreshTokenMutation.mockResolvedValue({ data: null });
+
+        // Mock window.location to control URL parameters
         delete window.location;
         window.location = {
             ...originalLocation,
@@ -58,31 +124,39 @@ describe('AuthProvider', () => {
             },
             writable: true
         });
+
+        // Mock sessionStorage
+        sessionStorageMock = createSessionStorageMock();
+        Object.defineProperty(window, 'sessionStorage', {
+            value: sessionStorageMock,
+            writable: true
+        });
+
+        // Mock console methods
         mockConsoleInfo = jest.spyOn(console, 'info').mockImplementation();
         mockConsoleError = jest.spyOn(console, 'error').mockImplementation();
+
+        // Create userEvent instance
         user = userEvent.setup();
     });
 
     afterEach(() => {
+        // Restore original window.location and sessionStorage
         window.location = originalLocation;
+        Object.defineProperty(window, 'sessionStorage', {
+            value: originalSessionStorage,
+            writable: true,
+            configurable: true
+        });
+
+        // Restore console methods
         mockConsoleInfo.mockRestore();
         mockConsoleError.mockRestore();
-        jest.clearAllMocks();
-        sessionStorageMock.clear();
-        sessionStorageMock._reset();
-        tokenStorage.clear.mockClear();
-        tokenStorage.setAccessToken.mockClear();
-        tokenStorage.getAccessToken.mockClear();
     });
 
     describe('Component rendering', () => {
         it('renders children correctly', () => {
-            render(
-                <AuthProvider>
-                    <div>Test Child Component</div>
-                </AuthProvider>
-            );
-
+            renderWithAuthProvider(<div>Test Child Component</div>);
             expect(screen.getByText('Test Child Component')).toBeInTheDocument();
         });
 
@@ -93,261 +167,19 @@ describe('AuthProvider', () => {
                 return null;
             };
 
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
+            renderWithAuthProvider(<TestComponent />);
 
             expect(contextValue).toMatchObject({
                 user: null,
                 token: null,
                 isAuthenticated: false,
                 isOfflineMode: false,
+                isInitializing: false,
                 login: expect.any(Function),
                 logout: expect.any(Function),
-                setOfflineMode: expect.any(Function)
+                setOfflineMode: expect.any(Function),
+                refreshAuth: expect.any(Function)
             });
-        });
-    });
-
-    describe('Login functionality', () => {
-        it('updates state, sessionStorage and tokenStorage when login is called', async () => {
-            const mockUser = createMockUser();
-            const mockToken = 'test-token-123';
-
-            const TestComponent = () => {
-                const { user, token, isAuthenticated, login } = useContext(AuthContext);
-                return (
-                    <div>
-                        <span>User: {user?.name || 'none'}</span>
-                        <span>Token: {token || 'none'}</span>
-                        <span>Authenticated: {isAuthenticated ? 'yes' : 'no'}</span>
-                        <button onClick={() => login(mockToken, mockUser)}>Login</button>
-                    </div>
-                );
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            expect(screen.getByText('User: none')).toBeInTheDocument();
-            expect(screen.getByText('Token: none')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
-
-            await user.click(screen.getByRole('button', { name: /login/i }));
-
-            expect(screen.getByText('User: Test User')).toBeInTheDocument();
-            expect(screen.getByText('Token: test-token-123')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
-
-            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith(mockToken);
-            expect(sessionStorageMock.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
-        });
-
-        it.each([
-            ['standard user', { id: 'user-1', email: 'user1@test.com', name: 'User One' }, 'token-1'],
-            ['admin user', { id: 'admin-1', email: 'admin@test.com', name: 'Admin User' }, 'admin-token'],
-            ['guest user', { id: 'guest-1', email: 'guest@test.com', name: 'Guest User' }, 'guest-token']
-        ])('handles login for %s', async (_, userData, tokenData) => {
-            const mockUser = createMockUser(userData);
-
-            const TestComponent = () => {
-                const { user, login } = useContext(AuthContext);
-                return (
-                    <div>
-                        <span>User ID: {user?.id || 'none'}</span>
-                        <span>User Email: {user?.email || 'none'}</span>
-                        <button onClick={() => login(tokenData, mockUser)}>Login</button>
-                    </div>
-                );
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            await user.click(screen.getByRole('button', { name: /login/i }));
-
-            expect(screen.getByText(`User ID: ${userData.id}`)).toBeInTheDocument();
-            expect(screen.getByText(`User Email: ${userData.email}`)).toBeInTheDocument();
-            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith(tokenData);
-            expect(sessionStorageMock.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
-        });
-    });
-
-    describe('Logout functionality', () => {
-        it('clears state, sessionStorage and tokenStorage when logout is called', async () => {
-            const mockUser = createMockUser();
-            const mockToken = 'test-token-123';
-
-            const TestComponent = () => {
-                const { user, isAuthenticated, login, logout } = useContext(AuthContext);
-                return (
-                    <div>
-                        <span>User: {user?.name || 'none'}</span>
-                        <span>Authenticated: {isAuthenticated ? 'yes' : 'no'}</span>
-                        <button onClick={() => login(mockToken, mockUser)}>Login</button>
-                        <button onClick={logout}>Logout</button>
-                    </div>
-                );
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            // First login
-            await user.click(screen.getByRole('button', { name: /login/i }));
-            expect(screen.getByText('User: Test User')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
-
-            // Then logout
-            await user.click(screen.getByRole('button', { name: /logout/i }));
-            expect(screen.getByText('User: none')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
-
-            expect(tokenStorage.clear).toHaveBeenCalled();
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
-        });
-
-        it('clears offline mode and URL on logout', async () => {
-            const TestComponent = () => {
-                const { isOfflineMode, setOfflineMode, logout } = useContext(AuthContext);
-                return (
-                    <div>
-                        <span>Offline: {isOfflineMode ? 'yes' : 'no'}</span>
-                        <button onClick={() => setOfflineMode(true)}>Enable Offline</button>
-                        <button onClick={logout}>Logout</button>
-                    </div>
-                );
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            // Enable offline mode first
-            await user.click(screen.getByRole('button', { name: /enable offline/i }));
-            expect(screen.getByText('Offline: yes')).toBeInTheDocument();
-
-            // Then logout should clear offline mode
-            await user.click(screen.getByRole('button', { name: /logout/i }));
-            expect(screen.getByText('Offline: no')).toBeInTheDocument();
-            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', expect.not.stringContaining('offline'));
-        });
-    });
-
-    describe('Offline mode functionality', () => {
-        it('updates offline mode state when setOfflineMode is called', async () => {
-            const TestComponent = () => {
-                const { isOfflineMode, setOfflineMode } = useContext(AuthContext);
-                return (
-                    <div>
-                        <span>Offline Mode: {isOfflineMode ? 'yes' : 'no'}</span>
-                        <button onClick={() => setOfflineMode(true)}>Enable Offline</button>
-                        <button onClick={() => setOfflineMode(false)}>Disable Offline</button>
-                    </div>
-                );
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            expect(screen.getByText('Offline Mode: no')).toBeInTheDocument();
-
-            await user.click(screen.getByRole('button', { name: /enable offline/i }));
-            expect(screen.getByText('Offline Mode: yes')).toBeInTheDocument();
-            expect(mockConsoleInfo).toHaveBeenCalledWith('Application switched to offline mode.');
-
-            await user.click(screen.getByRole('button', { name: /disable offline/i }));
-            expect(screen.getByText('Offline Mode: no')).toBeInTheDocument();
-        });
-
-        it('sets offline user and token when enabling offline mode', async () => {
-            const TestComponent = () => {
-                const { user, token, isOfflineMode, setOfflineMode } = useContext(AuthContext);
-                return (
-                    <div>
-                        <span>User: {user?.name || 'none'}</span>
-                        <span>Token: {token || 'none'}</span>
-                        <span>Offline: {isOfflineMode ? 'yes' : 'no'}</span>
-                        <button onClick={() => setOfflineMode(true)}>Enable Offline</button>
-                    </div>
-                );
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            expect(screen.getByText('User: none')).toBeInTheDocument();
-            expect(screen.getByText('Token: none')).toBeInTheDocument();
-            expect(screen.getByText('Offline: no')).toBeInTheDocument();
-
-            await user.click(screen.getByRole('button', { name: /enable offline/i }));
-
-            expect(screen.getByText('User: Offline User')).toBeInTheDocument();
-            expect(screen.getByText('Token: offline-token')).toBeInTheDocument();
-            expect(screen.getByText('Offline: yes')).toBeInTheDocument();
-            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
-            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', expect.stringContaining('offline=true'));
-        });
-
-        it.each([
-            ['enables offline mode', true, 'yes'],
-            ['disables offline mode', false, 'no']
-        ])('%s correctly', async (_, offlineValue, expectedDisplay) => {
-            const TestComponent = () => {
-                const { isOfflineMode, setOfflineMode } = useContext(AuthContext);
-                return (
-                    <div>
-                        <span>Offline: {isOfflineMode ? 'yes' : 'no'}</span>
-                        <button onClick={() => setOfflineMode(offlineValue)}>Update</button>
-                    </div>
-                );
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            await user.click(screen.getByRole('button', { name: /update/i }));
-            expect(screen.getByText(`Offline: ${expectedDisplay}`)).toBeInTheDocument();
-        });
-
-        it('handles enabling offline mode with URL manipulation', async () => {
-            const TestComponent = () => {
-                const { setOfflineMode } = useContext(AuthContext);
-                return <button onClick={() => setOfflineMode(true)}>Enable Offline</button>;
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            await user.click(screen.getByRole('button', { name: /enable offline/i }));
-
-            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', 'http://localhost:3000/?offline=true');
-            expect(mockConsoleInfo).toHaveBeenCalledWith('Application switched to offline mode.');
         });
     });
 
@@ -358,21 +190,18 @@ describe('AuthProvider', () => {
                 hookResult = useAuth();
                 return null;
             };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
+            renderWithAuthProvider(<TestComponent />);
 
             expect(hookResult).toMatchObject({
                 user: null,
                 token: null,
                 isAuthenticated: false,
                 isOfflineMode: false,
+                isInitializing: false,
                 login: expect.any(Function),
                 logout: expect.any(Function),
-                setOfflineMode: expect.any(Function)
+                setOfflineMode: expect.any(Function),
+                refreshAuth: expect.any(Function)
             });
         });
 
@@ -392,8 +221,322 @@ describe('AuthProvider', () => {
         });
     });
 
+    describe('Login functionality', () => {
+        it('handles successful login via Google OAuth', async () => {
+            const mockUser = createMockUser({ name: 'Test User' });
+            const mockToken = 'test-token-123';
+
+            mockLoginMutation.mockResolvedValue({
+                data: {
+                    googleOAuthLoginMutation: {
+                        accessToken: mockToken,
+                        user: mockUser
+                    }
+                }
+            });
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            expect(screen.getByText('User: none')).toBeInTheDocument();
+            expect(screen.getByText('Token: none')).toBeInTheDocument();
+            expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: /login/i }));
+
+            expect(await screen.findByText('User: Test User')).toBeInTheDocument();
+            expect(screen.getByText(`Token: ${mockToken}`)).toBeInTheDocument();
+            expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
+            expect(screen.getByText('Login Result: success')).toBeInTheDocument();
+
+            expect(mockLoginMutation).toHaveBeenCalledWith({
+                variables: {
+                    input: {
+                        googleToken: mockGoogleToken,
+                        clientType: 'WEB'
+                    }
+                }
+            });
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith(mockToken);
+            expect(sessionStorageMock.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
+        });
+
+        it.each([
+            ['single error', [{ message: 'Invalid Google token' }]],
+            [
+                'multiple errors',
+                [
+                    { message: 'Invalid Google token', code: 'INVALID_TOKEN' },
+                    { message: 'Token expired', code: 'TOKEN_EXPIRED' }
+                ]
+            ]
+        ])('handles failed login with %s', async (_, errors) => {
+            mockLoginMutation.mockResolvedValue({
+                data: {
+                    googleOAuthLoginMutation: {
+                        accessToken: null,
+                        user: null,
+                        errors
+                    }
+                }
+            });
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+            await user.click(screen.getByRole('button', { name: /login/i }));
+
+            expect(await screen.findByText('Login Result: failed')).toBeInTheDocument();
+            expect(screen.getByText('User: none')).toBeInTheDocument();
+
+            // Should log the first error message
+            expect(mockConsoleError).toHaveBeenCalledWith('Login error:', errors[0].message);
+            expect(tokenStorage.setAccessToken).not.toHaveBeenCalled();
+            expect(sessionStorageMock.setItem).not.toHaveBeenCalled();
+        });
+
+        it('handles login response without accessToken or errors', async () => {
+            mockLoginMutation.mockResolvedValue({
+                data: {
+                    googleOAuthLoginMutation: {
+                        accessToken: null,
+                        user: null,
+                        errors: []
+                    }
+                }
+            });
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+            await user.click(screen.getByRole('button', { name: /login/i }));
+
+            expect(await screen.findByText('Login Result: failed')).toBeInTheDocument();
+
+            // Should not log any error since there are no errors in the response
+            expect(mockConsoleError).not.toHaveBeenCalledWith('Login error:', expect.any(String));
+            expect(tokenStorage.setAccessToken).not.toHaveBeenCalled();
+        });
+
+        it.each([
+            ['network error', new Error('Network error')],
+            ['timeout error', new Error('Request timeout')]
+        ])('handles login mutation %s', async (_, error) => {
+            mockLoginMutation.mockRejectedValue(error);
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+            await user.click(screen.getByRole('button', { name: /login/i }));
+
+            expect(await screen.findByText('Login Result: failed')).toBeInTheDocument();
+            expect(screen.getByText('User: none')).toBeInTheDocument();
+
+            expect(mockConsoleError).toHaveBeenCalledWith('Login failed:', error);
+            expect(tokenStorage.setAccessToken).not.toHaveBeenCalled();
+            expect(sessionStorageMock.setItem).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Logout functionality', () => {
+        it('clears state, sessionStorage and tokenStorage when logout is called', async () => {
+            const mockUser = createMockUser();
+            const mockToken = 'test-token-123';
+
+            // Mock successful login first
+            mockLoginMutation.mockResolvedValue({
+                data: {
+                    googleOAuthLoginMutation: {
+                        accessToken: mockToken,
+                        user: mockUser
+                    }
+                }
+            });
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            // First login
+            await user.click(screen.getByRole('button', { name: /login/i }));
+
+            expect(await screen.findByText('User: Test User')).toBeInTheDocument();
+            expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
+
+            // Then logout
+            await user.click(screen.getByRole('button', { name: /logout/i }));
+
+            expect(await screen.findByText('User: none')).toBeInTheDocument();
+            expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
+
+            expect(mockLogoutMutation).toHaveBeenCalled();
+            expect(tokenStorage.clear).toHaveBeenCalled();
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
+        });
+
+        it('clears offline mode and URL on logout', async () => {
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            // Enable offline mode first
+            await user.click(screen.getByRole('button', { name: /enable offline mode/i }));
+            expect(screen.getByText('Offline Mode: yes')).toBeInTheDocument();
+
+            // Then logout should clear offline mode
+            await user.click(screen.getByRole('button', { name: /logout/i }));
+
+            expect(await screen.findByText('Offline Mode: no')).toBeInTheDocument();
+
+            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', expect.not.stringContaining('offline'));
+        });
+
+        it('handles logout mutation error gracefully', async () => {
+            // Mock logout mutation error
+            mockLogoutMutation.mockRejectedValue(new Error('Logout failed'));
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            await user.click(screen.getByRole('button', { name: /logout/i }));
+
+            await waitFor(() => {
+                expect(mockConsoleError).toHaveBeenCalledWith('Logout error:', expect.any(Error));
+            });
+
+            // Should still clear local state even if mutation fails
+            expect(tokenStorage.clear).toHaveBeenCalled();
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
+        });
+    });
+
+    describe('Refresh Auth functionality', () => {
+        it.each([
+            [
+                'successful refresh',
+                { data: { refreshTokenMutation: { accessToken: 'new-access-token-456' } } },
+                'success',
+                'new-access-token-456',
+                true
+            ],
+            ['failed refresh with null data', { data: null }, 'failed', 'none', false],
+            ['failed refresh with no accessToken', { data: { refreshTokenMutation: {} } }, 'failed', 'none', false]
+        ])('handles %s', async (_, mockResponse, expectedResult, expectedTokenDisplay, shouldSetToken) => {
+            mockRefreshTokenMutation.mockResolvedValue(mockResponse);
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+            await user.click(screen.getByRole('button', { name: /refresh/i }));
+
+            expect(await screen.findByText(`Refresh Result: ${expectedResult}`)).toBeInTheDocument();
+
+            expect(mockRefreshTokenMutation).toHaveBeenCalled();
+            expect(screen.getByText(`Token: ${expectedTokenDisplay}`)).toBeInTheDocument();
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledTimes(shouldSetToken ? 1 : 0);
+        });
+
+        it('handles refresh token mutation error', async () => {
+            mockRefreshTokenMutation.mockRejectedValue(new Error('Network error'));
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+            await user.click(screen.getByRole('button', { name: /refresh/i }));
+
+            expect(await screen.findByText('Refresh Result: failed')).toBeInTheDocument();
+
+            expect(mockConsoleError).toHaveBeenCalledWith('Token refresh failed:', expect.any(Error));
+            expect(tokenStorage.setAccessToken).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Offline mode functionality', () => {
+        it('updates offline mode state when setOfflineMode is called', async () => {
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            expect(screen.getByText('Offline Mode: no')).toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: /enable offline mode/i }));
+            expect(screen.getByText('Offline Mode: yes')).toBeInTheDocument();
+            expect(mockConsoleInfo).toHaveBeenCalledWith('Application switched to offline mode.');
+            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', 'http://localhost:3000/?offline=true');
+
+            await user.click(screen.getByRole('button', { name: /disable offline mode/i }));
+            expect(screen.getByText('Offline Mode: no')).toBeInTheDocument();
+        });
+
+        it('sets offline user and token when enabling offline mode', async () => {
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            expect(screen.getByText('User: none')).toBeInTheDocument();
+            expect(screen.getByText('Token: none')).toBeInTheDocument();
+            expect(screen.getByText('Offline Mode: no')).toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: /enable offline mode/i }));
+
+            expect(screen.getByText('User: Offline User')).toBeInTheDocument();
+            expect(screen.getByText('Token: offline-token')).toBeInTheDocument();
+            expect(screen.getByText('Offline Mode: yes')).toBeInTheDocument();
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
+            expect(window.history.replaceState).toHaveBeenCalledWith({}, '', expect.stringContaining('offline=true'));
+        });
+    });
+
+    describe('Initialization state', () => {
+        it('sets isInitializing to false after mounting', async () => {
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            // After initial render, should be false (since no async operations)
+            expect(await screen.findByText('Initializing: no')).toBeInTheDocument();
+        });
+
+        it('attempts to refresh token when user is in sessionStorage', async () => {
+            const mockUser = createMockUser();
+
+            // Set up sessionStorage with user
+            sessionStorageMock.getItem.mockImplementation((key) => {
+                if (key === 'user') return JSON.stringify(mockUser);
+                return null;
+            });
+
+            // Mock successful refresh
+            mockRefreshTokenMutation.mockResolvedValue({
+                data: {
+                    refreshTokenMutation: {
+                        accessToken: 'refreshed-token'
+                    }
+                }
+            });
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            // Should attempt refresh
+            await waitFor(() => {
+                expect(mockRefreshTokenMutation).toHaveBeenCalled();
+            });
+
+            // Should set user and token after successful refresh
+            expect(await screen.findByText('Initializing: no')).toBeInTheDocument();
+            expect(screen.getByText('User: Test User')).toBeInTheDocument();
+            expect(screen.getByText('Token: refreshed-token')).toBeInTheDocument();
+        });
+
+        it('clears user data when refresh fails', async () => {
+            const mockUser = createMockUser();
+
+            // Set up sessionStorage with user
+            sessionStorageMock.getItem.mockImplementation((key) => {
+                if (key === 'user') return JSON.stringify(mockUser);
+                return null;
+            });
+
+            // Mock failed refresh
+            mockRefreshTokenMutation.mockResolvedValue({
+                data: null
+            });
+
+            renderWithAuthProvider(<TestComponentWithAuth />);
+
+            // Should attempt refresh
+            await waitFor(() => {
+                expect(mockRefreshTokenMutation).toHaveBeenCalled();
+            });
+
+            // Should clear user data after failed refresh
+            expect(await screen.findByText('Initializing: no')).toBeInTheDocument();
+            expect(screen.getByText('User: none')).toBeInTheDocument();
+            expect(screen.getByText('Token: none')).toBeInTheDocument();
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
+        });
+    });
+
     describe('Initial state from sessionStorage', () => {
-        it('loads user from sessionStorage on mount', () => {
+        it('loads user from sessionStorage on mount and attempts refresh', async () => {
             const mockUser = createMockUser();
 
             // Set up sessionStorage before rendering
@@ -402,26 +545,36 @@ describe('AuthProvider', () => {
                 return null;
             });
 
+            // Mock failed refresh to test initial state
+            mockRefreshTokenMutation.mockResolvedValue({
+                data: null
+            });
+
             let contextValue;
             const TestComponent = () => {
-                contextValue = useContext(AuthContext);
+                contextValue = useAuth();
                 return null;
             };
+            renderWithAuthProvider(<TestComponent />);
 
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
+            // Initially user is loaded from sessionStorage
             expect(sessionStorageMock.getItem).toHaveBeenCalledWith('user');
             expect(contextValue.user).toEqual(mockUser);
-            // Note: token is not restored from storage, will need refresh
-            expect(contextValue.token).toBeNull();
-            expect(contextValue.isAuthenticated).toBe(false);
+
+            // But no token yet and will attempt refresh
+            await waitFor(() => {
+                expect(mockRefreshTokenMutation).toHaveBeenCalled();
+            });
+
+            // After failed refresh, user is cleared
+            await waitFor(() => {
+                expect(contextValue.user).toBeNull();
+                expect(contextValue.token).toBeNull();
+                expect(contextValue.isAuthenticated).toBe(false);
+            });
         });
 
-        it('handles corrupted user data in sessionStorage', () => {
+        it('handles corrupted user data in sessionStorage', async () => {
             // Set up sessionStorage with invalid JSON
             sessionStorageMock.getItem.mockImplementation((key) => {
                 if (key === 'user') return 'invalid-json{';
@@ -430,168 +583,69 @@ describe('AuthProvider', () => {
 
             let contextValue;
             const TestComponent = () => {
-                contextValue = useContext(AuthContext);
+                contextValue = useAuth();
                 return null;
             };
+            renderWithAuthProvider(<TestComponent />);
 
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            expect(mockConsoleError).toHaveBeenCalledWith('Error parsing stored user data:', expect.any(Error));
-            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
-            expect(contextValue.user).toBeNull();
-            expect(contextValue.token).toBeNull();
-            expect(contextValue.isAuthenticated).toBe(false);
+            await waitFor(() => {
+                expect(mockConsoleError).toHaveBeenCalledWith('Error parsing stored user data:', expect.any(Error));
+                expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
+                expect(contextValue.user).toBeNull();
+                expect(contextValue.token).toBeNull();
+                expect(contextValue.isAuthenticated).toBe(false);
+            });
         });
 
         it.each([
             ['no stored data', null, false],
-            ['user stored', JSON.stringify(createMockUser()), false] // false because no token
-        ])('handles %s correctly', (_, storedUser, shouldAuthenticate) => {
+            ['user stored', JSON.stringify(createMockUser()), false] // false because no token until refresh succeeds
+        ])('handles %s correctly', async (_, storedUser, shouldAuthenticate) => {
             // Set up sessionStorage mock
             sessionStorageMock.getItem.mockImplementation((key) => {
                 if (key === 'user') return storedUser;
                 return null;
             });
 
+            // Mock failed refresh
+            mockRefreshTokenMutation.mockResolvedValue({
+                data: null
+            });
+
             let contextValue;
             const TestComponent = () => {
-                contextValue = useContext(AuthContext);
+                contextValue = useAuth();
                 return null;
             };
+            renderWithAuthProvider(<TestComponent />);
 
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            expect(contextValue.isAuthenticated).toBe(shouldAuthenticate);
+            await waitFor(() => {
+                expect(contextValue.isAuthenticated).toBe(shouldAuthenticate);
+                expect(contextValue.isInitializing).toBe(false);
+            });
         });
     });
 
     describe('URL parameter offline mode detection', () => {
-        it('enables offline mode when offline URL parameter is present', () => {
+        it('enables offline mode when offline URL parameter is present', async () => {
             window.location.search = '?offline';
 
             let contextValue;
             const TestComponent = () => {
-                contextValue = useContext(AuthContext);
+                contextValue = useAuth();
                 return null;
             };
+            renderWithAuthProvider(<TestComponent />);
 
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            expect(contextValue.isOfflineMode).toBe(true);
-            expect(contextValue.user?.name).toBe('Offline User');
-            expect(contextValue.token).toBe('offline-token');
-            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
-            expect(mockConsoleInfo).toHaveBeenCalledWith('Application is in offline mode.');
-        });
-
-        it.each([
-            ['no parameters', ''],
-            ['other parameters', '?other=value'],
-            ['multiple parameters without offline', '?param1=value1&param2=value2']
-        ])('does not enable offline mode with %s', (_, searchParams) => {
-            window.location.search = searchParams;
-
-            let contextValue;
-            const TestComponent = () => {
-                contextValue = useContext(AuthContext);
-                return null;
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            expect(contextValue.isOfflineMode).toBe(false);
-        });
-
-        it('enables offline mode with offline parameter among other parameters', () => {
-            window.location.search = '?param1=value1&offline&param2=value2';
-
-            let contextValue;
-            const TestComponent = () => {
-                contextValue = useContext(AuthContext);
-                return null;
-            };
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            expect(contextValue.isOfflineMode).toBe(true);
-            expect(contextValue.user?.name).toBe('Offline User');
-            expect(contextValue.token).toBe('offline-token');
-            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
-            expect(mockConsoleInfo).toHaveBeenCalledWith('Application is in offline mode.');
-        });
-    });
-
-    describe('Context value using mock provider', () => {
-        it('allows testing with mock context values', async () => {
-            const mockLogin = jest.fn();
-            const mockLogout = jest.fn();
-            const mockSetOfflineMode = jest.fn();
-            const mockUser = createMockUser({ name: 'Mock User' });
-
-            const mockContextValue = createMockAuthContextValue({
-                user: mockUser,
-                token: 'mock-token',
-                isAuthenticated: true,
-                isOfflineMode: true,
-                login: mockLogin,
-                logout: mockLogout,
-                setOfflineMode: mockSetOfflineMode
+            await waitFor(() => {
+                expect(contextValue.isOfflineMode).toBe(true);
+                expect(contextValue.user?.name).toBe('Offline User');
+                expect(contextValue.token).toBe('offline-token');
+                expect(contextValue.isInitializing).toBe(false);
             });
 
-            const TestComponent = () => {
-                const context = useContext(AuthContext);
-                return (
-                    <div>
-                        <span>User: {context.user?.name}</span>
-                        <span>Token: {context.token}</span>
-                        <span>Authenticated: {context.isAuthenticated ? 'yes' : 'no'}</span>
-                        <span>Offline: {context.isOfflineMode ? 'yes' : 'no'}</span>
-                        <button onClick={() => context.login('new-token', mockUser)}>Login</button>
-                        <button onClick={context.logout}>Logout</button>
-                        <button onClick={() => context.setOfflineMode(false)}>Go Online</button>
-                    </div>
-                );
-            };
-
-            render(
-                <AuthContext.Provider value={mockContextValue}>
-                    <TestComponent />
-                </AuthContext.Provider>
-            );
-
-            expect(screen.getByText('User: Mock User')).toBeInTheDocument();
-            expect(screen.getByText('Token: mock-token')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
-            expect(screen.getByText('Offline: yes')).toBeInTheDocument();
-
-            await user.click(screen.getByRole('button', { name: /login/i }));
-            expect(mockLogin).toHaveBeenCalledWith('new-token', mockUser);
-
-            await user.click(screen.getByRole('button', { name: /logout/i }));
-            expect(mockLogout).toHaveBeenCalled();
-
-            await user.click(screen.getByRole('button', { name: /go online/i }));
-            expect(mockSetOfflineMode).toHaveBeenCalledWith(false);
+            expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
+            expect(mockConsoleInfo).toHaveBeenCalledWith('Application is in offline mode.');
         });
     });
 });

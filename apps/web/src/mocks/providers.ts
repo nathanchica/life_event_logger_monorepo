@@ -10,9 +10,11 @@ export const createMockAuthContextValue = (overrides: Partial<AuthContextType> =
         token: 'mock-token',
         isAuthenticated: true,
         isOfflineMode: false,
-        login: (_token, _user) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
+        isInitializing: true,
+        login: (_googleToken) => Promise.resolve(true), // eslint-disable-line @typescript-eslint/no-unused-vars
         logout: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
         setOfflineMode: (_isOffline) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
+        refreshAuth: () => Promise.resolve(true),
         ...overrides
     };
 };
