@@ -1,6 +1,6 @@
 import { InMemoryCache } from '@apollo/client';
 import { MockedProvider } from '@apollo/client/testing';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { CREATE_EVENT_LABEL_MUTATION } from '../../../hooks/useEventLabels';
@@ -44,18 +44,14 @@ describe('EventLabelList', () => {
     it('shows the label creation form when clicking create new label', async () => {
         renderWithProvidersAndMocks(<EventLabelList isShowingEditActions={false} />);
         await user.click(screen.getByText('Create new label'));
-        await waitFor(() => {
-            expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
-        });
+        expect(await screen.findByPlaceholderText('Label name')).toBeInTheDocument();
     });
 
     it('disables check button if name is empty', async () => {
         renderWithProvidersAndMocks(<EventLabelList isShowingEditActions={false} />);
         await user.click(screen.getByText('Create new label'));
-        await waitFor(() => {
-            const checkButton = screen.getByRole('button', { name: /Create label/i });
-            expect(checkButton).toBeDisabled();
-        });
+        const checkButton = await screen.findByRole('button', { name: /Create label/i });
+        expect(checkButton).toBeDisabled();
     });
 
     it('shows error and disables check button for duplicate name', async () => {
@@ -91,10 +87,7 @@ describe('EventLabelList', () => {
     it('shows error and disables create for too long names', async () => {
         renderWithProvidersAndMocks(<EventLabelList isShowingEditActions={false} />);
         await user.click(screen.getByText('Create new label'));
-        await waitFor(() => {
-            expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
-        });
-        const input = screen.getByPlaceholderText('Label name');
+        const input = await screen.findByPlaceholderText('Label name');
         await user.type(input, 'a'.repeat(MAX_LABEL_LENGTH + 1));
         expect(screen.getByText(`Max ${MAX_LABEL_LENGTH} characters`)).toBeInTheDocument();
         const checkButton = screen.getByRole('button', { name: /Create label/i });
@@ -104,9 +97,7 @@ describe('EventLabelList', () => {
     it('cancels label creation on cancel button', async () => {
         renderWithProvidersAndMocks(<EventLabelList isShowingEditActions={false} />);
         await user.click(screen.getByText('Create new label'));
-        await waitFor(() => {
-            expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
-        });
+        expect(await screen.findByPlaceholderText('Label name')).toBeInTheDocument();
         const cancelButton = screen.getByRole('button', { name: /Cancel label creation/ });
         await user.click(cancelButton);
         expect(screen.queryByPlaceholderText('Label name')).not.toBeInTheDocument();
@@ -115,9 +106,7 @@ describe('EventLabelList', () => {
     it('cancels label creation on escape key', async () => {
         renderWithProvidersAndMocks(<EventLabelList isShowingEditActions={false} />);
         await user.click(screen.getByText('Create new label'));
-        await waitFor(() => {
-            expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
-        });
+        expect(await screen.findByPlaceholderText('Label name')).toBeInTheDocument();
         await user.keyboard('{Escape}');
         expect(screen.queryByPlaceholderText('Label name')).not.toBeInTheDocument();
     });
@@ -166,9 +155,7 @@ describe('EventLabelList', () => {
     it('does not create a label when pressing Enter on an empty form', async () => {
         renderWithProvidersAndMocks(<EventLabelList isShowingEditActions={false} />);
         await user.click(screen.getByText('Create new label'));
-        await waitFor(() => {
-            expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
-        });
+        expect(await screen.findByPlaceholderText('Label name')).toBeInTheDocument();
         await user.keyboard('{Enter}');
         // The input should still be present
         expect(screen.getByPlaceholderText('Label name')).toBeInTheDocument();
