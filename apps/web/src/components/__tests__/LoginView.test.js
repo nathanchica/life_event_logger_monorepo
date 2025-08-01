@@ -1,32 +1,50 @@
-import { MockedProvider } from '@apollo/client/testing';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { createMockAuthContextValue } from '../../mocks/providers';
-import { createMockUser } from '../../mocks/user';
 import { AuthContext } from '../../providers/AuthProvider';
-import LoginView, { LOGIN_MUTATION } from '../LoginView';
+import LoginView from '../LoginView';
 
 // Mock the Google OAuth components
 jest.mock('@react-oauth/google', () => ({
-    GoogleLogin: ({ onSuccess, onError, text }) => (
-        <>
-            <button onClick={() => onSuccess({ credential: 'mock-credential' })} data-testid="google-login">
-                {text === 'signin_with' ? 'Sign in with Google' : 'Google Login'}
-            </button>
-            <button onClick={() => onError()} data-testid="google-login-error" style={{ display: 'none' }}>
-                Trigger Error
-            </button>
-        </>
-    ),
+    GoogleLogin: ({ onSuccess, onError, text }) => {
+        // Create different test scenarios based on data-testid
+        const handleClick = (e) => {
+            const testId = e.currentTarget.getAttribute('data-testid');
+
+            if (testId === 'google-login-no-credential') {
+                // Simulate response without credential
+                onSuccess({ credential: null });
+            } else if (testId === 'google-login-error') {
+                // Simulate error
+                onError();
+            } else {
+                // Default success case
+                onSuccess({ credential: 'mock-credential' });
+            }
+        };
+
+        return (
+            <>
+                <button onClick={handleClick} data-testid="google-login">
+                    {text === 'signin_with' ? 'Sign in with Google' : 'Google Login'}
+                </button>
+                <button onClick={handleClick} data-testid="google-login-no-credential" style={{ display: 'none' }}>
+                    Trigger No Credential
+                </button>
+                <button onClick={handleClick} data-testid="google-login-error" style={{ display: 'none' }}>
+                    Trigger Error
+                </button>
+            </>
+        );
+    },
     useGoogleOneTapLogin: () => null
 }));
 
 describe('LoginView', () => {
     const mockLogin = jest.fn();
     const mockSetOfflineMode = jest.fn();
-    const mockUser = createMockUser();
     let user;
 
     beforeEach(() => {
@@ -35,7 +53,7 @@ describe('LoginView', () => {
     });
 
     const renderWithProviders = (options = {}) => {
-        const { mocks = [], themeMode = 'light' } = options;
+        const { themeMode = 'light' } = options;
 
         const theme = createTheme({
             palette: {
@@ -50,13 +68,11 @@ describe('LoginView', () => {
         });
 
         return render(
-            <MockedProvider mocks={mocks} addTypename={false}>
-                <ThemeProvider theme={theme}>
-                    <AuthContext.Provider value={mockAuthValue}>
-                        <LoginView />
-                    </AuthContext.Provider>
-                </ThemeProvider>
-            </MockedProvider>
+            <ThemeProvider theme={theme}>
+                <AuthContext.Provider value={mockAuthValue}>
+                    <LoginView />
+                </AuthContext.Provider>
+            </ThemeProvider>
         );
     };
 
@@ -73,97 +89,62 @@ describe('LoginView', () => {
     });
 
     describe('Google login', () => {
-        const loginSuccessMock = {
-            request: {
-                query: LOGIN_MUTATION,
-                variables: {
-                    input: {
-                        googleToken: 'mock-credential'
-                    }
-                }
-            },
-            result: {
-                data: {
-                    googleOAuthLoginMutation: {
-                        token: 'mock-auth-token',
-                        user: mockUser,
-                        errors: []
-                    }
-                }
-            }
-        };
-
-        const loginErrorMock = {
-            request: {
-                query: LOGIN_MUTATION,
-                variables: {
-                    input: {
-                        googleToken: 'mock-credential'
-                    }
-                }
-            },
-            error: new Error('Login failed')
-        };
-
-        const loginNoTokenMock = {
-            request: {
-                query: LOGIN_MUTATION,
-                variables: {
-                    input: {
-                        googleToken: 'mock-credential'
-                    }
-                }
-            },
-            result: {
-                data: {
-                    googleOAuthLoginMutation: {
-                        token: null,
-                        user: null,
-                        errors: []
-                    }
-                }
-            }
-        };
-
         it('shows loading state and calls login on success', async () => {
-            renderWithProviders({ mocks: [loginSuccessMock] });
+            mockLogin.mockResolvedValue(true);
+            renderWithProviders();
 
             const googleLoginButton = screen.getByTestId('google-login');
-            await user.click(googleLoginButton);
+            user.click(googleLoginButton);
 
             // Should show loading state
-            expect(screen.getByText('Signing you in...')).toBeInTheDocument();
+            expect(await screen.findByText('Signing you in...')).toBeInTheDocument();
             expect(screen.getByRole('progressbar')).toBeInTheDocument();
 
             // Login form should be hidden
             expect(screen.queryByText('Sign in to get started')).not.toBeInTheDocument();
 
-            // Should call login after success
+            // Should call login with the credential
             await waitFor(() => {
-                expect(mockLogin).toHaveBeenCalledWith('mock-auth-token', mockUser);
+                expect(mockLogin).toHaveBeenCalledWith('mock-credential');
             });
         });
 
-        it.each([
-            ['handles login errors', loginErrorMock],
-            ['handles null token response', loginNoTokenMock]
-        ])('%s', async (_, mock) => {
-            jest.spyOn(console, 'error').mockImplementation(() => {});
-
-            renderWithProviders({ mocks: [mock] });
+        it('handles login failure', async () => {
+            mockLogin.mockResolvedValue(false);
+            renderWithProviders();
 
             const googleLoginButton = screen.getByTestId('google-login');
-            await user.click(googleLoginButton);
+            user.click(googleLoginButton);
+
+            // Should show loading state initially
+            expect(await screen.findByText('Signing you in...')).toBeInTheDocument();
+
+            // Should call login with the credential
+            await waitFor(() => {
+                expect(mockLogin).toHaveBeenCalledWith('mock-credential');
+            });
+
+            // Should show error message
+            expect(await screen.findByText('Failed to sign in. Please try again.')).toBeInTheDocument();
 
             // Should return to normal state
-            await waitFor(() => {
-                expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
-            });
+            expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
+        });
+
+        it('handles missing credentials from Google', async () => {
+            renderWithProviders();
+
+            const googleLoginNoCredButton = screen.getByTestId('google-login-no-credential');
+            await user.click(googleLoginNoCredButton);
+
+            // Should show error message
+            expect(screen.getByText('No credentials received from Google')).toBeInTheDocument();
+
+            // Should remain on login screen
+            expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
 
             // Should not call login
             expect(mockLogin).not.toHaveBeenCalled();
-
-            console.error.mockRestore();
         });
 
         it('handles Google login onError callback', async () => {

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-import { gql, useMutation } from '@apollo/client';
 import { css } from '@emotion/react';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import SecurityIcon from '@mui/icons-material/Security';
@@ -20,24 +19,6 @@ import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oa
 
 import { useAuth } from '../providers/AuthProvider';
 
-export const LOGIN_MUTATION = gql`
-    mutation LoginMutation($input: GoogleOAuthLoginMutationInput!) {
-        googleOAuthLoginMutation(input: $input) {
-            token
-            user {
-                id
-                email
-                name
-            }
-            errors {
-                code
-                field
-                message
-            }
-        }
-    }
-`;
-
 /**
  * LoginView component
  * This component handles user login using Google One Tap.
@@ -46,33 +27,31 @@ export const LOGIN_MUTATION = gql`
  */
 const LoginView = () => {
     const [isLoading, setIsLoading] = useState(false);
-    const [loginMutation] = useMutation(LOGIN_MUTATION);
+    const [error, setError] = useState<string | null>(null);
     const { login, setOfflineMode } = useAuth();
     const theme = useTheme();
 
     const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
-        setIsLoading(true);
-        try {
-            const { data } = await loginMutation({
-                variables: {
-                    input: {
-                        googleToken: credentialResponse.credential
-                    }
-                }
-            });
-
-            if (data?.googleOAuthLoginMutation?.token) {
-                login(data.googleOAuthLoginMutation.token, data.googleOAuthLoginMutation.user);
-            }
-        } catch (error) {
-            console.error('Login failed:', error);
-        } finally {
-            setIsLoading(false);
+        if (!credentialResponse.credential) {
+            setError('No credentials received from Google');
+            return;
         }
+
+        setIsLoading(true);
+        setError(null);
+
+        const success = await login(credentialResponse.credential);
+
+        if (!success) {
+            setError('Failed to sign in. Please try again.');
+        }
+
+        setIsLoading(false);
     };
 
     const handleGoogleLoginError = () => {
         console.error('Google login failed');
+        setError('Google sign in was unsuccessful. Please try again.');
         setIsLoading(false);
     };
 
@@ -189,6 +168,12 @@ const LoginView = () => {
                                                     size="large"
                                                 />
                                             </Box>
+
+                                            {error && (
+                                                <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+                                                    {error}
+                                                </Typography>
+                                            )}
                                         </Box>
 
                                         {/* Divider */}
