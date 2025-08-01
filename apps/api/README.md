@@ -1,12 +1,5 @@
 # life_event_logger_api
 
-### Project status: Launched
-
-Target milestones reached. Will revisit again when I take on the future plans for the
-[React App](https://github.com/nathanchica/life_event_logger).
-
-Server deployed at Vercel https://life-event-logger-api.vercel.app/
-
 ## Overview
 
 GraphQL API for Life Event Logger app

@@ -1,9 +1,13 @@
 # Life Event Logger Monorepo
 
-A unified monorepo for the Life Event Logger application, combining the React frontend and GraphQL API backend into a single deployable project.
+### Project status: In Development
+
+Integrating frontend and backend apps into a single monorepo to deploy both on Vercel under the same domain, allowing
+secure cookie-based authentication.
 
 ## Overview
 
+A unified monorepo for the Life Event Logger application, combining the React frontend and GraphQL API backend into a single deployable project.
 Life Event Logger helps you track recurring life events that don't fit into traditional calendar apps - like cleaning tasks, health appointments, or personal activities. Simply log when events happen and always know when you last did them.
 
 ## Why Monorepo?

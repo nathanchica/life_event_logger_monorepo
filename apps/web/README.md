@@ -1,11 +1,5 @@
 # Life Event Logger
 
-### Project status: Launched
-Target milestones achieved. Will continue again at a later date with the plans mentioned in
-[Future plans](#future-plans) section below
-
-Deployed to Vercel at https://life-event-logger.vercel.app/
-
 ## Overview
 
 React application for keeping track of various repeating life events by logging when they happen. Useful for remembering
