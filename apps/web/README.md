@@ -59,6 +59,39 @@ uses its own user.
 **src/apollo/client.ts** - contains the ApolloLink used to capture GQL mutations in offline mode and returns a response
 that mimics a server response, allowing mutations to complete in offline mode.
 
+### Authentication & Refresh Token Flow
+The app uses JWT access tokens (15 min expiry) with refresh tokens (30 day expiry) for secure authentication:
+
+1. **Login Flow**
+   - User logs in with Google OAuth → Backend validates and returns access token
+   - Access token stored in memory only (via `tokenStorage` service)
+   - Refresh token stored in httpOnly cookie (secure, not accessible to JS)
+   - User info stored in sessionStorage for UI persistence
+
+2. **Request Flow**
+   - Apollo Client adds access token to every request via auth link
+   - Token checked for expiry before each request
+   - Expired tokens automatically cleared
+
+3. **Token Refresh Flow**
+   - API request fails with 401 UNAUTHORIZED → Error link intercepts
+   - Automatically calls refresh mutation using cookie
+   - On success: Updates access token in memory, retries original request
+   - On failure: Redirects to login page
+   - Concurrent 401s are queued to prevent multiple refresh attempts
+
+4. **Page Refresh Handling**
+   - Access token is lost (memory only)
+   - User info restored from sessionStorage
+   - First API call triggers automatic token refresh
+   - Seamless experience without re-login
+
+5. **Security Benefits**
+   - No tokens in localStorage/sessionStorage (XSS protection)
+   - Refresh tokens in httpOnly cookies (not accessible to JS)
+   - Automatic token rotation on each refresh
+   - Short-lived access tokens minimize exposure
+
 ## Development
 
 ### Note

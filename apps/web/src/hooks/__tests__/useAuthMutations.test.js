@@ -48,30 +48,19 @@ const createRefreshTokenMutationResponse = ({
     gqlError = null,
     nullPayload = false,
     delay = 0
-}) => ({
-    request: {
+}) =>
+    createMutationResponse({
         query: REFRESH_TOKEN_MUTATION,
-        variables: {}
-    },
-    ...(delay > 0 ? { delay } : {}),
-    ...(gqlError
-        ? {
-              error: gqlError
-          }
-        : {
-              result: {
-                  data: {
-                      refreshTokenMutation: nullPayload
-                          ? null
-                          : {
-                                __typename: 'RefreshTokenMutationPayload',
-                                accessToken,
-                                errors: apiErrors
-                            }
-                  }
-              }
-          })
-});
+        mutationName: 'refreshTokenMutation',
+        payload: {
+            __typename: 'RefreshTokenMutationPayload',
+            accessToken
+        },
+        delay,
+        gqlError,
+        apiErrors,
+        nullPayload
+    });
 
 const createLogoutMutationResponse = ({
     success = true,
@@ -79,30 +68,19 @@ const createLogoutMutationResponse = ({
     gqlError = null,
     nullPayload = false,
     delay = 0
-}) => ({
-    request: {
+}) =>
+    createMutationResponse({
         query: LOGOUT_MUTATION,
-        variables: {}
-    },
-    ...(delay > 0 ? { delay } : {}),
-    ...(gqlError
-        ? {
-              error: gqlError
-          }
-        : {
-              result: {
-                  data: {
-                      logoutMutation: nullPayload
-                          ? null
-                          : {
-                                __typename: 'LogoutMutationPayload',
-                                success,
-                                errors: apiErrors
-                            }
-                  }
-              }
-          })
-});
+        mutationName: 'logoutMutation',
+        payload: {
+            __typename: 'LogoutMutationPayload',
+            success
+        },
+        delay,
+        gqlError,
+        apiErrors,
+        nullPayload
+    });
 
 const createLogoutAllDevicesMutationResponse = ({
     success = true,
@@ -110,30 +88,20 @@ const createLogoutAllDevicesMutationResponse = ({
     gqlError = null,
     nullPayload = false,
     delay = 0
-}) => ({
-    request: {
+}) =>
+    createMutationResponse({
         query: LOGOUT_ALL_DEVICES_MUTATION,
-        variables: {}
-    },
-    ...(delay > 0 ? { delay } : {}),
-    ...(gqlError
-        ? {
-              error: gqlError
-          }
-        : {
-              result: {
-                  data: {
-                      logoutAllDevicesMutation: nullPayload
-                          ? null
-                          : {
-                                __typename: 'LogoutAllDevicesMutationPayload',
-                                success,
-                                errors: apiErrors
-                            }
-                  }
-              }
-          })
-});
+        input: undefined,
+        mutationName: 'logoutAllDevicesMutation',
+        payload: {
+            __typename: 'LogoutAllDevicesMutationPayload',
+            success
+        },
+        delay,
+        gqlError,
+        apiErrors,
+        nullPayload
+    });
 
 describe('useAuthMutations', () => {
     beforeEach(() => {
@@ -151,21 +119,7 @@ describe('useAuthMutations', () => {
     };
 
     describe('hook initialization', () => {
-        it('returns all expected mutations and loading states', () => {
-            const { result } = renderHookWithProviders();
-
-            expect(result.current.loginMutation).toBeInstanceOf(Function);
-            expect(result.current.refreshTokenMutation).toBeInstanceOf(Function);
-            expect(result.current.logoutMutation).toBeInstanceOf(Function);
-            expect(result.current.logoutAllDevicesMutation).toBeInstanceOf(Function);
-            expect(typeof result.current.loginLoading).toBe('boolean');
-            expect(typeof result.current.refreshLoading).toBe('boolean');
-            expect(typeof result.current.logoutLoading).toBe('boolean');
-            expect(typeof result.current.logoutAllLoading).toBe('boolean');
-            expect(typeof result.current.isLoading).toBe('boolean');
-        });
-
-        it('initializes with loading states as false', () => {
+        it('returns all loading and error states', () => {
             const { result } = renderHookWithProviders();
 
             expect(result.current.loginLoading).toBe(false);
@@ -173,10 +127,6 @@ describe('useAuthMutations', () => {
             expect(result.current.logoutLoading).toBe(false);
             expect(result.current.logoutAllLoading).toBe(false);
             expect(result.current.isLoading).toBe(false);
-        });
-
-        it('returns error states', () => {
-            const { result } = renderHookWithProviders();
 
             expect(result.current.loginError).toBeUndefined();
             expect(result.current.refreshError).toBeUndefined();
@@ -437,73 +387,46 @@ describe('useAuthMutations', () => {
     });
 
     describe('loading states', () => {
-        it('shows loading state during login', async () => {
-            const mocks = [
-                createLoginMutationResponse({
-                    googleToken: 'token',
-                    delay: 100
-                })
-            ];
-            const { result } = renderHookWithProviders({ mocks });
-
-            act(() => {
-                result.current.loginMutation({
-                    variables: {
-                        input: {
-                            googleToken: 'token',
-                            clientType: 'WEB'
+        it.each([
+            [
+                'login',
+                () => createLoginMutationResponse({ googleToken: 'token', delay: 100 }),
+                (result) =>
+                    result.current.loginMutation({
+                        variables: {
+                            input: {
+                                googleToken: 'token',
+                                clientType: 'WEB'
+                            }
                         }
-                    }
-                });
-            });
-
-            expect(result.current.loginLoading).toBe(true);
-            expect(result.current.isLoading).toBe(true);
-
-            await waitFor(() => {
-                expect(result.current.loginLoading).toBe(false);
-                expect(result.current.isLoading).toBe(false);
-            });
-        });
-
-        it('shows loading state during refresh', async () => {
-            const mocks = [
-                createRefreshTokenMutationResponse({
-                    delay: 100
-                })
-            ];
+                    }),
+                'loginLoading'
+            ],
+            [
+                'refresh',
+                () => createRefreshTokenMutationResponse({ delay: 100 }),
+                (result) => result.current.refreshTokenMutation(),
+                'refreshLoading'
+            ],
+            [
+                'logout',
+                () => createLogoutMutationResponse({ delay: 100 }),
+                (result) => result.current.logoutMutation(),
+                'logoutLoading'
+            ]
+        ])('shows loading state during %s', async (mutationName, mockFactory, mutationCall, loadingProp) => {
+            const mocks = [mockFactory()];
             const { result } = renderHookWithProviders({ mocks });
 
             act(() => {
-                result.current.refreshTokenMutation();
+                mutationCall(result);
             });
 
-            expect(result.current.refreshLoading).toBe(true);
+            expect(result.current[loadingProp]).toBe(true);
             expect(result.current.isLoading).toBe(true);
 
             await waitFor(() => {
-                expect(result.current.refreshLoading).toBe(false);
-                expect(result.current.isLoading).toBe(false);
-            });
-        });
-
-        it('shows loading state during logout', async () => {
-            const mocks = [
-                createLogoutMutationResponse({
-                    delay: 100
-                })
-            ];
-            const { result } = renderHookWithProviders({ mocks });
-
-            act(() => {
-                result.current.logoutMutation();
-            });
-
-            expect(result.current.logoutLoading).toBe(true);
-            expect(result.current.isLoading).toBe(true);
-
-            await waitFor(() => {
-                expect(result.current.logoutLoading).toBe(false);
+                expect(result.current[loadingProp]).toBe(false);
                 expect(result.current.isLoading).toBe(false);
             });
         });

@@ -1,5 +1,5 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { createMockEventLabel } from '../../mocks/eventLabels';
@@ -204,11 +204,10 @@ describe('Sidebar', () => {
             const clickAwayTrigger = screen.getByTestId('click-away-trigger');
             await user.click(clickAwayTrigger);
 
-            await waitFor(() => {
-                expect(screen.queryAllByLabelText('edit')).toHaveLength(0); // Edit icons should be removed
-                expect(screen.getByLabelText('Manage labels')).toBeInTheDocument();
-                expect(screen.queryByLabelText('Stop editing labels')).not.toBeInTheDocument();
-            });
+            // Verify edit buttons are removed and state has changed
+            expect(screen.queryAllByLabelText('edit')).toHaveLength(0); // Edit icons should be removed
+            expect(screen.getByLabelText('Manage labels')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Stop editing labels')).not.toBeInTheDocument();
         });
     });
 
