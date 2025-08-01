@@ -51,7 +51,6 @@ const createRefreshTokenMutationResponse = ({
 }) =>
     createMutationResponse({
         query: REFRESH_TOKEN_MUTATION,
-        input: undefined,
         mutationName: 'refreshTokenMutation',
         payload: {
             __typename: 'RefreshTokenMutationPayload',
@@ -72,7 +71,6 @@ const createLogoutMutationResponse = ({
 }) =>
     createMutationResponse({
         query: LOGOUT_MUTATION,
-        input: undefined,
         mutationName: 'logoutMutation',
         payload: {
             __typename: 'LogoutMutationPayload',
