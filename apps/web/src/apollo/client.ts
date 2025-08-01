@@ -1,9 +1,8 @@
 import { ApolloClient, ApolloLink, Observable, createHttpLink } from '@apollo/client';
-import { setContext } from '@apollo/client/link/context';
 import { OperationDefinitionNode } from 'graphql';
 
+import { createAuthLink, createErrorLink } from './authLink';
 import { cache, setupCachePersistence } from './cache';
-import { tokenStorage } from './tokenStorage';
 
 import LoggableEventCard from '../components/EventCards/LoggableEventCard';
 import EventLabel from '../components/EventLabels/EventLabel';
@@ -255,18 +254,7 @@ const offlineMockLink = new ApolloLink((operation) => {
 // HTTP link for production use, connecting to the GraphQL server
 const httpLink = createHttpLink({
     uri: process.env.REACT_APP_GRAPHQL_URL || 'http://localhost:4000/graphql',
-    credentials: 'include'
-});
-
-// Auth link to add authorization token to requests
-const authLink = setContext((_, { headers }) => {
-    const token = tokenStorage.getAccessToken();
-    return {
-        headers: {
-            ...headers,
-            authorization: token ? `Bearer ${token}` : ''
-        }
-    };
+    credentials: 'include' // Important: Include cookies for refresh tokens
 });
 
 /**
@@ -280,14 +268,30 @@ const authLink = setContext((_, { headers }) => {
  * @param isOfflineMode - Whether to use mock responses instead of real server
  * @returns Configured Apollo Client instance
  */
-export const createApolloClient = async (isOfflineMode = false) => {
+export const createApolloClient = async (isOfflineMode = false, refreshAuthFn?: () => Promise<boolean>) => {
     // Setup cache persistence to localStorage for offline support
     await setupCachePersistence();
 
-    // Create the Apollo client first
+    let link: ApolloLink;
+
+    if (isOfflineMode) {
+        link = offlineMockLink;
+    } else {
+        const authLink = createAuthLink();
+        const links: ApolloLink[] = [authLink, httpLink];
+
+        // Add error link only if refresh function provided
+        if (refreshAuthFn) {
+            const errorLink = createErrorLink(refreshAuthFn);
+            links.unshift(errorLink);
+        }
+
+        link = ApolloLink.from(links);
+    }
+
+    // Create the Apollo client
     const apolloClient = new ApolloClient({
-        // Use mock link in offline mode, authenticated HTTP link when online
-        link: isOfflineMode ? offlineMockLink : authLink.concat(httpLink),
+        link,
         cache,
         defaultOptions: {
             watchQuery: {

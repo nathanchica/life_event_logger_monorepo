@@ -22,13 +22,13 @@ import { useViewOptions } from '../providers/ViewOptionsProvider';
  */
 const EventLoggerPage = () => {
     const { theme: mode } = useViewOptions();
-    const { isAuthenticated, isOfflineMode } = useAuth();
+    const { isAuthenticated, isOfflineMode, isInitializing, refreshAuth } = useAuth();
     const [apolloClient, setApolloClient] = useState<ApolloClient<NormalizedCacheObject> | null>(null);
 
-    // Initialize Apollo Client when offline mode is determined
+    // Initialize Apollo Client with refresh function
     useEffect(() => {
-        createApolloClient(isOfflineMode).then(setApolloClient);
-    }, [isOfflineMode]);
+        createApolloClient(isOfflineMode, refreshAuth).then(setApolloClient);
+    }, [isOfflineMode, refreshAuth]);
 
     const appTheme = useMemo(
         () =>
@@ -88,8 +88,8 @@ const EventLoggerPage = () => {
         [mode]
     );
 
-    // Don't render anything while Apollo Client is being initialized
-    if (!apolloClient) {
+    // Don't render anything while Apollo Client is being initialized or auth is initializing
+    if (!apolloClient || isInitializing) {
         return null;
     }
 
