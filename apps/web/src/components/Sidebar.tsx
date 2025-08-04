@@ -28,7 +28,6 @@ import { useToggle } from '../utils/useToggle';
 type Props = {
     isCollapsed: boolean;
     onCollapseSidebarClick: () => void;
-    isOfflineMode: boolean;
 };
 
 /**
@@ -36,18 +35,21 @@ type Props = {
  * It includes a list of event labels, theme toggle button,
  * and a link to the GitHub repository.
  */
-const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
+const Sidebar = ({ isCollapsed, onCollapseSidebarClick }: Props) => {
     const { value: isEditingLabels, setTrue: startEditingLabels, setFalse: stopEditingLabels } = useToggle(false);
-    const { clearAuthData } = useAuth();
+    const { clearAuthData, isOfflineMode } = useAuth();
     const { logoutMutation } = useAuthMutations();
     const { theme, enableDarkTheme, enableLightTheme } = useViewOptions();
 
     const handleLogout = async () => {
-        try {
-            await logoutMutation();
-        } catch (error) {
-            console.error('Logout error:', error);
+        if (!isOfflineMode) {
+            try {
+                await logoutMutation();
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
         }
+
         clearAuthData();
     };
 
