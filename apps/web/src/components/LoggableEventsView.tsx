@@ -20,7 +20,6 @@ import { useToggle } from '../utils/useToggle';
 
 type Props = {
     isLoading?: boolean;
-    offlineMode?: boolean;
     isShowingFetchError?: boolean;
 };
 
@@ -29,7 +28,7 @@ type Props = {
  * It shows a list of loggable events and allows users to create new events.
  * It includes a sidebar for navigation and a loading state while data is being fetched.
  */
-const LoggableEventsView = ({ isLoading = false, offlineMode = false, isShowingFetchError = false }: Props) => {
+const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: Props) => {
     const theme = useTheme();
     const { value: sidebarIsCollapsed, setTrue: collapseSidebar, setFalse: expandSidebar } = useToggle(false);
 
@@ -130,11 +129,7 @@ const LoggableEventsView = ({ isLoading = false, offlineMode = false, isShowingF
                 `}
             >
                 <Grid size="auto">
-                    <Sidebar
-                        isCollapsed={sidebarIsCollapsed}
-                        onCollapseSidebarClick={collapseSidebar}
-                        isOfflineMode={offlineMode}
-                    />
+                    <Sidebar isCollapsed={sidebarIsCollapsed} onCollapseSidebarClick={collapseSidebar} />
                 </Grid>
 
                 {mainContent}

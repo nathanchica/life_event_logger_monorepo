@@ -22,10 +22,10 @@ import { useViewOptions } from '../providers/ViewOptionsProvider';
  */
 const EventLoggerPage = () => {
     const { theme: mode } = useViewOptions();
-    const { isAuthenticated, isOfflineMode } = useAuth();
+    const { user, isOfflineMode, isInitializing } = useAuth();
     const [apolloClient, setApolloClient] = useState<ApolloClient<NormalizedCacheObject> | null>(null);
 
-    // Initialize Apollo Client when offline mode is determined
+    // Initialize Apollo Client
     useEffect(() => {
         createApolloClient(isOfflineMode).then(setApolloClient);
     }, [isOfflineMode]);
@@ -88,16 +88,14 @@ const EventLoggerPage = () => {
         [mode]
     );
 
-    // Don't render anything while Apollo Client is being initialized
-    if (!apolloClient) {
+    // Don't render anything while Apollo Client is being initialized or auth is initializing
+    if (!apolloClient || isInitializing) {
         return null;
     }
 
     return (
         <ThemeProvider theme={appTheme}>
-            <ApolloProvider client={apolloClient}>
-                {isAuthenticated ? <LoggableEventsGQL /> : <LoginView />}
-            </ApolloProvider>
+            <ApolloProvider client={apolloClient}>{user ? <LoggableEventsGQL /> : <LoginView />}</ApolloProvider>
         </ThemeProvider>
     );
 };

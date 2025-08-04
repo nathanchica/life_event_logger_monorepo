@@ -2,14 +2,14 @@ import { ApolloClient, ApolloLink, Observable, createHttpLink } from '@apollo/cl
 import { setContext } from '@apollo/client/link/context';
 import { OperationDefinitionNode } from 'graphql';
 
+import { createAuthLink, createErrorLink } from './authLink';
 import { cache, setupCachePersistence } from './cache';
-import { tokenStorage } from './tokenStorage';
 
 import LoggableEventCard from '../components/EventCards/LoggableEventCard';
 import EventLabel from '../components/EventLabels/EventLabel';
 import { GET_LOGGABLE_EVENTS_FOR_USER } from '../components/LoggableEventsGQL';
 import { offlineUser } from '../providers/AuthProvider';
-import { LoggableEventFragment, EventLabelFragment } from '../utils/types';
+import { LoggableEventFragment, EventLabelFragment, UserFragment } from '../utils/types';
 
 /**
  * Helper function to read a LoggableEvent from the cache
@@ -255,18 +255,7 @@ const offlineMockLink = new ApolloLink((operation) => {
 // HTTP link for production use, connecting to the GraphQL server
 const httpLink = createHttpLink({
     uri: process.env.REACT_APP_GRAPHQL_URL || 'http://localhost:4000/graphql',
-    credentials: 'include'
-});
-
-// Auth link to add authorization token to requests
-const authLink = setContext((_, { headers }) => {
-    const token = tokenStorage.getAccessToken();
-    return {
-        headers: {
-            ...headers,
-            authorization: token ? `Bearer ${token}` : ''
-        }
-    };
+    credentials: 'include' // Important: Include cookies for refresh tokens
 });
 
 /**
@@ -284,10 +273,9 @@ export const createApolloClient = async (isOfflineMode = false) => {
     // Setup cache persistence to localStorage for offline support
     await setupCachePersistence();
 
-    // Create the Apollo client first
+    // Create the Apollo client with a temporary link
     const apolloClient = new ApolloClient({
-        // Use mock link in offline mode, authenticated HTTP link when online
-        link: isOfflineMode ? offlineMockLink : authLink.concat(httpLink),
+        link: ApolloLink.empty(), // Temporary link, will be set below
         cache,
         defaultOptions: {
             watchQuery: {
@@ -299,40 +287,65 @@ export const createApolloClient = async (isOfflineMode = false) => {
         }
     });
 
+    // Configure the appropriate link based on mode
+    let link: ApolloLink;
+
+    if (isOfflineMode) {
+        link = offlineMockLink;
+    } else {
+        // Create links only once
+        const authLink = createAuthLink();
+        const errorLink = createErrorLink();
+
+        // Create context link that includes the client reference
+        const contextLink = setContext((_, prevContext) => ({
+            ...prevContext,
+            client: apolloClient
+        }));
+
+        // Compose all links in the correct order
+        link = ApolloLink.from([contextLink, errorLink, authLink, httpLink]);
+    }
+
+    // Set the final link on the client
+    apolloClient.setLink(link);
+
     // In offline mode, initialize the cache with the offline user if it doesn't exist
     if (isOfflineMode) {
-        // Try to read the existing query data to see if offline user exists
-        try {
-            const existingData = cache.readQuery({
-                query: GET_LOGGABLE_EVENTS_FOR_USER
-            });
-
-            // If we can read the data, the user already exists
-            if (
-                existingData &&
-                typeof existingData === 'object' &&
-                'loggedInUser' in existingData &&
-                existingData.loggedInUser
-            ) {
-                return apolloClient;
-            }
-        } catch {
-            // User doesn't exist or query fails, we need to initialize
-        }
-
-        // Initialize the offline user with proper structure
-        cache.writeQuery({
-            query: GET_LOGGABLE_EVENTS_FOR_USER,
-            data: {
-                loggedInUser: {
-                    __typename: 'User',
-                    id: offlineUser.id,
-                    loggableEvents: [],
-                    eventLabels: []
-                }
-            }
-        });
+        initializeOfflineUser();
     }
 
     return apolloClient;
+};
+
+/**
+ * Initializes the offline user in the cache if not already present.
+ * This ensures the app has a valid user structure for offline mode.
+ */
+const initializeOfflineUser = () => {
+    try {
+        const existingData = cache.readQuery<{ loggedInUser: UserFragment }>({
+            query: GET_LOGGABLE_EVENTS_FOR_USER
+        });
+
+        // If user already exists, no need to initialize
+        if (existingData?.loggedInUser) {
+            return;
+        }
+    } catch {
+        // User doesn't exist or query fails, proceed with initialization
+    }
+
+    // Initialize the offline user with proper structure
+    cache.writeQuery({
+        query: GET_LOGGABLE_EVENTS_FOR_USER,
+        data: {
+            loggedInUser: {
+                __typename: 'User',
+                id: offlineUser.id,
+                loggableEvents: [],
+                eventLabels: []
+            }
+        }
+    });
 };

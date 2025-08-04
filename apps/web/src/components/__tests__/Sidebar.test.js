@@ -39,18 +39,25 @@ jest.mock('../EventLabels/EventLabelList', () => {
     };
 });
 
+// Mock useAuthMutations hook
+const mockLogoutMutation = jest.fn();
+jest.mock('../../hooks/useAuthMutations', () => ({
+    useAuthMutations: () => ({
+        logoutMutation: mockLogoutMutation
+    })
+}));
+
 describe('Sidebar', () => {
     let user;
     const mockOnCollapseSidebarClick = jest.fn();
     const mockEnableDarkTheme = jest.fn();
     const mockEnableLightTheme = jest.fn();
     const mockSetActiveEventLabelId = jest.fn();
-    const mockLogout = jest.fn();
+    const mockClearAuthData = jest.fn();
 
     const defaultProps = {
         isCollapsed: false,
-        onCollapseSidebarClick: mockOnCollapseSidebarClick,
-        isOfflineMode: false
+        onCollapseSidebarClick: mockOnCollapseSidebarClick
     };
 
     const mockEventLabels = [
@@ -62,10 +69,12 @@ describe('Sidebar', () => {
     beforeEach(() => {
         user = userEvent.setup();
         jest.clearAllMocks();
+        // Default to successful logout
+        mockLogoutMutation.mockResolvedValue({});
     });
 
     const renderWithProviders = (component, options = {}) => {
-        const { theme = 'light' } = options;
+        const { theme = 'light', authValueOptions = {} } = options;
 
         const mockViewOptionsValue = createMockViewOptionsContextValue({
             theme,
@@ -75,7 +84,8 @@ describe('Sidebar', () => {
         });
 
         const mockAuthValue = createMockAuthContextValue({
-            logout: mockLogout
+            clearAuthData: mockClearAuthData,
+            ...authValueOptions
         });
 
         const muiTheme = createTheme({
@@ -104,7 +114,7 @@ describe('Sidebar', () => {
         });
 
         it('renders sidebar in offline mode', () => {
-            renderWithProviders(<Sidebar {...defaultProps} isOfflineMode={true} />);
+            renderWithProviders(<Sidebar {...defaultProps} />, { authValueOptions: { isOfflineMode: true } });
 
             expect(screen.getByText('Event Log (Offline mode)')).toBeInTheDocument();
         });
@@ -212,12 +222,37 @@ describe('Sidebar', () => {
     });
 
     describe('Logout Functionality', () => {
-        it('calls logout when logout button is clicked', async () => {
+        it.each([
+            { scenario: 'online mode', isOfflineMode: false },
+            { scenario: 'offline mode', isOfflineMode: true }
+        ])(
+            'calls logoutMutation and clearAuthData when logout button is clicked in $scenario',
+            async ({ isOfflineMode }) => {
+                renderWithProviders(<Sidebar {...defaultProps} />, { authValueOptions: { isOfflineMode } });
+
+                await user.click(screen.getByLabelText('Logout'));
+
+                expect(mockLogoutMutation).toHaveBeenCalledTimes(isOfflineMode ? 0 : 1);
+                expect(mockClearAuthData).toHaveBeenCalledTimes(1);
+            }
+        );
+
+        it('handles logout mutation error gracefully', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            mockLogoutMutation.mockRejectedValue(new Error('Logout failed'));
             renderWithProviders(<Sidebar {...defaultProps} />);
 
             await user.click(screen.getByLabelText('Logout'));
 
-            expect(mockLogout).toHaveBeenCalledTimes(1);
+            // Should still call clearAuthData even if mutation fails
+            expect(mockLogoutMutation).toHaveBeenCalledTimes(1);
+            expect(mockClearAuthData).toHaveBeenCalledTimes(1);
+
+            // Verify console.error was called
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Logout error:', expect.any(Error));
+
+            consoleErrorSpy.mockRestore();
         });
     });
 });

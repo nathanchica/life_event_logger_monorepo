@@ -1,3 +1,4 @@
+import { MockedProvider } from '@apollo/client/testing';
 import { render, screen } from '@testing-library/react';
 
 import App from '../App';
@@ -31,7 +32,11 @@ describe('App', () => {
     it('renders the main application with all providers', () => {
         process.env.REACT_APP_GOOGLE_CLIENT_ID = 'test-client-id';
 
-        render(<App />);
+        render(
+            <MockedProvider>
+                <App />
+            </MockedProvider>
+        );
 
         expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
         expect(screen.getByTestId('event-logger-page')).toBeInTheDocument();
@@ -40,7 +45,11 @@ describe('App', () => {
     it('handles missing Google client ID environment variable', () => {
         delete process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
-        render(<App />);
+        render(
+            <MockedProvider>
+                <App />
+            </MockedProvider>
+        );
 
         expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
         expect(screen.getByTestId('event-logger-page')).toBeInTheDocument();

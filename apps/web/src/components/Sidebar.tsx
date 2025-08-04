@@ -20,6 +20,7 @@ import { blueGrey, green } from '@mui/material/colors';
 
 import EventLabelList from './EventLabels/EventLabelList';
 
+import { useAuthMutations } from '../hooks/useAuthMutations';
 import { useAuth } from '../providers/AuthProvider';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
 import { useToggle } from '../utils/useToggle';
@@ -27,7 +28,6 @@ import { useToggle } from '../utils/useToggle';
 type Props = {
     isCollapsed: boolean;
     onCollapseSidebarClick: () => void;
-    isOfflineMode: boolean;
 };
 
 /**
@@ -35,10 +35,23 @@ type Props = {
  * It includes a list of event labels, theme toggle button,
  * and a link to the GitHub repository.
  */
-const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
+const Sidebar = ({ isCollapsed, onCollapseSidebarClick }: Props) => {
     const { value: isEditingLabels, setTrue: startEditingLabels, setFalse: stopEditingLabels } = useToggle(false);
-    const { logout } = useAuth();
+    const { clearAuthData, isOfflineMode } = useAuth();
+    const { logoutMutation } = useAuthMutations();
     const { theme, enableDarkTheme, enableLightTheme } = useViewOptions();
+
+    const handleLogout = async () => {
+        if (!isOfflineMode) {
+            try {
+                await logoutMutation();
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        clearAuthData();
+    };
 
     const isDark = theme === 'dark';
     const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());
@@ -169,7 +182,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Logout">
-                            <IconButton onClick={logout} sx={{ ml: 1 }} aria-label="Logout">
+                            <IconButton onClick={handleLogout} sx={{ ml: 1 }} aria-label="Logout">
                                 <LogoutIcon />
                             </IconButton>
                         </Tooltip>

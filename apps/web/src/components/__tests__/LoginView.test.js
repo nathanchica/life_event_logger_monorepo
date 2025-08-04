@@ -42,14 +42,35 @@ jest.mock('@react-oauth/google', () => ({
     useGoogleOneTapLogin: () => null
 }));
 
+// Mock useAuthMutations hook
+const mockLoginMutation = jest.fn();
+jest.mock('../../hooks/useAuthMutations', () => ({
+    useAuthMutations: () => ({
+        loginMutation: mockLoginMutation
+    })
+}));
+
 describe('LoginView', () => {
-    const mockLogin = jest.fn();
+    const mockSetAuthData = jest.fn();
     const mockSetOfflineMode = jest.fn();
     let user;
 
     beforeEach(() => {
         jest.clearAllMocks();
         user = userEvent.setup();
+        // Default to successful login response
+        mockLoginMutation.mockResolvedValue({
+            data: {
+                googleOAuthLoginMutation: {
+                    accessToken: 'mock-access-token',
+                    user: {
+                        id: 'user-1',
+                        email: 'test@example.com',
+                        name: 'Test User'
+                    }
+                }
+            }
+        });
     });
 
     const renderWithProviders = (options = {}) => {
@@ -62,7 +83,7 @@ describe('LoginView', () => {
         });
 
         const mockAuthValue = createMockAuthContextValue({
-            login: mockLogin,
+            setAuthData: mockSetAuthData,
             setOfflineMode: mockSetOfflineMode,
             isAuthenticated: false
         });
@@ -89,8 +110,7 @@ describe('LoginView', () => {
     });
 
     describe('Google login', () => {
-        it('shows loading state and calls login on success', async () => {
-            mockLogin.mockResolvedValue(true);
+        it('shows loading state and calls setAuthData on success', async () => {
             renderWithProviders();
 
             const googleLoginButton = screen.getByTestId('google-login');
@@ -103,14 +123,40 @@ describe('LoginView', () => {
             // Login form should be hidden
             expect(screen.queryByText('Sign in to get started')).not.toBeInTheDocument();
 
-            // Should call login with the credential
+            // Should call loginMutation with the credential
             await waitFor(() => {
-                expect(mockLogin).toHaveBeenCalledWith('mock-credential');
+                expect(mockLoginMutation).toHaveBeenCalledWith({
+                    variables: {
+                        input: {
+                            googleToken: 'mock-credential',
+                            clientType: 'WEB'
+                        }
+                    }
+                });
+            });
+
+            // Should call setAuthData with the response
+            await waitFor(() => {
+                expect(mockSetAuthData).toHaveBeenCalledWith('mock-access-token', {
+                    id: 'user-1',
+                    email: 'test@example.com',
+                    name: 'Test User'
+                });
             });
         });
 
-        it('handles login failure', async () => {
-            mockLogin.mockResolvedValue(false);
+        it('handles login failure with errors', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            mockLoginMutation.mockResolvedValue({
+                data: {
+                    googleOAuthLoginMutation: {
+                        accessToken: null,
+                        user: null,
+                        errors: [{ message: 'Invalid token' }]
+                    }
+                }
+            });
             renderWithProviders();
 
             const googleLoginButton = screen.getByTestId('google-login');
@@ -119,9 +165,16 @@ describe('LoginView', () => {
             // Should show loading state initially
             expect(await screen.findByText('Signing you in...')).toBeInTheDocument();
 
-            // Should call login with the credential
+            // Should call loginMutation with the credential
             await waitFor(() => {
-                expect(mockLogin).toHaveBeenCalledWith('mock-credential');
+                expect(mockLoginMutation).toHaveBeenCalledWith({
+                    variables: {
+                        input: {
+                            googleToken: 'mock-credential',
+                            clientType: 'WEB'
+                        }
+                    }
+                });
             });
 
             // Should show error message
@@ -129,6 +182,62 @@ describe('LoginView', () => {
 
             // Should return to normal state
             expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
+
+            // Should not call setAuthData
+            expect(mockSetAuthData).not.toHaveBeenCalled();
+
+            // Verify console.error was called
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Login error:', 'Invalid token');
+
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('handles login mutation exception', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            mockLoginMutation.mockRejectedValue(new Error('Network error'));
+            renderWithProviders();
+
+            const googleLoginButton = screen.getByTestId('google-login');
+            user.click(googleLoginButton);
+
+            // Should show loading state initially
+            expect(await screen.findByText('Signing you in...')).toBeInTheDocument();
+
+            // Should show error message
+            expect(await screen.findByText('Failed to sign in. Please try again.')).toBeInTheDocument();
+
+            // Should not call setAuthData
+            expect(mockSetAuthData).not.toHaveBeenCalled();
+
+            // Verify console.error was called
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Login failed:', expect.any(Error));
+
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('handles login success but no access token returned', async () => {
+            mockLoginMutation.mockResolvedValue({
+                data: {
+                    googleOAuthLoginMutation: {
+                        accessToken: null,
+                        user: null,
+                        errors: []
+                    }
+                }
+            });
+            renderWithProviders();
+
+            const googleLoginButton = screen.getByTestId('google-login');
+            user.click(googleLoginButton);
+
+            // Should show loading state initially
+            expect(await screen.findByText('Signing you in...')).toBeInTheDocument();
+
+            // Should show error message
+            expect(await screen.findByText('Failed to sign in. Please try again.')).toBeInTheDocument();
+
+            // Should not call setAuthData
+            expect(mockSetAuthData).not.toHaveBeenCalled();
         });
 
         it('handles missing credentials from Google', async () => {
@@ -143,12 +252,12 @@ describe('LoginView', () => {
             // Should remain on login screen
             expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
 
-            // Should not call login
-            expect(mockLogin).not.toHaveBeenCalled();
+            // Should not call loginMutation
+            expect(mockLoginMutation).not.toHaveBeenCalled();
         });
 
         it('handles Google login onError callback', async () => {
-            jest.spyOn(console, 'error').mockImplementation(() => {});
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             renderWithProviders();
 
@@ -161,10 +270,13 @@ describe('LoginView', () => {
             // Should remain on login screen
             expect(screen.getByText('Sign in to get started')).toBeInTheDocument();
 
-            // Should not call login
-            expect(mockLogin).not.toHaveBeenCalled();
+            // Should not call loginMutation
+            expect(mockLoginMutation).not.toHaveBeenCalled();
 
-            console.error.mockRestore();
+            // Verify console.error was called
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Google login failed');
+
+            consoleErrorSpy.mockRestore();
         });
     });
 

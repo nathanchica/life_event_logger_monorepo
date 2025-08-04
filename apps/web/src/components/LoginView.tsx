@@ -17,6 +17,7 @@ import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
 import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oauth/google';
 
+import { useAuthMutations } from '../hooks/useAuthMutations';
 import { useAuth } from '../providers/AuthProvider';
 
 /**
@@ -28,7 +29,8 @@ import { useAuth } from '../providers/AuthProvider';
 const LoginView = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { login, setOfflineMode } = useAuth();
+    const { setAuthData, setOfflineMode } = useAuth();
+    const { loginMutation } = useAuthMutations();
     const theme = useTheme();
 
     const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
@@ -40,9 +42,27 @@ const LoginView = () => {
         setIsLoading(true);
         setError(null);
 
-        const success = await login(credentialResponse.credential);
+        try {
+            const { data } = await loginMutation({
+                variables: {
+                    input: {
+                        googleToken: credentialResponse.credential,
+                        clientType: 'WEB'
+                    }
+                }
+            });
 
-        if (!success) {
+            if (data?.googleOAuthLoginMutation?.accessToken) {
+                const { accessToken, user } = data.googleOAuthLoginMutation;
+                setAuthData(accessToken, user);
+            } else if (data?.googleOAuthLoginMutation?.errors?.length > 0) {
+                console.error('Login error:', data.googleOAuthLoginMutation.errors[0].message);
+                setError('Failed to sign in. Please try again.');
+            } else {
+                setError('Failed to sign in. Please try again.');
+            }
+        } catch (error) {
+            console.error('Login failed:', error);
             setError('Failed to sign in. Please try again.');
         }
 
