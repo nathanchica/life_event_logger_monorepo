@@ -63,28 +63,38 @@ The app uses JWT access tokens (15 min expiry) with refresh tokens (30 day expir
    - User info stored in sessionStorage for UI persistence
 
 2. **Request Flow**
-   - Apollo Client adds access token to every request via auth link
-   - Token checked for expiry before each request
-   - Expired tokens automatically cleared
+   - Apollo auth link gets valid token via `tokenStorage.getValidAccessToken()`
+   - Token automatically refreshed if expired (before request is made)
+   - Fresh token added to Authorization header
+   - Request proceeds with valid authentication
 
-3. **Token Refresh Flow**
-   - API request fails with 401 UNAUTHORIZED → Error link intercepts
-   - Automatically calls refresh mutation using cookie
-   - On success: Updates access token in memory, retries original request
-   - On failure: Redirects to login page
-   - Concurrent 401s are queued to prevent multiple refresh attempts
+3. **Proactive Token Refresh**
+   - Token expiry checked before each request (with 30s buffer)
+   - If expired: Native `fetch` API calls refresh mutation
+   - Uses httpOnly refresh token cookie automatically
+   - Concurrent requests wait for single refresh to complete
+   - On success: New token stored, request continues
+   - On failure: Token cleared, returns null
 
-4. **Page Refresh Handling**
-   - Access token is lost (memory only)
-   - User info restored from sessionStorage
-   - First API call triggers automatic token refresh
-   - Seamless experience without re-login
+4. **Error Handling**
+   - If request still fails with UNAUTHORIZED (e.g., refresh token expired)
+   - Error link clears all auth data
+   - Redirects user to login page
+   - No retry attempts (refresh already attempted proactively)
 
-5. **Security Benefits**
+5. **Implementation Details**
+   - `tokenStorage` service handles all token operations
+   - Uses native `fetch` instead of Apollo Client (avoids circular dependencies)
+   - Singleton pattern ensures consistent token state
+   - Memory-only storage for access tokens (XSS protection)
+   - Automatic expiry checking with configurable buffer
+
+6. **Security Benefits**
    - No tokens in localStorage/sessionStorage (XSS protection)
    - Refresh tokens in httpOnly cookies (not accessible to JS)
-   - Automatic token rotation on each refresh
+   - Proactive refresh reduces failed requests
    - Short-lived access tokens minimize exposure
+   - Centralized token management for consistency
 
 ## Development
 
