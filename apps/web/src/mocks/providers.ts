@@ -9,6 +9,7 @@ export const createMockAuthContextValue = (overrides: Partial<AuthContextType> =
         user: createMockUser(),
         token: 'mock-token',
         isAuthenticated: true,
+        hasStoredSession: false,
         isOfflineMode: false,
         isInitializing: false,
         setAuthData: (_accessToken, _user) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function

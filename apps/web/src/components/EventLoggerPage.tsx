@@ -22,13 +22,13 @@ import { useViewOptions } from '../providers/ViewOptionsProvider';
  */
 const EventLoggerPage = () => {
     const { theme: mode } = useViewOptions();
-    const { isAuthenticated, isOfflineMode, isInitializing, refreshAuth } = useAuth();
+    const { isAuthenticated, hasStoredSession, isOfflineMode, isInitializing } = useAuth();
     const [apolloClient, setApolloClient] = useState<ApolloClient<NormalizedCacheObject> | null>(null);
 
-    // Initialize Apollo Client with refresh function
+    // Initialize Apollo Client
     useEffect(() => {
-        createApolloClient(isOfflineMode, refreshAuth).then(setApolloClient);
-    }, [isOfflineMode, refreshAuth]);
+        createApolloClient(isOfflineMode).then(setApolloClient);
+    }, [isOfflineMode]);
 
     const appTheme = useMemo(
         () =>
@@ -96,7 +96,7 @@ const EventLoggerPage = () => {
     return (
         <ThemeProvider theme={appTheme}>
             <ApolloProvider client={apolloClient}>
-                {isAuthenticated ? <LoggableEventsGQL /> : <LoginView />}
+                {isAuthenticated || hasStoredSession ? <LoggableEventsGQL /> : <LoginView />}
             </ApolloProvider>
         </ThemeProvider>
     );

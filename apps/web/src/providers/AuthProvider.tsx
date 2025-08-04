@@ -9,6 +9,7 @@ export type AuthContextType = {
     user: User | null;
     token: string | null;
     isAuthenticated: boolean;
+    hasStoredSession: boolean; // True if we have user info but no token yet
     isOfflineMode: boolean;
     isInitializing: boolean;
     setAuthData: (accessToken: string, user: User) => void;
@@ -116,6 +117,7 @@ const AuthProvider = ({ children }: Props) => {
         user,
         token,
         isAuthenticated: !!token && !!user,
+        hasStoredSession: !!user && !token, // User exists but no token (after page refresh)
         isOfflineMode,
         isInitializing,
         setAuthData,

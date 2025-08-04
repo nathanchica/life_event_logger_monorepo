@@ -34,6 +34,7 @@ describe('EventLoggerPage', () => {
         const defaultAuthValue = createMockAuthContextValue({
             isAuthenticated: true,
             isOfflineMode: false,
+            isInitializing: false,
             user: mockUser,
             ...authValue
         });
@@ -56,7 +57,17 @@ describe('EventLoggerPage', () => {
         renderWithProviders();
 
         // Initially, should show nothing while Apollo Client loads
-        expect(screen.queryByLabelText('Hide sidebar')).not.toBeInTheDocument();
+        expect(screen.queryByText('LoggableEventsGQL')).not.toBeInTheDocument();
+        expect(screen.queryByText('Sign in to get started')).not.toBeInTheDocument();
+
+        // Wait for Apollo Client to be initialized
+        expect(await screen.findByText('LoggableEventsGQL')).toBeInTheDocument();
+    });
+
+    it('shows nothing while auth is initializing', () => {
+        renderWithProviders({ authValue: { isInitializing: true } });
+
+        expect(screen.queryByText('LoggableEventsGQL')).not.toBeInTheDocument();
         expect(screen.queryByText('Sign in to get started')).not.toBeInTheDocument();
     });
 
