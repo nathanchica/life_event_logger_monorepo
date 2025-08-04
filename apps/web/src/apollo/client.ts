@@ -9,7 +9,7 @@ import LoggableEventCard from '../components/EventCards/LoggableEventCard';
 import EventLabel from '../components/EventLabels/EventLabel';
 import { GET_LOGGABLE_EVENTS_FOR_USER } from '../components/LoggableEventsGQL';
 import { offlineUser } from '../providers/AuthProvider';
-import { LoggableEventFragment, EventLabelFragment } from '../utils/types';
+import { LoggableEventFragment, EventLabelFragment, UserFragment } from '../utils/types';
 
 /**
  * Helper function to read a LoggableEvent from the cache
@@ -273,21 +273,9 @@ export const createApolloClient = async (isOfflineMode = false) => {
     // Setup cache persistence to localStorage for offline support
     await setupCachePersistence();
 
-    let link: ApolloLink;
-
-    if (isOfflineMode) {
-        link = offlineMockLink;
-    } else {
-        const authLink = createAuthLink();
-        const errorLink = createErrorLink();
-        const links: ApolloLink[] = [errorLink, authLink, httpLink];
-
-        link = ApolloLink.from(links);
-    }
-
-    // Create the Apollo client first
+    // Create the Apollo client with a temporary link
     const apolloClient = new ApolloClient({
-        link,
+        link: ApolloLink.empty(), // Temporary link, will be set below
         cache,
         defaultOptions: {
             watchQuery: {
@@ -299,55 +287,65 @@ export const createApolloClient = async (isOfflineMode = false) => {
         }
     });
 
-    // Now update the link to include the client reference
-    if (!isOfflineMode) {
+    // Configure the appropriate link based on mode
+    let link: ApolloLink;
+
+    if (isOfflineMode) {
+        link = offlineMockLink;
+    } else {
+        // Create links only once
+        const authLink = createAuthLink();
+        const errorLink = createErrorLink();
+
+        // Create context link that includes the client reference
         const contextLink = setContext((_, prevContext) => ({
             ...prevContext,
             client: apolloClient
         }));
 
-        // Update the client's link to include context
-        const authLink = createAuthLink();
-        const errorLink = createErrorLink();
-        const finalLink = ApolloLink.from([contextLink, errorLink, authLink, httpLink]);
-
-        apolloClient.setLink(finalLink);
+        // Compose all links in the correct order
+        link = ApolloLink.from([contextLink, errorLink, authLink, httpLink]);
     }
+
+    // Set the final link on the client
+    apolloClient.setLink(link);
 
     // In offline mode, initialize the cache with the offline user if it doesn't exist
     if (isOfflineMode) {
-        // Try to read the existing query data to see if offline user exists
-        try {
-            const existingData = cache.readQuery({
-                query: GET_LOGGABLE_EVENTS_FOR_USER
-            });
-
-            // If we can read the data, the user already exists
-            if (
-                existingData &&
-                typeof existingData === 'object' &&
-                'loggedInUser' in existingData &&
-                existingData.loggedInUser
-            ) {
-                return apolloClient;
-            }
-        } catch {
-            // User doesn't exist or query fails, we need to initialize
-        }
-
-        // Initialize the offline user with proper structure
-        cache.writeQuery({
-            query: GET_LOGGABLE_EVENTS_FOR_USER,
-            data: {
-                loggedInUser: {
-                    __typename: 'User',
-                    id: offlineUser.id,
-                    loggableEvents: [],
-                    eventLabels: []
-                }
-            }
-        });
+        initializeOfflineUser();
     }
 
     return apolloClient;
+};
+
+/**
+ * Initializes the offline user in the cache if not already present.
+ * This ensures the app has a valid user structure for offline mode.
+ */
+const initializeOfflineUser = () => {
+    try {
+        const existingData = cache.readQuery<{ loggedInUser: UserFragment }>({
+            query: GET_LOGGABLE_EVENTS_FOR_USER
+        });
+
+        // If user already exists, no need to initialize
+        if (existingData?.loggedInUser) {
+            return;
+        }
+    } catch {
+        // User doesn't exist or query fails, proceed with initialization
+    }
+
+    // Initialize the offline user with proper structure
+    cache.writeQuery({
+        query: GET_LOGGABLE_EVENTS_FOR_USER,
+        data: {
+            loggedInUser: {
+                __typename: 'User',
+                id: offlineUser.id,
+                loggableEvents: [],
+                eventLabels: []
+            }
+        }
+    });
 };
