@@ -39,13 +39,21 @@ jest.mock('../EventLabels/EventLabelList', () => {
     };
 });
 
+// Mock useAuthMutations hook
+const mockLogoutMutation = jest.fn();
+jest.mock('../../hooks/useAuthMutations', () => ({
+    useAuthMutations: () => ({
+        logoutMutation: mockLogoutMutation
+    })
+}));
+
 describe('Sidebar', () => {
     let user;
     const mockOnCollapseSidebarClick = jest.fn();
     const mockEnableDarkTheme = jest.fn();
     const mockEnableLightTheme = jest.fn();
     const mockSetActiveEventLabelId = jest.fn();
-    const mockLogout = jest.fn();
+    const mockClearAuthData = jest.fn();
 
     const defaultProps = {
         isCollapsed: false,
@@ -62,6 +70,8 @@ describe('Sidebar', () => {
     beforeEach(() => {
         user = userEvent.setup();
         jest.clearAllMocks();
+        // Default to successful logout
+        mockLogoutMutation.mockResolvedValue({});
     });
 
     const renderWithProviders = (component, options = {}) => {
@@ -75,7 +85,7 @@ describe('Sidebar', () => {
         });
 
         const mockAuthValue = createMockAuthContextValue({
-            logout: mockLogout
+            clearAuthData: mockClearAuthData
         });
 
         const muiTheme = createTheme({
@@ -212,12 +222,31 @@ describe('Sidebar', () => {
     });
 
     describe('Logout Functionality', () => {
-        it('calls logout when logout button is clicked', async () => {
+        it('calls logoutMutation and clearAuthData when logout button is clicked', async () => {
             renderWithProviders(<Sidebar {...defaultProps} />);
 
             await user.click(screen.getByLabelText('Logout'));
 
-            expect(mockLogout).toHaveBeenCalledTimes(1);
+            expect(mockLogoutMutation).toHaveBeenCalledTimes(1);
+            expect(mockClearAuthData).toHaveBeenCalledTimes(1);
+        });
+
+        it('handles logout mutation error gracefully', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            mockLogoutMutation.mockRejectedValue(new Error('Logout failed'));
+            renderWithProviders(<Sidebar {...defaultProps} />);
+
+            await user.click(screen.getByLabelText('Logout'));
+
+            // Should still call clearAuthData even if mutation fails
+            expect(mockLogoutMutation).toHaveBeenCalledTimes(1);
+            expect(mockClearAuthData).toHaveBeenCalledTimes(1);
+
+            // Verify console.error was called
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Logout error:', expect.any(Error));
+
+            consoleErrorSpy.mockRestore();
         });
     });
 });

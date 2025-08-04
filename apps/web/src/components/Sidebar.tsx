@@ -20,6 +20,7 @@ import { blueGrey, green } from '@mui/material/colors';
 
 import EventLabelList from './EventLabels/EventLabelList';
 
+import { useAuthMutations } from '../hooks/useAuthMutations';
 import { useAuth } from '../providers/AuthProvider';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
 import { useToggle } from '../utils/useToggle';
@@ -37,8 +38,18 @@ type Props = {
  */
 const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) => {
     const { value: isEditingLabels, setTrue: startEditingLabels, setFalse: stopEditingLabels } = useToggle(false);
-    const { logout } = useAuth();
+    const { clearAuthData } = useAuth();
+    const { logoutMutation } = useAuthMutations();
     const { theme, enableDarkTheme, enableLightTheme } = useViewOptions();
+
+    const handleLogout = async () => {
+        try {
+            await logoutMutation();
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        clearAuthData();
+    };
 
     const isDark = theme === 'dark';
     const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());
@@ -169,7 +180,7 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick, isOfflineMode }: Props) 
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Logout">
-                            <IconButton onClick={logout} sx={{ ml: 1 }} aria-label="Logout">
+                            <IconButton onClick={handleLogout} sx={{ ml: 1 }} aria-label="Logout">
                                 <LogoutIcon />
                             </IconButton>
                         </Tooltip>
