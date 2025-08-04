@@ -43,8 +43,7 @@ const renderWithAuthProvider = (component) => {
  * Test component to check AuthContext values and actions
  */
 const TestComponentWithAuth = () => {
-    const { user, token, isAuthenticated, isOfflineMode, isInitializing, setAuthData, clearAuthData, setOfflineMode } =
-        useAuth();
+    const { user, isOfflineMode, isInitializing, setAuthData, clearAuthData, setOfflineMode } = useAuth();
 
     const handleSetAuth = () => {
         const mockUser = createMockUser({ name: 'Test User' });
@@ -54,8 +53,6 @@ const TestComponentWithAuth = () => {
     return (
         <div>
             <span>User: {user?.name || 'none'}</span>
-            <span>Token: {token || 'none'}</span>
-            <span>Authenticated: {isAuthenticated ? 'yes' : 'no'}</span>
             <span>Offline Mode: {isOfflineMode ? 'yes' : 'no'}</span>
             <span>Initializing: {isInitializing ? 'yes' : 'no'}</span>
 
@@ -144,8 +141,6 @@ describe('AuthProvider', () => {
 
             expect(contextValue).toMatchObject({
                 user: null,
-                token: null,
-                isAuthenticated: false,
                 isOfflineMode: false,
                 isInitializing: false,
                 setAuthData: expect.any(Function),
@@ -166,8 +161,6 @@ describe('AuthProvider', () => {
 
             expect(hookResult).toMatchObject({
                 user: null,
-                token: null,
-                isAuthenticated: false,
                 isOfflineMode: false,
                 isInitializing: false,
                 setAuthData: expect.any(Function),
@@ -197,14 +190,10 @@ describe('AuthProvider', () => {
             renderWithAuthProvider(<TestComponentWithAuth />);
 
             expect(screen.getByText('User: none')).toBeInTheDocument();
-            expect(screen.getByText('Token: none')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
 
             await user.click(screen.getByRole('button', { name: /set auth/i }));
 
             expect(await screen.findByText('User: Test User')).toBeInTheDocument();
-            expect(screen.getByText('Token: test-token-123')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
 
             expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('test-token-123');
             expect(sessionStorageMock.setItem).toHaveBeenCalledWith(
@@ -226,13 +215,11 @@ describe('AuthProvider', () => {
             await user.click(screen.getByRole('button', { name: /set auth/i }));
 
             expect(await screen.findByText('User: Test User')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: yes')).toBeInTheDocument();
 
             // Then clear auth
             await user.click(screen.getByRole('button', { name: /clear auth/i }));
 
             expect(await screen.findByText('User: none')).toBeInTheDocument();
-            expect(screen.getByText('Authenticated: no')).toBeInTheDocument();
 
             expect(tokenStorage.clear).toHaveBeenCalled();
             expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
@@ -273,13 +260,11 @@ describe('AuthProvider', () => {
             renderWithAuthProvider(<TestComponentWithAuth />);
 
             expect(screen.getByText('User: none')).toBeInTheDocument();
-            expect(screen.getByText('Token: none')).toBeInTheDocument();
             expect(screen.getByText('Offline Mode: no')).toBeInTheDocument();
 
             await user.click(screen.getByRole('button', { name: /enable offline mode/i }));
 
             expect(screen.getByText('User: Offline User')).toBeInTheDocument();
-            expect(screen.getByText('Token: offline-token')).toBeInTheDocument();
             expect(screen.getByText('Offline Mode: yes')).toBeInTheDocument();
             expect(tokenStorage.setAccessToken).toHaveBeenCalledWith('offline-token');
             expect(window.history.replaceState).toHaveBeenCalledWith({}, '', expect.stringContaining('offline=true'));
@@ -305,10 +290,9 @@ describe('AuthProvider', () => {
 
             renderWithAuthProvider(<TestComponentWithAuth />);
 
-            // Should load user but no token (refresh will happen elsewhere)
+            // Should load user (refresh will happen elsewhere)
             expect(await screen.findByText('Initializing: no')).toBeInTheDocument();
             expect(screen.getByText('User: Test User')).toBeInTheDocument();
-            expect(screen.getByText('Token: none')).toBeInTheDocument();
         });
     });
 
@@ -332,8 +316,6 @@ describe('AuthProvider', () => {
             // User is loaded from sessionStorage
             expect(sessionStorageMock.getItem).toHaveBeenCalledWith('user');
             expect(contextValue.user).toEqual(mockUser);
-            expect(contextValue.token).toBeNull(); // No token until setAuthData is called
-            expect(contextValue.isAuthenticated).toBe(false);
 
             await waitFor(() => {
                 expect(contextValue.isInitializing).toBe(false);
@@ -358,18 +340,16 @@ describe('AuthProvider', () => {
                 expect(mockConsoleError).toHaveBeenCalledWith('Error parsing stored user data:', expect.any(Error));
                 expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user');
                 expect(contextValue.user).toBeNull();
-                expect(contextValue.token).toBeNull();
-                expect(contextValue.isAuthenticated).toBe(false);
             });
         });
 
         it.each([
-            ['no stored data', null, false],
-            ['user stored', JSON.stringify(createMockUser()), false] // false because no token
-        ])('handles %s correctly', async (_, storedUser, shouldAuthenticate) => {
+            ['no stored data', null],
+            ['user stored', createMockUser()]
+        ])('handles %s correctly', async (_, storedUser) => {
             // Set up sessionStorage mock
             sessionStorageMock.getItem.mockImplementation((key) => {
-                if (key === 'user') return storedUser;
+                if (key === 'user') return storedUser ? JSON.stringify(storedUser) : null;
                 return null;
             });
 
@@ -381,8 +361,8 @@ describe('AuthProvider', () => {
             renderWithAuthProvider(<TestComponent />);
 
             await waitFor(() => {
-                expect(contextValue.isAuthenticated).toBe(shouldAuthenticate);
                 expect(contextValue.isInitializing).toBe(false);
+                expect(contextValue.user).toEqual(storedUser);
             });
         });
     });
@@ -401,7 +381,6 @@ describe('AuthProvider', () => {
             await waitFor(() => {
                 expect(contextValue.isOfflineMode).toBe(true);
                 expect(contextValue.user?.name).toBe('Offline User');
-                expect(contextValue.token).toBe('offline-token');
                 expect(contextValue.isInitializing).toBe(false);
             });
 

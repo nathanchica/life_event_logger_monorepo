@@ -7,9 +7,6 @@ import { User } from '../utils/types';
 
 export type AuthContextType = {
     user: User | null;
-    token: string | null;
-    isAuthenticated: boolean;
-    hasStoredSession: boolean; // True if we have user info but no token yet
     isOfflineMode: boolean;
     isInitializing: boolean;
     setAuthData: (accessToken: string, user: User) => void;
@@ -35,14 +32,15 @@ type Props = {
     children: ReactNode;
 };
 
+/**
+ * AuthProvider is a context provider that manages authentication state
+ */
 const AuthProvider = ({ children }: Props) => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
     const [isOfflineMode, setIsOfflineMode] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
 
     const setAuthData = useCallback((accessToken: string, userData: User) => {
-        setToken(accessToken);
         tokenStorage.setAccessToken(accessToken);
         setUser(userData);
         // Only store non-sensitive user info for UX after page refresh
@@ -51,7 +49,6 @@ const AuthProvider = ({ children }: Props) => {
 
     const clearAuthData = useCallback(() => {
         // Clear everything locally
-        setToken(null);
         setUser(null);
         tokenStorage.clear();
         sessionStorage.removeItem('user');
@@ -68,7 +65,6 @@ const AuthProvider = ({ children }: Props) => {
         setIsOfflineMode(isOffline);
         if (isOffline) {
             setUser(offlineUser);
-            setToken('offline-token'); // Simulate an offline token
             tokenStorage.setAccessToken('offline-token');
 
             // Add the offline parameter to the URL without redirecting
@@ -115,9 +111,6 @@ const AuthProvider = ({ children }: Props) => {
 
     const value = {
         user,
-        token,
-        isAuthenticated: !!token && !!user,
-        hasStoredSession: !!user && !token, // User exists but no token (after page refresh)
         isOfflineMode,
         isInitializing,
         setAuthData,

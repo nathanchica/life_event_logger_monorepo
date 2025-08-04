@@ -21,21 +21,17 @@ jest.mock('../LoggableEventsGQL', () => ({
 }));
 
 describe('EventLoggerPage', () => {
-    let mockUser;
-
     beforeEach(() => {
         jest.clearAllMocks();
-        mockUser = createMockUser();
     });
 
     const renderWithProviders = (options = {}) => {
         const { authValue = {}, viewOptionsValue = {} } = options;
 
         const defaultAuthValue = createMockAuthContextValue({
-            isAuthenticated: true,
+            user: createMockUser(),
             isOfflineMode: false,
             isInitializing: false,
-            user: mockUser,
             ...authValue
         });
 
@@ -72,18 +68,10 @@ describe('EventLoggerPage', () => {
     });
 
     it.each([
-        ['authenticated user', { isAuthenticated: true }, 'LoggableEventsGQL'],
-        ['unauthenticated user', { isAuthenticated: false }, 'Sign in to get started'],
-        [
-            'authenticated user in offline mode',
-            { isAuthenticated: true, isOfflineMode: true, user: offlineUser },
-            'LoggableEventsGQL'
-        ],
-        [
-            'unauthenticated user in offline mode',
-            { isAuthenticated: false, isOfflineMode: true, user: offlineUser },
-            'Sign in to get started'
-        ]
+        ['authenticated user', { user: createMockUser() }, 'LoggableEventsGQL'],
+        ['unauthenticated user', { user: null }, 'Sign in to get started'],
+        ['authenticated user in offline mode', { isOfflineMode: true, user: offlineUser }, 'LoggableEventsGQL'],
+        ['unauthenticated user in offline mode', { isOfflineMode: true, user: null }, 'Sign in to get started']
     ])('renders correct content for %s', async (_, authValue, expectedText) => {
         renderWithProviders({ authValue });
         expect(await screen.findByText(expectedText)).toBeInTheDocument();

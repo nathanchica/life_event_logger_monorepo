@@ -22,7 +22,7 @@ import { useViewOptions } from '../providers/ViewOptionsProvider';
  */
 const EventLoggerPage = () => {
     const { theme: mode } = useViewOptions();
-    const { isAuthenticated, hasStoredSession, isOfflineMode, isInitializing } = useAuth();
+    const { user, isOfflineMode, isInitializing } = useAuth();
     const [apolloClient, setApolloClient] = useState<ApolloClient<NormalizedCacheObject> | null>(null);
 
     // Initialize Apollo Client
@@ -95,9 +95,7 @@ const EventLoggerPage = () => {
 
     return (
         <ThemeProvider theme={appTheme}>
-            <ApolloProvider client={apolloClient}>
-                {isAuthenticated || hasStoredSession ? <LoggableEventsGQL /> : <LoginView />}
-            </ApolloProvider>
+            <ApolloProvider client={apolloClient}>{user ? <LoggableEventsGQL /> : <LoginView />}</ApolloProvider>
         </ThemeProvider>
     );
 };
