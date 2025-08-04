@@ -1,4 +1,5 @@
 import { ApolloClient, ApolloLink, Observable, createHttpLink } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
 import { OperationDefinitionNode } from 'graphql';
 
 import { createAuthLink, createErrorLink } from './authLink';
@@ -268,7 +269,7 @@ const httpLink = createHttpLink({
  * @param isOfflineMode - Whether to use mock responses instead of real server
  * @returns Configured Apollo Client instance
  */
-export const createApolloClient = async (isOfflineMode = false, refreshAuthFn?: () => Promise<boolean>) => {
+export const createApolloClient = async (isOfflineMode = false) => {
     // Setup cache persistence to localStorage for offline support
     await setupCachePersistence();
 
@@ -278,18 +279,13 @@ export const createApolloClient = async (isOfflineMode = false, refreshAuthFn?: 
         link = offlineMockLink;
     } else {
         const authLink = createAuthLink();
-        const links: ApolloLink[] = [authLink, httpLink];
-
-        // Add error link only if refresh function provided
-        if (refreshAuthFn) {
-            const errorLink = createErrorLink(refreshAuthFn);
-            links.unshift(errorLink);
-        }
+        const errorLink = createErrorLink();
+        const links: ApolloLink[] = [errorLink, authLink, httpLink];
 
         link = ApolloLink.from(links);
     }
 
-    // Create the Apollo client
+    // Create the Apollo client first
     const apolloClient = new ApolloClient({
         link,
         cache,
@@ -302,6 +298,21 @@ export const createApolloClient = async (isOfflineMode = false, refreshAuthFn?: 
             }
         }
     });
+
+    // Now update the link to include the client reference
+    if (!isOfflineMode) {
+        const contextLink = setContext((_, prevContext) => ({
+            ...prevContext,
+            client: apolloClient
+        }));
+
+        // Update the client's link to include context
+        const authLink = createAuthLink();
+        const errorLink = createErrorLink();
+        const finalLink = ApolloLink.from([contextLink, errorLink, authLink, httpLink]);
+
+        apolloClient.setLink(finalLink);
+    }
 
     // In offline mode, initialize the cache with the offline user if it doesn't exist
     if (isOfflineMode) {
