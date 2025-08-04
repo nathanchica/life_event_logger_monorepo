@@ -3,6 +3,19 @@ const DEFAULT_TOKEN_EXPIRY_SECONDS = 900; // 15 minutes
 const TOKEN_EXPIRY_BUFFER_SECONDS = 30; // 30 second buffer before actual expiry
 const MILLISECONDS_PER_SECOND = 1000;
 
+// GraphQL mutation as a string constant
+const REFRESH_TOKEN_MUTATION = `
+    mutation RefreshTokenMutation {
+        refreshTokenMutation {
+            accessToken
+            errors {
+                code
+                message
+            }
+        }
+    }
+`;
+
 /**
  * Token storage service for managing JWT access tokens.
  *
@@ -103,17 +116,7 @@ class TokenStorage {
                 },
                 credentials: 'include', // Include cookies for refresh token
                 body: JSON.stringify({
-                    query: `
-                        mutation RefreshTokenMutation {
-                            refreshTokenMutation {
-                                accessToken
-                                errors {
-                                    code
-                                    message
-                                }
-                            }
-                        }
-                    `
+                    query: REFRESH_TOKEN_MUTATION
                 })
             });
 
