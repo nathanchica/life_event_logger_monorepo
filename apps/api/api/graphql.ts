@@ -4,6 +4,7 @@ import { createYoga } from 'graphql-yoga';
 import { env } from '../src/config/env.js';
 import { createContext } from '../src/context.js';
 import schema from '../src/schema/index.js';
+import { contextHeadersPlugin } from '../src/utils/plugins.js';
 
 const yoga = createYoga({
     schema,
@@ -23,7 +24,8 @@ const yoga = createYoga({
         // Log full error details to console (will appear in Vercel logs)
         errorMessage: 'Unexpected error.',
         isDev: env.NODE_ENV === 'development' // Show full errors in development
-    }
+    },
+    plugins: [contextHeadersPlugin]
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
