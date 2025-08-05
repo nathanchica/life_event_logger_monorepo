@@ -67,6 +67,16 @@ npm start
 npm run build
 ```
 
+### Environment Variables
+
+A Google OAuth client ID is required for authentication. Set the `GOOGLE_CLIENT_ID` environment variable in both apps'
+`.env` files.
+
+A MongoDB Atlas database is also required for the backend. Set the `DATABASE_URL` environment variable in the backend's
+`.env` file.
+
+See the individual app's `.env.example` files for more details on required environment variables.
+
 ## Features
 
 - **Frontend**: React TypeScript app with Material UI, Apollo GraphQL, and offline support via apollo3-cache-persist
