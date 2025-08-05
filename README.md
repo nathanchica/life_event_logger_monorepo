@@ -32,6 +32,8 @@ and enable secure cookie-based authentication. Now, we have both apps deployed a
 Vercel's rewrite rules to serve both applications from the same domain, achieving the original goal for secure cookie
 sharing without CORS issues.
 
+See frontend README for details on the authentication flow: [Authentication & Refresh Token Flow](./apps/web/README.md#authentication--refresh-token-flow).
+
 Even though the apps are deployed separately, the monorepo structure provides valuable benefits:
 
 - **Simplified Development**: One repository to clone and set up
@@ -66,6 +68,16 @@ npm start
 # Build for production
 npm run build
 ```
+
+### Environment Variables
+
+A Google OAuth client ID is required for authentication. Set the `GOOGLE_CLIENT_ID` environment variable in both apps'
+`.env` files.
+
+A MongoDB Atlas database is also required for the backend. Set the `DATABASE_URL` environment variable in the backend's
+`.env` file.
+
+See the individual app's `.env.example` files for more details on required environment variables.
 
 ## Features
 
