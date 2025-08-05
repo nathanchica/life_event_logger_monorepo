@@ -1,11 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install --legacy-peer-deps --ignore-scripts",
   "outputDirectory": "build",
   "framework": "create-react-app",
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://your-api-project.vercel.app/api/:path*"
+      "destination": "https://nchica-event-logger-api.vercel.app/api/:path*"
     }
   ]
 }
