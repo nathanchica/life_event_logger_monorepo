@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "build",
+  "framework": "create-react-app",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://your-api-project.vercel.app/api/:path*"
+    }
+  ]
+}
