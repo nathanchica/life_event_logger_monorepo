@@ -2,21 +2,41 @@
 
 ### Project status: In Development
 
-Integrating frontend and backend apps into a single monorepo to deploy both on Vercel under the same domain, allowing
-secure cookie-based authentication.
+Currently working on enhancing the authentication flow and security features.
 
 ## Overview
 
-A unified monorepo for the Life Event Logger application, combining the React frontend and GraphQL API backend into a single deployable project.
-Life Event Logger helps you track recurring life events that don't fit into traditional calendar apps - like cleaning tasks, health appointments, or personal activities. Simply log when events happen and always know when you last did them.
+React and GraphQL application for keeping track of various repeating life events by logging when they happen. Useful for
+remembering the last time you did things that aren't typically tracked in a calendar app, such as cleaning your cats'
+litter boxes, visiting the dentist, or getting boba. With this app, you can easily look up the last time these events
+happened and stay on top of your routines.
 
-## Why Monorepo?
+Visually inspired by Google Keep and conceptually inspired by logging systems used to measure user interaction in apps.
 
-This project was restructured as a monorepo to enable secure cookie-based authentication in a single Vercel project:
+## Project History
 
-- **Cost Effective**: No need for a custom domain to let two separate Vercel projects use the same domain
-- **Secure Cookie Sharing**: HTTP-only cookies work seamlessly for refresh token authentication
-- **No CORS Issues**: Same-origin requests eliminate cross-domain complexities
+This project started in 2022 before Create React App (CRA) was sunset. Picked this project back up in 2025 to learn new
+tools and patterns, including:
+- Apollo Cache
+    - Using apollo3-cache-persist for offline support
+    - Using apollo cache as data store for the frontend
+- GraphQL Yoga
+- Prisma
+- Vitest
+- Vercel
+- AI coding tools like Github Copilot and Claude Code
+
+This project was originally two separate repositories for the frontend and backend, but was restructured into a monorepo
+with the original goal of deploying both apps as a single Vercel project, hoping to deploy both under the same domain
+and enable secure cookie-based authentication. Now, we have both apps deployed as separate Vercel projects, but use
+Vercel's rewrite rules to serve both applications from the same domain, achieving the original goal for secure cookie
+sharing without CORS issues.
+
+Even though the apps are deployed separately, the monorepo structure provides valuable benefits:
+
+- **Simplified Development**: One repository to clone and set up
+- **Coordinated Changes**: Frontend and backend updates can be reviewed and merged together
+- **Contextual Awareness**: AI tools can easily understand the entire project context, improving planning
 
 ## Project Structure
 
@@ -24,9 +44,10 @@ This project was restructured as a monorepo to enable secure cookie-based authen
 life_event_logger_monorepo/
 ├── apps/
 │   ├── web/          # React frontend (CRA)
+│   │   └── vercel.json
 │   └── api/          # GraphQL API (Yoga + Prisma)
+│       └── vercel.json
 ├── .husky/           # Git hooks for code quality
-├── vercel.json       # Deployment configuration
 └── package.json      # Monorepo scripts
 ```
 
@@ -35,17 +56,15 @@ life_event_logger_monorepo/
 ```bash
 # Install dependencies for all apps
 npm install
-cd apps/web && npm install
+# Note: `--legacy-peer-deps` is needed for CRA compatibility with some packages
+cd apps/web && npm install --legacy-peer-deps --ignore-scripts
 cd ../api && npm install
 
 # Run both apps in development
-npm run dev
+npm start
 
 # Build for production
 npm run build
-
-# Deploy to Vercel
-vercel --prod
 ```
 
 ## Features
