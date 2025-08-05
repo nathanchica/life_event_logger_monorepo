@@ -32,6 +32,8 @@ and enable secure cookie-based authentication. Now, we have both apps deployed a
 Vercel's rewrite rules to serve both applications from the same domain, achieving the original goal for secure cookie
 sharing without CORS issues.
 
+See frontend README for details on the authentication flow: [Authentication & Refresh Token Flow](./apps/web/README.md#authentication--refresh-token-flow).
+
 Even though the apps are deployed separately, the monorepo structure provides valuable benefits:
 
 - **Simplified Development**: One repository to clone and set up
