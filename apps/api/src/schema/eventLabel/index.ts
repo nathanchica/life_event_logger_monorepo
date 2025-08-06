@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { GraphQLContext } from '../../context.js';
 import { Resolvers } from '../../generated/graphql.js';
+import { getIdEncoder } from '../../utils/encoder.js';
 import { formatZodError } from '../../utils/validation.js';
 import { UserParent } from '../user/index.js';
 
@@ -99,13 +100,17 @@ const resolvers: Resolvers<GraphQLContext> = {
 
                 invariant(user, 'User should exist after @requireOwner directive validation');
 
+                // Decode the ID after validation
+                const encoder = getIdEncoder();
+                const decodedId = encoder.decode(validatedInput.id, 'eventLabel');
+
                 // Check if name already exists for this user (excluding current label)
                 if (validatedInput.name) {
                     const existingLabel = await prisma.eventLabel.findFirst({
                         where: {
                             name: validatedInput.name,
                             userId: user.id,
-                            NOT: { id: validatedInput.id }
+                            NOT: { id: decodedId }
                         }
                     });
 
@@ -130,7 +135,7 @@ const resolvers: Resolvers<GraphQLContext> = {
                 }
 
                 const label = await prisma.eventLabel.update({
-                    where: { id: validatedInput.id },
+                    where: { id: decodedId },
                     data: updateData
                 });
 
@@ -155,9 +160,13 @@ const resolvers: Resolvers<GraphQLContext> = {
         // Authentication and ownership are handled by @requireOwner directive
         deleteEventLabel: async (_, { input }, { prisma }) => {
             try {
+                // Decode the ID first
+                const encoder = getIdEncoder();
+                const decodedId = encoder.decode(input.id, 'eventLabel');
+
                 // @requireOwner directive already validated the label exists and user owns it
                 const label = await prisma.eventLabel.delete({
-                    where: { id: input.id }
+                    where: { id: decodedId }
                 });
 
                 return {
@@ -173,6 +182,10 @@ const resolvers: Resolvers<GraphQLContext> = {
     },
 
     EventLabel: {
+        id: (parent) => {
+            const encoder = getIdEncoder();
+            return encoder.encode(parent.id, 'eventLabel');
+        },
         user: async (parent, _, { prisma }) => {
             const user = await prisma.user.findUnique({
                 where: { id: parent.userId }
