@@ -11,14 +11,17 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import Box from '@mui/material/Box';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Collapse from '@mui/material/Collapse';
+import Grow from '@mui/material/Grow';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
+import Skeleton from '@mui/material/Skeleton';
 import ToggleButton from '@mui/material/ToggleButton';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { blueGrey, green } from '@mui/material/colors';
 
 import EventLabelList from './EventLabels/EventLabelList';
+import EventLabelShimmer from './EventLabels/EventLabelShimmer';
 
 import { useAuthMutations } from '../hooks/useAuthMutations';
 import { useAuth } from '../providers/AuthProvider';
@@ -27,6 +30,7 @@ import { useToggle } from '../utils/useToggle';
 
 type Props = {
     isCollapsed: boolean;
+    isLoading: boolean;
     onCollapseSidebarClick: () => void;
 };
 
@@ -35,7 +39,7 @@ type Props = {
  * It includes a list of event labels, theme toggle button,
  * and a link to the GitHub repository.
  */
-const Sidebar = ({ isCollapsed, onCollapseSidebarClick }: Props) => {
+const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
     const { value: isEditingLabels, setTrue: startEditingLabels, setFalse: stopEditingLabels } = useToggle(false);
     const { clearAuthData, isOfflineMode } = useAuth();
     const { logoutMutation } = useAuthMutations();
@@ -127,7 +131,15 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick }: Props) => {
                                     width: 350px;
                                 `}
                             >
-                                <EventLabelList isShowingEditActions={isEditingLabels} />
+                                {isLoading ? (
+                                    <>
+                                        <EventLabelShimmer />
+                                        <EventLabelShimmer />
+                                        <EventLabelShimmer />
+                                    </>
+                                ) : (
+                                    <EventLabelList isShowingEditActions={isEditingLabels} />
+                                )}
                             </Box>
                         </Box>
                     </Collapse>
