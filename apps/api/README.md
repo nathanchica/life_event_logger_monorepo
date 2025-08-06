@@ -6,19 +6,18 @@ GraphQL API for Life Event Logger app
 
 Built with:
 
-- GraphQL Yoga server
-- Prisma ORM for MongoDB Atlas database
-- Vercel serverless
-- TypeScript
-- graphql-codegen for generating GQL types based on schema
-- google-auth-library and jsonwebtoken for user authentication and session management
-- Husky, Prettier, ESLint for maintaining code standards
-- graphql-scalars for custom scalar types
-- zod for form validation and env var validation
-- npm for dependency management
-- Vitest for testing framework
-
-React App at https://github.com/nathanchica/life_event_logger
+- **GraphQL Yoga** server
+- **Prisma ORM** for MongoDB Atlas database
+- **Vercel** serverless
+- **TypeScript**
+- **graphql-codegen** for generating GQL types based on schema
+- **google-auth-library** and **jsonwebtoken** for user authentication and session management
+- **Sqids** for encoding and decoding IDs
+- **Husky**, **Prettier**, **ESLint** for maintaining code standards
+- **graphql-scalars** for custom scalar types
+- **zod** for form validation and env var validation
+- **npm** for dependency management
+- **Vitest** for testing framework
 
 ## Table of Contents
 
@@ -39,22 +38,15 @@ React App at https://github.com/nathanchica/life_event_logger
 - MongoDB Atlas account (for database)
 - Google OAuth credentials (for authentication)
 
-### Installation
+### Setup
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/nathanchica/life_event_logger_api.git
-cd life_event_logger_api
-```
-
-2. Install dependencies:
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-3. Set up environment variables:
+2. Set up environment variables:
    Create a `.env` file in the root directory with the following variables:
 
 ```env
@@ -69,9 +61,11 @@ GOOGLE_CLIENT_ID="your-google-client-id"
 
 # Node environment
 NODE_ENV="development"
+
+See `.env.example` for other required variables.
 ```
 
-4. Generate Prisma client:
+3. Generate Prisma client (This is needed to generate Prisma models and types from the schema):
 
 ```bash
 npm run prisma:generate
