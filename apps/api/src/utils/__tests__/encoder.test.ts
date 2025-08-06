@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { IdEncoder, getIdEncoder, resetIdEncoder } from '../encoder.js';
 
@@ -51,25 +51,45 @@ describe('IdEncoder', () => {
             expect(() => encoder.encode('', 'user')).toThrow('Cannot encode empty ID');
         });
 
-        it('should handle various valid MongoDB ObjectId formats', () => {
-            const validIds = [
-                '000000000000000000000000',
-                'ffffffffffffffffffffffff',
-                '123456789abcdef012345678',
-                'abcdef0123456789abcdef01'
-            ];
-
-            validIds.forEach((id) => {
-                expect(() => encoder.encode(id, 'user')).not.toThrow();
-            });
+        it.each([
+            { id: '000000000000000000000000' },
+            { id: 'ffffffffffffffffffffffff' },
+            { id: '123456789abcdef012345678' },
+            { id: 'abcdef0123456789abcdef01' }
+        ])('should handle valid MongoDB ObjectId: $id', ({ id }) => {
+            expect(() => encoder.encode(id, 'user')).not.toThrow();
         });
 
-        it('should throw GraphQLError for invalid ID', () => {
-            expect(() => encoder.encode('gggggggggggggggggggggggg', 'user')).toThrowError(
+        it.each([
+            { id: 'not-an-objectid', description: 'non-hex string' },
+            { id: '123', description: 'too short' },
+            { id: 'gggggggggggggggggggggggg', description: 'invalid hex chars' },
+            { id: '507f1f77bcf86cd79943901', description: '23 chars instead of 24' },
+            { id: '507f1f77bcf86cd7994390111', description: '25 chars instead of 24' },
+            { id: '507f1f77bcf86cd79943901!', description: 'special character' },
+            { id: 'ZZZf1f77bcf86cd799439011', description: 'invalid hex chars' }
+        ])('should throw for invalid ObjectId: $description', ({ id }) => {
+            expect(() => encoder.encode(id, 'user')).toThrowError(
+                new GraphQLError('Invalid ID format', {
+                    extensions: { code: 'BAD_REQUEST' }
+                })
+            );
+        });
+
+        it('should throw INTERNAL_SERVER_ERROR when encoding process fails', () => {
+            // Spy on the private idToNumbers method and make it throw
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const idToNumbersSpy = vi.spyOn(encoder as any, 'idToNumbers').mockImplementation(() => {
+                throw new Error('Simulated internal error');
+            });
+
+            expect(() => encoder.encode(sampleObjectId, 'user')).toThrowError(
                 new GraphQLError('Failed to encode ID', {
                     extensions: { code: 'INTERNAL_SERVER_ERROR' }
                 })
             );
+
+            idToNumbersSpy.mockRestore();
         });
     });
 

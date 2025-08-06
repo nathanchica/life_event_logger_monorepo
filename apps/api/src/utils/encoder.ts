@@ -1,7 +1,11 @@
 import { GraphQLError } from 'graphql';
 import Sqids from 'sqids';
+import { z } from 'zod';
 
 export type EntityType = 'user' | 'loggableEvent' | 'eventLabel';
+
+// MongoDB ObjectId validation schema
+const objectIdSchema = z.string().regex(/^[0-9a-f]{24}$/i, 'Invalid MongoDB ObjectId format');
 
 /**
  * Pre-defined alphabets for each entity type
@@ -53,6 +57,14 @@ export class IdEncoder {
     encode(id: string, entityType: EntityType): string {
         if (!id) {
             throw new GraphQLError('Cannot encode empty ID', {
+                extensions: { code: 'BAD_REQUEST' }
+            });
+        }
+
+        // Validate ObjectId format
+        const validation = objectIdSchema.safeParse(id);
+        if (!validation.success) {
+            throw new GraphQLError('Invalid ID format', {
                 extensions: { code: 'BAD_REQUEST' }
             });
         }
