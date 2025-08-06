@@ -1,11 +1,23 @@
 import { MockedProvider } from '@apollo/client/testing';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import App from '../App';
 
+// Component that can throw errors on demand for testing
+const TestComponent = ({ shouldThrow }) => {
+    if (shouldThrow) {
+        throw new Error('Test error: Component crashed!');
+    }
+    return <div data-testid="event-logger-page">Event Logger Page</div>;
+};
+
+// Mock EventLoggerPage with ability to control errors
+let mockShouldThrow = false;
 jest.mock('../components/EventLoggerPage', () => {
     return function MockEventLoggerPage() {
-        return <div data-testid="event-logger-page">Event Logger Page</div>;
+        const shouldThrow = mockShouldThrow;
+        return <TestComponent shouldThrow={shouldThrow} />;
     };
 });
 
@@ -19,10 +31,13 @@ jest.mock('@react-oauth/google', () => ({
 
 describe('App', () => {
     const originalEnv = process.env;
+    let user;
 
     beforeEach(() => {
         jest.clearAllMocks();
         process.env = { ...originalEnv };
+        mockShouldThrow = false;
+        user = userEvent.setup();
     });
 
     afterEach(() => {
@@ -53,5 +68,67 @@ describe('App', () => {
 
         expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
         expect(screen.getByTestId('event-logger-page')).toBeInTheDocument();
+    });
+
+    describe('Error Boundary', () => {
+        it('displays error view when a component throws an error', () => {
+            const originalError = console.error;
+            console.error = jest.fn();
+
+            mockShouldThrow = true;
+            process.env.REACT_APP_GOOGLE_CLIENT_ID = 'test-client-id';
+
+            render(
+                <MockedProvider>
+                    <App />
+                </MockedProvider>
+            );
+
+            // Check that error view is displayed
+            expect(screen.getByText('Oops! Something went wrong')).toBeInTheDocument();
+            expect(screen.getByText(/We're sorry, but something unexpected happened/)).toBeInTheDocument();
+            expect(screen.getByText(/chicanathan@gmail.com/)).toBeInTheDocument();
+
+            // Check for button
+            expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+
+            // Verify console.error was called with the error
+            expect(console.error).toHaveBeenCalled();
+
+            console.error = originalError;
+        });
+
+        it('allows user to try again after error', async () => {
+            const originalError = console.error;
+            console.error = jest.fn();
+
+            mockShouldThrow = true;
+            process.env.REACT_APP_GOOGLE_CLIENT_ID = 'test-client-id';
+
+            render(
+                <MockedProvider>
+                    <App />
+                </MockedProvider>
+            );
+
+            // Verify error view is displayed
+            expect(screen.getByText('Oops! Something went wrong')).toBeInTheDocument();
+
+            // Reset mock to not throw on retry
+            mockShouldThrow = false;
+
+            // Click Try Again button
+            const tryAgainButton = screen.getByRole('button', { name: /try again/i });
+            await user.click(tryAgainButton);
+
+            // Use findBy to wait for the app to re-render without error
+            const eventLoggerPage = await screen.findByTestId('event-logger-page');
+            expect(eventLoggerPage).toBeInTheDocument();
+
+            // Verify error view is no longer displayed
+            expect(screen.queryByText('Oops! Something went wrong')).not.toBeInTheDocument();
+
+            console.error = originalError;
+        });
     });
 });

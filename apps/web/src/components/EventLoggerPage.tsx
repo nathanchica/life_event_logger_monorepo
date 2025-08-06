@@ -1,8 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 
 import { ApolloProvider, ApolloClient, NormalizedCacheObject } from '@apollo/client';
-import { blueGrey, brown, lightGreen } from '@mui/material/colors';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 
 import LoggableEventsGQL from './LoggableEventsGQL';
 import LoginView from './LoginView';
@@ -10,6 +9,7 @@ import LoginView from './LoginView';
 import { createApolloClient } from '../apollo/client';
 import { useAuth } from '../providers/AuthProvider';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
+import { createAppTheme } from '../utils/theme';
 
 /**
  * Event Logger Page
@@ -30,63 +30,7 @@ const EventLoggerPage = () => {
         createApolloClient(isOfflineMode).then(setApolloClient);
     }, [isOfflineMode]);
 
-    const appTheme = useMemo(
-        () =>
-            createTheme({
-                palette: {
-                    mode,
-                    ...(mode === 'light' ? { primary: lightGreen, secondary: brown } : { secondary: blueGrey })
-                },
-                components:
-                    mode === 'dark'
-                        ? {
-                              MuiFormHelperText: {
-                                  styleOverrides: {
-                                      root: {
-                                          '&.Mui-error': {
-                                              color: 'orange'
-                                          }
-                                      }
-                                  }
-                              },
-                              MuiInputLabel: {
-                                  styleOverrides: {
-                                      root: {
-                                          '&.Mui-error': {
-                                              color: 'orange'
-                                          }
-                                      }
-                                  }
-                              },
-                              MuiOutlinedInput: {
-                                  styleOverrides: {
-                                      notchedOutline: {
-                                          // This targets the outline border color for error state
-                                          '&.Mui-error': {
-                                              borderColor: 'orange'
-                                          }
-                                      },
-                                      root: {
-                                          '&.Mui-error .MuiOutlinedInput-notchedOutline': {
-                                              borderColor: 'orange'
-                                          }
-                                      }
-                                  }
-                              },
-                              MuiInput: {
-                                  styleOverrides: {
-                                      underline: {
-                                          '&.Mui-error:after': {
-                                              borderBottomColor: 'orange'
-                                          }
-                                      }
-                                  }
-                              }
-                          }
-                        : {}
-            }),
-        [mode]
-    );
+    const appTheme = useMemo(() => createAppTheme(mode), [mode]);
 
     // Don't render anything while Apollo Client is being initialized or auth is initializing
     if (!apolloClient || isInitializing) {
