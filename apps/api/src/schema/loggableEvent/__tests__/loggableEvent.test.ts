@@ -1,11 +1,32 @@
+import { LoggableEvent } from '@prisma/client';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { createTestClient, TestGraphQLClient } from '../../../mocks/client.js';
 import prismaMock from '../../../prisma/__mocks__/client.js';
+import { getIdEncoder } from '../../../utils/encoder.js';
 import { createMockEventLabel } from '../../eventLabel/__mocks__/eventLabel.js';
 import { createMockUserWithRelations } from '../../user/__mocks__/user.js';
+import { UserParent } from '../../user/index.js';
 import { createMockLoggableEvent } from '../__mocks__/loggableEvent.js';
 import { MAX_EVENT_NAME_LENGTH } from '../index.js';
+
+// Helper to encode user ID for expected responses
+const encodeUserId = (userId: string): string => {
+    const encoder = getIdEncoder();
+    return encoder.encode(userId, 'user');
+};
+
+// Helper to encode event ID for expected responses
+const encodeEventId = (eventId: string): string => {
+    const encoder = getIdEncoder();
+    return encoder.encode(eventId, 'loggableEvent');
+};
+
+// Helper to encode label ID for expected responses
+const encodeLabelId = (labelId: string): string => {
+    const encoder = getIdEncoder();
+    return encoder.encode(labelId, 'eventLabel');
+};
 
 describe('LoggableEvent GraphQL', () => {
     let client: TestGraphQLClient;
@@ -47,12 +68,10 @@ describe('LoggableEvent GraphQL', () => {
 
         it('should create a new loggable event successfully', async () => {
             const mockUser = createMockUserWithRelations({
-                id: 'user-123',
                 name: 'Test User',
                 email: 'test@example.com'
             });
             const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
                 name: 'Exercise',
                 warningThresholdInDays: 7,
                 userId: mockUser.id,
@@ -86,14 +105,14 @@ describe('LoggableEvent GraphQL', () => {
             expect(data.createLoggableEvent).toEqual({
                 tempID: 'temp-123',
                 loggableEvent: {
-                    id: 'event-123',
+                    id: encodeEventId(mockEvent.id),
                     name: 'Exercise',
                     timestamps: [],
                     warningThresholdInDays: 7,
                     createdAt: mockEvent.createdAt.toISOString(),
                     updatedAt: mockEvent.updatedAt.toISOString(),
                     user: {
-                        id: 'user-123',
+                        id: encodeUserId(mockUser.id),
                         name: 'Test User',
                         email: 'test@example.com'
                     },
@@ -105,7 +124,7 @@ describe('LoggableEvent GraphQL', () => {
             expect(prismaMock.loggableEvent.findFirst).toHaveBeenCalledWith({
                 where: {
                     name: 'Exercise',
-                    userId: 'user-123'
+                    userId: mockUser.id
                 }
             });
 
@@ -113,7 +132,7 @@ describe('LoggableEvent GraphQL', () => {
                 data: {
                     name: 'Exercise',
                     warningThresholdInDays: 7,
-                    userId: 'user-123',
+                    userId: mockUser.id,
                     timestamps: []
                 },
                 include: { labels: true }
@@ -122,21 +141,18 @@ describe('LoggableEvent GraphQL', () => {
 
         it('should create a loggable event with labels successfully', async () => {
             const mockUser = createMockUserWithRelations({
-                id: 'user-123',
                 name: 'Test User',
                 email: 'test@example.com'
             });
             const mockLabel = createMockEventLabel({
-                id: 'label-456',
                 name: 'Health',
                 userId: mockUser.id
             });
             const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
                 name: 'Exercise',
                 warningThresholdInDays: 7,
                 userId: mockUser.id,
-                labelIds: ['label-456'],
+                labelIds: [mockLabel.id],
                 createdAt: new Date('2024-01-01'),
                 updatedAt: new Date('2024-01-01')
             });
@@ -159,7 +175,7 @@ describe('LoggableEvent GraphQL', () => {
                         id: 'temp-123',
                         name: 'Exercise',
                         warningThresholdInDays: 7,
-                        labelIds: ['label-456']
+                        labelIds: [encodeLabelId(mockLabel.id)]
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -169,20 +185,20 @@ describe('LoggableEvent GraphQL', () => {
             expect(data.createLoggableEvent).toEqual({
                 tempID: 'temp-123',
                 loggableEvent: {
-                    id: 'event-123',
+                    id: encodeEventId(mockEvent.id),
                     name: 'Exercise',
                     timestamps: [],
                     warningThresholdInDays: 7,
                     createdAt: mockEvent.createdAt.toISOString(),
                     updatedAt: mockEvent.updatedAt.toISOString(),
                     user: {
-                        id: 'user-123',
+                        id: encodeUserId(mockUser.id),
                         name: 'Test User',
                         email: 'test@example.com'
                     },
                     labels: [
                         {
-                            id: 'label-456',
+                            id: encodeLabelId(mockLabel.id),
                             name: 'Health'
                         }
                     ]
@@ -192,8 +208,8 @@ describe('LoggableEvent GraphQL', () => {
 
             expect(prismaMock.eventLabel.findMany).toHaveBeenCalledWith({
                 where: {
-                    id: { in: ['label-456'] },
-                    userId: 'user-123'
+                    id: { in: [mockLabel.id] },
+                    userId: mockUser.id
                 },
                 select: { id: true }
             });
@@ -202,10 +218,10 @@ describe('LoggableEvent GraphQL', () => {
                 data: {
                     name: 'Exercise',
                     warningThresholdInDays: 7,
-                    userId: 'user-123',
+                    userId: mockUser.id,
                     timestamps: [],
                     labels: {
-                        connect: [{ id: 'label-456' }]
+                        connect: [{ id: mockLabel.id }]
                     }
                 },
                 include: { labels: true }
@@ -244,7 +260,7 @@ describe('LoggableEvent GraphQL', () => {
         ])(
             'should return validation error for $scenario',
             async ({ name, warningThresholdInDays = 7, expectedError }) => {
-                const mockUser = createMockUserWithRelations({ id: 'user-123' });
+                const mockUser = createMockUserWithRelations();
 
                 const { data, errors } = await client.request(
                     CREATE_LOGGABLE_EVENT,
@@ -266,7 +282,7 @@ describe('LoggableEvent GraphQL', () => {
         );
 
         it('should return error when event name already exists', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const existingEvent = createMockLoggableEvent({
                 name: 'Exercise',
                 userId: mockUser.id
@@ -300,7 +316,8 @@ describe('LoggableEvent GraphQL', () => {
         });
 
         it('should return error when labelIds do not belong to user', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
+            const nonExistentLabel = createMockEventLabel();
 
             // Mock for checking if event name already exists
             prismaMock.loggableEvent.findFirst.mockResolvedValue(null);
@@ -316,7 +333,7 @@ describe('LoggableEvent GraphQL', () => {
                         id: 'temp-123',
                         name: 'Exercise',
                         warningThresholdInDays: 7,
-                        labelIds: ['label-456']
+                        labelIds: [encodeLabelId(nonExistentLabel.id)]
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -331,7 +348,7 @@ describe('LoggableEvent GraphQL', () => {
         });
 
         it('should handle database errors', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
 
             // Mock database failure when checking if event name exists
             prismaMock.loggableEvent.findFirst.mockRejectedValue(new Error('Database connection failed'));
@@ -382,12 +399,10 @@ describe('LoggableEvent GraphQL', () => {
 
         it('should return error when user not found in field resolver', async () => {
             const mockUser = createMockUserWithRelations({
-                id: 'user-123',
                 name: 'Test User',
                 email: 'test@example.com'
             });
             const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
                 name: 'Exercise',
                 warningThresholdInDays: 7,
                 userId: mockUser.id,
@@ -464,79 +479,96 @@ describe('LoggableEvent GraphQL', () => {
             }
         `;
 
+        let mockUser: UserParent;
+        let existingEventToUpdate: LoggableEvent;
+        let existingEventEncodedId: string;
+
+        beforeEach(() => {
+            mockUser = createMockUserWithRelations();
+            existingEventToUpdate = createMockLoggableEvent({
+                name: 'Go on a walk',
+                userId: mockUser.id,
+                createdAt: new Date('2024-01-01'),
+                updatedAt: new Date('2024-01-02'),
+                warningThresholdInDays: 7
+            });
+            existingEventEncodedId = encodeEventId(existingEventToUpdate.id);
+        });
+
         it.each([
             {
                 scenario: 'update event name',
-                mockEventOverrides: {
-                    name: 'Running',
-                    warningThresholdInDays: 7,
-                    createdAt: new Date('2024-01-01'),
-                    updatedAt: new Date('2024-01-02')
-                },
-                input: {
-                    id: 'event-123',
+                inputOverrides: {
                     name: 'Running'
                 },
-                needsNameCheck: true,
-                expectedUpdateData: { name: 'Running' },
-                expectedEvent: {
-                    id: 'event-123',
-                    name: 'Running',
-                    warningThresholdInDays: 7
+                expectedUpdateData: {
+                    name: 'Running'
+                },
+                updatedEventOverrides: {
+                    name: 'Running'
+                },
+                expectedEventOverrides: {
+                    name: 'Running'
                 }
             },
             {
                 scenario: 'update warning threshold',
-                mockEventOverrides: {
+                inputOverrides: {
                     warningThresholdInDays: 14
                 },
-                input: {
-                    id: 'event-123',
+                expectedUpdateData: {
                     warningThresholdInDays: 14
                 },
-                needsNameCheck: false,
-                expectedUpdateData: { warningThresholdInDays: 14 },
-                expectedEvent: {
-                    id: 'event-123',
+                updatedEventOverrides: {
+                    warningThresholdInDays: 14
+                },
+                expectedEventOverrides: {
                     warningThresholdInDays: 14
                 }
             },
             {
                 scenario: 'update timestamps',
-                mockEventOverrides: {
-                    timestamps: [new Date('2024-01-02'), new Date('2024-01-01')]
-                },
-                input: {
-                    id: 'event-123',
+                inputOverrides: {
                     timestamps: [new Date('2024-01-01').toISOString(), new Date('2024-01-02').toISOString()]
                 },
-                needsNameCheck: false,
-                expectedUpdateData: { timestamps: { set: [new Date('2024-01-02'), new Date('2024-01-01')] } },
-                expectedEvent: {
-                    id: 'event-123',
+                expectedUpdateData: {
+                    timestamps: {
+                        set: [new Date('2024-01-02'), new Date('2024-01-01')]
+                    }
+                },
+                updatedEventOverrides: {
+                    timestamps: [new Date('2024-01-02'), new Date('2024-01-01')]
+                },
+                expectedEventOverrides: {
                     timestamps: [new Date('2024-01-02').toISOString(), new Date('2024-01-01').toISOString()]
                 }
             }
         ])(
             'should $scenario successfully',
-            async ({ mockEventOverrides, input, needsNameCheck, expectedUpdateData, expectedEvent }) => {
-                const mockUser = createMockUserWithRelations({ id: 'user-123' });
-                const mockEvent = createMockLoggableEvent({
-                    id: 'event-123',
-                    userId: mockUser.id,
-                    ...mockEventOverrides
+            async ({ inputOverrides, expectedUpdateData, updatedEventOverrides, expectedEventOverrides }) => {
+                const input = {
+                    id: existingEventEncodedId,
+                    ...inputOverrides
+                };
+                const updatedEvent = createMockLoggableEvent({
+                    id: existingEventToUpdate.id,
+                    ...updatedEventOverrides
                 });
+                const expectedEvent = {
+                    id: existingEventEncodedId,
+                    ...expectedEventOverrides
+                };
 
                 // Mock for @requireOwner directive - checking ownership
-                prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+                prismaMock.loggableEvent.findUnique.mockResolvedValue(existingEventToUpdate);
 
-                if (needsNameCheck) {
+                if ('name' in input) {
                     // Mock for checking if new name already exists
                     prismaMock.loggableEvent.findFirst.mockResolvedValue(null);
                 }
 
                 // Mock for updating the event
-                prismaMock.loggableEvent.update.mockResolvedValue(mockEvent);
+                prismaMock.loggableEvent.update.mockResolvedValue(updatedEvent);
                 // Mock for LoggableEvent.user field resolver
                 prismaMock.user.findUnique.mockResolvedValue(mockUser);
                 // Mock for LoggableEvent.labels field resolver
@@ -553,7 +585,7 @@ describe('LoggableEvent GraphQL', () => {
                 expect(data.updateLoggableEvent.loggableEvent).toEqual(expect.objectContaining(expectedEvent));
 
                 expect(prismaMock.loggableEvent.update).toHaveBeenCalledWith({
-                    where: { id: 'event-123' },
+                    where: { id: existingEventToUpdate.id },
                     data: expectedUpdateData,
                     include: { labels: true }
                 });
@@ -561,24 +593,23 @@ describe('LoggableEvent GraphQL', () => {
         );
 
         it('should update labels successfully', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
             const mockLabel = createMockEventLabel({
-                id: 'label-456',
                 name: 'Health',
                 userId: mockUser.id
             });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                labelIds: ['label-456'],
-                userId: mockUser.id
-            });
+            const encodedLabelId = encodeLabelId(mockLabel.id);
+
+            const updatedEvent = {
+                ...existingEventToUpdate,
+                labelIds: [mockLabel.id]
+            };
 
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValue(existingEventToUpdate);
             // Mock for validateLabelOwnership - checking if labels belong to user
             prismaMock.eventLabel.findMany.mockResolvedValueOnce([mockLabel]);
             // Mock for updating the event
-            prismaMock.loggableEvent.update.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.update.mockResolvedValue(updatedEvent);
             // Mock for LoggableEvent.user field resolver
             prismaMock.user.findUnique.mockResolvedValue(mockUser);
             // Mock for LoggableEvent.labels field resolver
@@ -588,8 +619,8 @@ describe('LoggableEvent GraphQL', () => {
                 UPDATE_LOGGABLE_EVENT,
                 {
                     input: {
-                        id: 'event-123',
-                        labelIds: ['label-456']
+                        id: existingEventEncodedId,
+                        labelIds: [encodedLabelId]
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -598,17 +629,17 @@ describe('LoggableEvent GraphQL', () => {
             expect(errors).toBeUndefined();
             expect(data.updateLoggableEvent.loggableEvent.labels).toEqual([
                 {
-                    id: 'label-456',
-                    name: 'Health'
+                    id: encodedLabelId,
+                    name: mockLabel.name
                 }
             ]);
             expect(data.updateLoggableEvent.errors).toEqual([]);
 
             expect(prismaMock.loggableEvent.update).toHaveBeenCalledWith({
-                where: { id: 'event-123' },
+                where: { id: existingEventToUpdate.id },
                 data: {
                     labels: {
-                        set: [{ id: 'label-456' }]
+                        set: [{ id: mockLabel.id }]
                     }
                 },
                 include: { labels: true }
@@ -618,8 +649,7 @@ describe('LoggableEvent GraphQL', () => {
         it.each([
             {
                 scenario: 'empty name',
-                input: {
-                    id: 'event-123',
+                inputOverrides: {
                     name: ''
                 },
                 expectedError: {
@@ -630,8 +660,7 @@ describe('LoggableEvent GraphQL', () => {
             },
             {
                 scenario: 'name too long',
-                input: {
-                    id: 'event-123',
+                inputOverrides: {
                     name: 'a'.repeat(MAX_EVENT_NAME_LENGTH + 1)
                 },
                 expectedError: {
@@ -642,8 +671,7 @@ describe('LoggableEvent GraphQL', () => {
             },
             {
                 scenario: 'negative warning threshold',
-                input: {
-                    id: 'event-123',
+                inputOverrides: {
                     warningThresholdInDays: -1
                 },
                 expectedError: {
@@ -652,15 +680,14 @@ describe('LoggableEvent GraphQL', () => {
                     message: 'Warning threshold must be a positive number'
                 }
             }
-        ])('should return validation error for $scenario', async ({ input, expectedError }) => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                userId: mockUser.id
-            });
+        ])('should return validation error for $scenario', async ({ inputOverrides, expectedError }) => {
+            const input = {
+                id: existingEventEncodedId,
+                ...inputOverrides
+            };
 
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValue(existingEventToUpdate);
 
             const { data, errors } = await client.request(
                 UPDATE_LOGGABLE_EVENT,
@@ -675,28 +702,21 @@ describe('LoggableEvent GraphQL', () => {
         });
 
         it('should return error when updating to duplicate name', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                name: 'Exercise',
-                userId: mockUser.id
-            });
-            const existingEvent = createMockLoggableEvent({
-                id: 'event-456',
+            const existingEventWithDuplicateName = createMockLoggableEvent({
                 name: 'Running',
                 userId: mockUser.id
             });
 
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValue(existingEventToUpdate);
             // Mock for checking if new name already exists (returns existing event)
-            prismaMock.loggableEvent.findFirst.mockResolvedValue(existingEvent);
+            prismaMock.loggableEvent.findFirst.mockResolvedValue(existingEventWithDuplicateName);
 
             const { data, errors } = await client.request(
                 UPDATE_LOGGABLE_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: existingEventEncodedId,
                         name: 'Running'
                     }
                 },
@@ -716,15 +736,13 @@ describe('LoggableEvent GraphQL', () => {
         });
 
         it('should return auth error when event belongs to another user', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const otherUser = createMockUserWithRelations({ id: 'other-user-456' });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
+            const otherUser = createMockUserWithRelations();
+            const mockEventOwnedByOtherUser = createMockLoggableEvent({
                 userId: otherUser.id
             });
 
             // Mock for @requireOwner directive - returns event with different userId
-            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEventOwnedByOtherUser);
 
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -732,7 +750,7 @@ describe('LoggableEvent GraphQL', () => {
                 UPDATE_LOGGABLE_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: encodeEventId(mockEventOwnedByOtherUser.id),
                         name: 'Running'
                     }
                 },
@@ -748,15 +766,8 @@ describe('LoggableEvent GraphQL', () => {
         });
 
         it('should return internal error when database fails during name uniqueness check', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                name: 'Exercise',
-                userId: mockUser.id
-            });
-
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValue(existingEventToUpdate);
             // Mock database failure when checking if new name already exists
             prismaMock.loggableEvent.findFirst.mockRejectedValue(new Error('Database connection failed'));
 
@@ -766,7 +777,7 @@ describe('LoggableEvent GraphQL', () => {
                 UPDATE_LOGGABLE_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: existingEventEncodedId,
                         name: 'Running'
                     }
                 },
@@ -800,24 +811,33 @@ describe('LoggableEvent GraphQL', () => {
             }
         `;
 
-        it('should delete event successfully', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                name: 'Exercise',
-                userId: mockUser.id
-            });
+        let mockUser: UserParent;
+        let existingEventToDelete: LoggableEvent;
+        let existingEventEncodedId: string;
 
+        beforeEach(() => {
+            mockUser = createMockUserWithRelations();
+            existingEventToDelete = createMockLoggableEvent({
+                name: 'Go on a walk',
+                userId: mockUser.id,
+                createdAt: new Date('2024-01-01'),
+                updatedAt: new Date('2024-01-02'),
+                warningThresholdInDays: 7
+            });
+            existingEventEncodedId = encodeEventId(existingEventToDelete.id);
+        });
+
+        it('should delete event successfully', async () => {
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValue(existingEventToDelete);
             // Mock for deleting the event
-            prismaMock.loggableEvent.delete.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.delete.mockResolvedValue(existingEventToDelete);
 
             const { data, errors } = await client.request(
                 DELETE_LOGGABLE_EVENT,
                 {
                     input: {
-                        id: 'event-123'
+                        id: existingEventEncodedId
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -826,28 +846,26 @@ describe('LoggableEvent GraphQL', () => {
             expect(errors).toBeUndefined();
             expect(data.deleteLoggableEvent).toEqual({
                 loggableEvent: {
-                    id: 'event-123',
-                    name: 'Exercise'
+                    id: existingEventEncodedId,
+                    name: existingEventToDelete.name
                 },
                 errors: []
             });
 
             expect(prismaMock.loggableEvent.delete).toHaveBeenCalledWith({
-                where: { id: 'event-123' },
+                where: { id: existingEventToDelete.id },
                 include: { labels: true }
             });
         });
 
         it('should return auth error when event belongs to another user', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const otherUser = createMockUserWithRelations({ id: 'other-user-456' });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
+            const otherUser = createMockUserWithRelations();
+            const mockEventOwnedByOtherUser = createMockLoggableEvent({
                 userId: otherUser.id
             });
 
             // Mock for @requireOwner directive - returns event with different userId
-            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEventOwnedByOtherUser);
 
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -855,7 +873,7 @@ describe('LoggableEvent GraphQL', () => {
                 DELETE_LOGGABLE_EVENT,
                 {
                     input: {
-                        id: 'event-123'
+                        id: encodeEventId(mockEventOwnedByOtherUser.id)
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -870,15 +888,8 @@ describe('LoggableEvent GraphQL', () => {
         });
 
         it('should return internal error when database fails during delete', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                name: 'Exercise',
-                userId: mockUser.id
-            });
-
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.loggableEvent.findUnique.mockResolvedValue(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValue(existingEventToDelete);
             // Mock database failure when attempting to delete
             prismaMock.loggableEvent.delete.mockRejectedValue(new Error('Database connection failed'));
 
@@ -888,7 +899,7 @@ describe('LoggableEvent GraphQL', () => {
                 DELETE_LOGGABLE_EVENT,
                 {
                     input: {
-                        id: 'event-123'
+                        id: existingEventEncodedId
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -902,7 +913,7 @@ describe('LoggableEvent GraphQL', () => {
 
             // Verify delete was attempted
             expect(prismaMock.loggableEvent.delete).toHaveBeenCalledWith({
-                where: { id: 'event-123' },
+                where: { id: existingEventToDelete.id },
                 include: { labels: true }
             });
 
@@ -928,24 +939,36 @@ describe('LoggableEvent GraphQL', () => {
             }
         `;
 
-        it('should add timestamp successfully', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const existingTimestamp = new Date('2024-01-01');
-            const newTimestamp = new Date('2024-01-02');
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                timestamps: [existingTimestamp],
-                userId: mockUser.id
+        let mockUser: UserParent;
+        let existingEventToUpdate: LoggableEvent;
+        let existingEventEncodedId: string;
+        const existingTimestamp = new Date('2024-01-01');
+
+        beforeEach(() => {
+            mockUser = createMockUserWithRelations();
+            existingEventToUpdate = createMockLoggableEvent({
+                name: 'Go on a walk',
+                userId: mockUser.id,
+                createdAt: new Date('2024-01-01'),
+                updatedAt: new Date('2024-01-02'),
+                warningThresholdInDays: 7,
+                timestamps: [existingTimestamp]
             });
+            existingEventEncodedId = encodeEventId(existingEventToUpdate.id);
+        });
+
+        it('should add timestamp successfully', async () => {
+            const newTimestamp = new Date('2024-01-02');
+
             const updatedEvent = {
-                ...mockEvent,
+                ...existingEventToUpdate,
                 timestamps: [newTimestamp, existingTimestamp]
             };
 
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(existingEventToUpdate);
             // Mock for fetching current timestamps
-            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(existingEventToUpdate);
             // Mock for updating the event with new timestamps
             prismaMock.loggableEvent.update.mockResolvedValue(updatedEvent);
 
@@ -953,7 +976,7 @@ describe('LoggableEvent GraphQL', () => {
                 ADD_TIMESTAMP_TO_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: existingEventEncodedId,
                         timestamp: newTimestamp.toISOString()
                     }
                 },
@@ -968,30 +991,25 @@ describe('LoggableEvent GraphQL', () => {
             expect(data.addTimestampToEvent.errors).toEqual([]);
 
             expect(prismaMock.loggableEvent.update).toHaveBeenCalledWith({
-                where: { id: 'event-123' },
+                where: { id: existingEventToUpdate.id },
                 data: { timestamps: { set: [newTimestamp, existingTimestamp] } },
                 include: { labels: true }
             });
         });
 
         it('should handle adding duplicate timestamp', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const existingTimestamp = new Date('2024-01-01');
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                timestamps: [existingTimestamp],
-                userId: mockUser.id
-            });
-
-            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(mockEvent);
-            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(mockEvent);
-            prismaMock.loggableEvent.update.mockResolvedValue(mockEvent);
+            // Mock for @requireOwner directive - checking ownership
+            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(existingEventToUpdate);
+            // Mock for fetching current timestamps
+            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(existingEventToUpdate);
+            // Mock for updating the event with new timestamps
+            prismaMock.loggableEvent.update.mockResolvedValue(existingEventToUpdate);
 
             const { data, errors } = await client.request(
                 ADD_TIMESTAMP_TO_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: existingEventEncodedId,
                         timestamp: existingTimestamp.toISOString()
                     }
                 },
@@ -1004,14 +1022,8 @@ describe('LoggableEvent GraphQL', () => {
         });
 
         it('should return internal error when database fails during timestamp retrieval', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
-            const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
-                userId: mockUser.id
-            });
-
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(mockEvent);
+            prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(existingEventToUpdate);
             // Mock database failure when fetching current timestamps
             prismaMock.loggableEvent.findUnique.mockRejectedValueOnce(new Error('Database connection failed'));
 
@@ -1021,7 +1033,7 @@ describe('LoggableEvent GraphQL', () => {
                 ADD_TIMESTAMP_TO_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: existingEventEncodedId,
                         timestamp: new Date('2024-01-01').toISOString()
                     }
                 },
@@ -1059,12 +1071,16 @@ describe('LoggableEvent GraphQL', () => {
             }
         `;
 
+        let mockUser: UserParent;
+
+        beforeEach(() => {
+            mockUser = createMockUserWithRelations();
+        });
+
         it('should remove timestamp successfully', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
             const timestamp1 = new Date('2024-01-01');
             const timestamp2 = new Date('2024-01-02');
             const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
                 timestamps: [timestamp2, timestamp1],
                 userId: mockUser.id
             });
@@ -1084,7 +1100,7 @@ describe('LoggableEvent GraphQL', () => {
                 REMOVE_TIMESTAMP_FROM_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: encodeEventId(mockEvent.id),
                         timestamp: timestamp1.toISOString()
                     }
                 },
@@ -1096,30 +1112,30 @@ describe('LoggableEvent GraphQL', () => {
             expect(data.removeTimestampFromEvent.errors).toEqual([]);
 
             expect(prismaMock.loggableEvent.update).toHaveBeenCalledWith({
-                where: { id: 'event-123' },
+                where: { id: mockEvent.id },
                 data: { timestamps: { set: [timestamp2] } },
                 include: { labels: true }
             });
         });
 
         it('should return error when timestamp not found', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
             const existingTimestamp = new Date('2024-01-01');
             const notFoundTimestamp = new Date('2024-01-02');
             const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
                 timestamps: [existingTimestamp],
                 userId: mockUser.id
             });
 
+            // Mock for @requireOwner directive - checking ownership
             prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(mockEvent);
+            // Mock for fetching current timestamps
             prismaMock.loggableEvent.findUnique.mockResolvedValueOnce(mockEvent);
 
             const { data, errors } = await client.request(
                 REMOVE_TIMESTAMP_FROM_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: encodeEventId(mockEvent.id),
                         timestamp: notFoundTimestamp.toISOString()
                     }
                 },
@@ -1139,9 +1155,7 @@ describe('LoggableEvent GraphQL', () => {
         });
 
         it('should return internal error when database fails during timestamp retrieval', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
             const mockEvent = createMockLoggableEvent({
-                id: 'event-123',
                 userId: mockUser.id
             });
 
@@ -1156,7 +1170,7 @@ describe('LoggableEvent GraphQL', () => {
                 REMOVE_TIMESTAMP_FROM_EVENT,
                 {
                     input: {
-                        id: 'event-123',
+                        id: encodeEventId(mockEvent.id),
                         timestamp: new Date('2024-01-01').toISOString()
                     }
                 },
