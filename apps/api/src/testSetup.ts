@@ -16,3 +16,11 @@ vi.mock('./prisma/client.js', async () => {
         prisma: prismaMock.default
     };
 });
+
+// Mock Google Auth Library
+vi.mock('google-auth-library', async () => {
+    const oAuth2ClientMock = (await import('./auth/__mocks__/token.js')).oAuth2Client;
+    return {
+        OAuth2Client: vi.fn().mockImplementation(() => oAuth2ClientMock)
+    };
+});

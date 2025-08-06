@@ -15,6 +15,7 @@ import {
 } from '../../auth/token.js';
 import { env } from '../../config/env.js';
 import { ClientType, Resolvers } from '../../generated/graphql.js';
+import { getIdEncoder } from '../../utils/encoder.js';
 import { formatZodError } from '../../utils/validation.js';
 import { EventLabelParent } from '../eventLabel/index.js';
 import { LoggableEventParent } from '../loggableEvent/index.js';
@@ -284,6 +285,10 @@ const resolvers: Resolvers = {
     },
 
     User: {
+        id: (parent) => {
+            const encoder = getIdEncoder();
+            return encoder.encode(parent.id, 'user');
+        },
         loggableEvents: async (parent, _, { prisma }) => {
             return prisma.loggableEvent.findMany({
                 where: { userId: parent.id },
