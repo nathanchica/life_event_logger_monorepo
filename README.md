@@ -81,8 +81,8 @@ See the individual apps' `.env.example` files for more details on required envir
 
 ## Features
 
-- **Frontend**: React TypeScript app with Material UI, Apollo GraphQL, and offline support via apollo3-cache-persist
-- **Backend**: GraphQL Yoga API with JWT authentication, Prisma ORM, and MongoDB Atlas database
+- **Frontend**: React TypeScript app with Material UI, Apollo GraphQL, offline support via apollo3-cache-persist, and Jest for testing
+- **Backend**: GraphQL Yoga API with JWT authentication, Prisma ORM, MongoDB Atlas database, sqids for encoding IDs, and Vitest for testing
 - **Authentication**: Google OAuth login with JWT tokens, secure cookie storage, and refresh token implementation
 
 See individual app READMEs for detailed information:
