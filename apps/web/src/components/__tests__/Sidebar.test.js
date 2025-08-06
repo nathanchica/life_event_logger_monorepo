@@ -57,6 +57,7 @@ describe('Sidebar', () => {
 
     const defaultProps = {
         isCollapsed: false,
+        isLoading: false,
         onCollapseSidebarClick: mockOnCollapseSidebarClick
     };
 
@@ -117,6 +118,21 @@ describe('Sidebar', () => {
             renderWithProviders(<Sidebar {...defaultProps} />, { authValueOptions: { isOfflineMode: true } });
 
             expect(screen.getByText('Event Log (Offline mode)')).toBeInTheDocument();
+        });
+
+        it('renders loading state with shimmer components', () => {
+            renderWithProviders(<Sidebar {...defaultProps} isLoading={true} />);
+
+            const shimmers = screen.getAllByLabelText('Loading event label');
+            expect(shimmers).toHaveLength(3);
+            expect(screen.queryByTestId('event-label-list')).not.toBeInTheDocument();
+        });
+
+        it('renders event label list when not loading', () => {
+            renderWithProviders(<Sidebar {...defaultProps} isLoading={false} />);
+
+            expect(screen.getByTestId('event-label-list')).toBeInTheDocument();
+            expect(screen.queryByLabelText('Loading event label')).not.toBeInTheDocument();
         });
 
         it.each([

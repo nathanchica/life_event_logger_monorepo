@@ -19,6 +19,7 @@ import Typography from '@mui/material/Typography';
 import { blueGrey, green } from '@mui/material/colors';
 
 import EventLabelList from './EventLabels/EventLabelList';
+import EventLabelShimmer from './EventLabels/EventLabelShimmer';
 
 import { useAuthMutations } from '../hooks/useAuthMutations';
 import { useAuth } from '../providers/AuthProvider';
@@ -27,6 +28,7 @@ import { useToggle } from '../utils/useToggle';
 
 type Props = {
     isCollapsed: boolean;
+    isLoading: boolean;
     onCollapseSidebarClick: () => void;
 };
 
@@ -35,7 +37,7 @@ type Props = {
  * It includes a list of event labels, theme toggle button,
  * and a link to the GitHub repository.
  */
-const Sidebar = ({ isCollapsed, onCollapseSidebarClick }: Props) => {
+const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
     const { value: isEditingLabels, setTrue: startEditingLabels, setFalse: stopEditingLabels } = useToggle(false);
     const { clearAuthData, isOfflineMode } = useAuth();
     const { logoutMutation } = useAuthMutations();
@@ -127,7 +129,15 @@ const Sidebar = ({ isCollapsed, onCollapseSidebarClick }: Props) => {
                                     width: 350px;
                                 `}
                             >
-                                <EventLabelList isShowingEditActions={isEditingLabels} />
+                                {isLoading ? (
+                                    <>
+                                        <EventLabelShimmer />
+                                        <EventLabelShimmer />
+                                        <EventLabelShimmer />
+                                    </>
+                                ) : (
+                                    <EventLabelList isShowingEditActions={isEditingLabels} />
+                                )}
                             </Box>
                         </Box>
                     </Collapse>

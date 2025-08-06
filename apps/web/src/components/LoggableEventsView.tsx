@@ -129,7 +129,11 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
                 `}
             >
                 <Grid size="auto">
-                    <Sidebar isCollapsed={sidebarIsCollapsed} onCollapseSidebarClick={collapseSidebar} />
+                    <Sidebar
+                        isCollapsed={sidebarIsCollapsed}
+                        isLoading={isLoading}
+                        onCollapseSidebarClick={collapseSidebar}
+                    />
                 </Grid>
 
                 {mainContent}
