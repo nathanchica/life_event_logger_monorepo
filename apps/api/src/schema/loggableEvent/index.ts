@@ -4,7 +4,9 @@ import invariant from 'tiny-invariant';
 import { z } from 'zod';
 
 import { Resolvers } from '../../generated/graphql.js';
+import { getIdEncoder } from '../../utils/encoder.js';
 import { formatZodError } from '../../utils/validation.js';
+import { EventLabelParent } from '../eventLabel/index.js';
 import { UserParent } from '../user/index.js';
 
 export const MAX_EVENT_NAME_LENGTH = 25;
@@ -17,6 +19,7 @@ export type LoggableEventParent = {
     user?: UserParent;
     createdAt?: Date;
     updatedAt?: Date;
+    labels?: Array<EventLabelParent>;
 };
 
 const CreateLoggableEventSchema = z.object({
@@ -39,6 +42,8 @@ const UpdateLoggableEventSchema = z.object({
     timestamps: z.array(z.date()).optional(),
     labelIds: z.array(z.string()).optional()
 });
+
+type UpdateLoggableEventInput = z.infer<typeof UpdateLoggableEventSchema>;
 
 /**
  * Processes an array of timestamps by removing duplicates and sorting newest first
@@ -119,30 +124,42 @@ const validateLabelOwnership = async ({
     }
 };
 
-const updateLoggableEventHelper = async ({
-    eventId,
-    updateData,
-    prisma
-}: {
-    eventId: string;
-    updateData: Prisma.LoggableEventUpdateInput;
-    prisma: PrismaClient;
-}) => {
-    // Process timestamps if they are being updated
-    if (updateData.timestamps && Array.isArray(updateData.timestamps)) {
-        updateData.timestamps = { set: processTimestamps(updateData.timestamps as Date[]) };
-    }
-
-    const event = await prisma.loggableEvent.update({
-        where: { id: eventId },
-        data: updateData,
-        include: { labels: true }
-    });
+/**
+ * Builds object from processed input to be used for updateLoggableEventHelper
+ */
+export const buildPrismaUpdateData = (processedInput: UpdateLoggableEventInput): Prisma.LoggableEventUpdateInput => {
+    const { name, warningThresholdInDays, timestamps, labelIds } = processedInput;
 
     return {
-        loggableEvent: event,
-        errors: []
+        ...(name ? { name } : {}),
+        ...(warningThresholdInDays !== undefined ? { warningThresholdInDays } : {}),
+        ...(timestamps !== undefined ? { timestamps: { set: processTimestamps(timestamps) } } : {}),
+        ...(labelIds !== undefined
+            ? {
+                  labels: {
+                      set: labelIds.map((id) => ({ id }))
+                  }
+              }
+            : {})
     };
+};
+
+/**
+ * Processes user input for updating a loggable event by validating input and decoding IDs
+ */
+export const processUpdateLoggableEventInput = (input: UpdateLoggableEventInput): UpdateLoggableEventInput => {
+    let processedInput: UpdateLoggableEventInput = { ...input };
+
+    const encoder = getIdEncoder();
+    const decodedEventId = encoder.decode(input.id, 'loggableEvent');
+    processedInput.id = decodedEventId;
+
+    if (input.labelIds && input.labelIds.length > 0) {
+        const decodedLabelIds = encoder.decodeBatch(input.labelIds, 'eventLabel');
+        processedInput.labelIds = decodedLabelIds;
+    }
+
+    return processedInput;
 };
 
 const resolvers: Resolvers = {
@@ -169,10 +186,14 @@ const resolvers: Resolvers = {
                     };
                 }
 
-                // Validate labelIds ownership if provided
+                // Decode and validate labelIds ownership if provided
+                let decodedLabelIds: string[] | undefined;
                 if (validatedInput.labelIds && validatedInput.labelIds.length > 0) {
+                    const encoder = getIdEncoder();
+                    decodedLabelIds = encoder.decodeBatch(validatedInput.labelIds, 'eventLabel');
+
                     await validateLabelOwnership({
-                        labelIds: validatedInput.labelIds,
+                        labelIds: decodedLabelIds,
                         userId: user.id,
                         prisma
                     });
@@ -184,9 +205,9 @@ const resolvers: Resolvers = {
                         warningThresholdInDays: validatedInput.warningThresholdInDays,
                         userId: user.id,
                         timestamps: [],
-                        labels: validatedInput.labelIds
+                        labels: decodedLabelIds
                             ? {
-                                  connect: validatedInput.labelIds.map((id) => ({ id }))
+                                  connect: decodedLabelIds.map((id) => ({ id }))
                               }
                             : undefined
                     },
@@ -225,13 +246,15 @@ const resolvers: Resolvers = {
 
                 invariant(user, 'User should exist after @requireOwner directive validation');
 
+                const processedInput = processUpdateLoggableEventInput(validatedInput);
+
                 // Check if name already exists for this user (excluding current event)
-                if (validatedInput.name) {
+                if (processedInput.name) {
                     const nameValidationError = await validateEventNameUniqueness({
-                        name: validatedInput.name,
+                        name: processedInput.name,
                         userId: user.id,
                         prisma,
-                        excludeEventId: validatedInput.id
+                        excludeEventId: processedInput.id
                     });
 
                     if (nameValidationError) {
@@ -243,34 +266,24 @@ const resolvers: Resolvers = {
                 }
 
                 // Validate labelIds ownership if provided
-                if (validatedInput.labelIds && validatedInput.labelIds.length > 0) {
+                if (processedInput.labelIds && processedInput.labelIds.length > 0) {
                     await validateLabelOwnership({
-                        labelIds: validatedInput.labelIds,
+                        labelIds: processedInput.labelIds,
                         userId: user.id,
                         prisma
                     });
                 }
 
-                const updateData = {
-                    ...(validatedInput.name ? { name: validatedInput.name } : {}),
-                    ...(validatedInput.warningThresholdInDays !== undefined
-                        ? { warningThresholdInDays: validatedInput.warningThresholdInDays }
-                        : {}),
-                    ...(validatedInput.timestamps !== undefined ? { timestamps: validatedInput.timestamps } : {}),
-                    ...(validatedInput.labelIds !== undefined
-                        ? {
-                              labels: {
-                                  set: validatedInput.labelIds.map((id) => ({ id }))
-                              }
-                          }
-                        : {})
-                };
-
-                return await updateLoggableEventHelper({
-                    eventId: validatedInput.id,
-                    updateData,
-                    prisma
+                const event = await prisma.loggableEvent.update({
+                    where: { id: processedInput.id },
+                    data: buildPrismaUpdateData(processedInput),
+                    include: { labels: true }
                 });
+
+                return {
+                    loggableEvent: event,
+                    errors: []
+                };
             } catch (error) {
                 if (error instanceof z.ZodError) {
                     return {
@@ -288,9 +301,13 @@ const resolvers: Resolvers = {
         deleteLoggableEvent: async (_, { input }, { prisma }) => {
             // Auth and ownership checks handled by @requireOwner directive
             try {
+                // Decode the event ID
+                const encoder = getIdEncoder();
+                const decodedEventId = encoder.decode(input.id, 'loggableEvent');
+
                 // @requireOwner directive already validated the event exists and user owns it
                 const event = await prisma.loggableEvent.delete({
-                    where: { id: input.id },
+                    where: { id: decodedEventId },
                     include: { labels: true }
                 });
 
@@ -308,23 +325,32 @@ const resolvers: Resolvers = {
         addTimestampToEvent: async (_, { input }, { prisma }) => {
             // Auth and ownership checks handled by @requireOwner directive
             try {
+                // Decode the event ID
+                const encoder = getIdEncoder();
+                const decodedEventId = encoder.decode(input.id, 'loggableEvent');
+
                 // Get the current event to retrieve existing timestamps
                 // Auth directive already validated the event exists and user owns it
                 const currentEvent = await prisma.loggableEvent.findUnique({
-                    where: { id: input.id },
+                    where: { id: decodedEventId },
                     select: { timestamps: true }
                 });
 
                 invariant(currentEvent, 'Event should exist after auth directive validation');
 
-                // Add the new timestamp to existing ones
-                const updatedTimestamps = [...currentEvent.timestamps, new Date(input.timestamp)];
-
-                return await updateLoggableEventHelper({
-                    eventId: input.id,
-                    updateData: { timestamps: updatedTimestamps },
-                    prisma
+                const event = await prisma.loggableEvent.update({
+                    where: { id: decodedEventId },
+                    data: buildPrismaUpdateData({
+                        id: decodedEventId,
+                        timestamps: [...currentEvent.timestamps, new Date(input.timestamp)]
+                    }),
+                    include: { labels: true }
                 });
+
+                return {
+                    loggableEvent: event,
+                    errors: []
+                };
             } catch (error) {
                 // Log the actual error for debugging (will appear in Vercel logs)
                 console.error('Error in addTimestampToEvent:', error);
@@ -335,10 +361,14 @@ const resolvers: Resolvers = {
         removeTimestampFromEvent: async (_, { input }, { prisma }) => {
             // Auth and ownership checks handled by @requireOwner directive
             try {
+                // Decode the event ID
+                const encoder = getIdEncoder();
+                const decodedEventId = encoder.decode(input.id, 'loggableEvent');
+
                 // Get the current event to retrieve existing timestamps
                 // Auth directive already validated the event exists and user owns it
                 const currentEvent = await prisma.loggableEvent.findUnique({
-                    where: { id: input.id },
+                    where: { id: decodedEventId },
                     select: { timestamps: true }
                 });
 
@@ -362,11 +392,19 @@ const resolvers: Resolvers = {
                     (timestamp: Date) => timestamp.getTime() !== timestampToRemove
                 );
 
-                return await updateLoggableEventHelper({
-                    eventId: input.id,
-                    updateData: { timestamps: updatedTimestamps },
-                    prisma
+                const event = await prisma.loggableEvent.update({
+                    where: { id: decodedEventId },
+                    data: buildPrismaUpdateData({
+                        id: decodedEventId,
+                        timestamps: updatedTimestamps
+                    }),
+                    include: { labels: true }
                 });
+
+                return {
+                    loggableEvent: event,
+                    errors: []
+                };
             } catch (error) {
                 // Log the actual error for debugging (will appear in Vercel logs)
                 console.error('Error in removeTimestampFromEvent:', error);
@@ -376,6 +414,10 @@ const resolvers: Resolvers = {
     },
 
     LoggableEvent: {
+        id: (parent) => {
+            const encoder = getIdEncoder();
+            return encoder.encode(parent.id, 'loggableEvent');
+        },
         user: async (parent, _, { prisma }) => {
             const user = await prisma.user.findUnique({
                 where: { id: parent.userId }

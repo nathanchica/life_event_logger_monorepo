@@ -1,12 +1,13 @@
 import crypto from 'crypto';
 
-import { OAuth2Client } from 'google-auth-library';
+import { LoginTicket } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { mockDeep } from 'vitest-mock-extended';
 
 import prismaMock from '../../prisma/__mocks__/client.js';
 import { createMockUser } from '../../schema/user/__mocks__/user.js';
-import { createMockGoogleTokenPayload } from '../__mocks__/token.js';
+import { createMockGoogleTokenPayload, oAuth2Client } from '../__mocks__/token.js';
 import {
     verifyGoogleToken,
     generateAccessToken,
@@ -22,11 +23,7 @@ import {
 
 // Mock the external dependencies
 vi.mock('jsonwebtoken');
-vi.mock('google-auth-library', () => {
-    const OAuth2Client = vi.fn();
-    OAuth2Client.prototype.verifyIdToken = vi.fn();
-    return { OAuth2Client };
-});
+
 vi.mock('../../config/env.js', () => ({
     env: {
         GOOGLE_CLIENT_ID: 'mock-google-client-id',
@@ -39,11 +36,8 @@ vi.mock('../../config/env.js', () => ({
 vi.mock('crypto');
 
 describe('Token utilities', () => {
-    let mockOAuth2Client;
-
     beforeEach(() => {
         vi.clearAllMocks();
-        mockOAuth2Client = new OAuth2Client('mock-google-client-id');
     });
 
     describe('verifyGoogleToken', () => {
@@ -55,14 +49,15 @@ describe('Token utilities', () => {
                 name: 'Test User'
             });
 
-            mockOAuth2Client.verifyIdToken.mockResolvedValue({
-                getPayload: () => mockPayload
-            });
+            const mockLoginTicket = mockDeep<LoginTicket>();
+            mockLoginTicket.getPayload.mockReturnValue(mockPayload);
+            // @ts-expect-error: TypeScript picks wrong overload for verifyIdToken - we need the Promise<LoginTicket> version
+            oAuth2Client.verifyIdToken.mockResolvedValue(mockLoginTicket);
 
             const result = await verifyGoogleToken(token);
 
             expect(result).toEqual(mockPayload);
-            expect(mockOAuth2Client.verifyIdToken).toHaveBeenCalledWith({
+            expect(oAuth2Client.verifyIdToken).toHaveBeenCalledWith({
                 idToken: token,
                 audience: 'mock-google-client-id'
             });
@@ -70,12 +65,12 @@ describe('Token utilities', () => {
 
         it('should return null when token verification fails', async () => {
             const token = 'invalid-google-token';
-            mockOAuth2Client.verifyIdToken.mockRejectedValue(new Error('Invalid token'));
+            oAuth2Client.verifyIdToken.mockRejectedValue(new Error('Invalid token'));
 
             const result = await verifyGoogleToken(token);
 
             expect(result).toBeNull();
-            expect(mockOAuth2Client.verifyIdToken).toHaveBeenCalledWith({
+            expect(oAuth2Client.verifyIdToken).toHaveBeenCalledWith({
                 idToken: token,
                 audience: 'mock-google-client-id'
             });
@@ -83,7 +78,7 @@ describe('Token utilities', () => {
 
         it('should return null when token is expired', async () => {
             const token = 'expired-google-token';
-            mockOAuth2Client.verifyIdToken.mockRejectedValue(new Error('Token used too late'));
+            oAuth2Client.verifyIdToken.mockRejectedValue(new Error('Token used too late'));
 
             const result = await verifyGoogleToken(token);
 
@@ -92,7 +87,7 @@ describe('Token utilities', () => {
 
         it('should return null when audience mismatch', async () => {
             const token = 'wrong-audience-token';
-            mockOAuth2Client.verifyIdToken.mockRejectedValue(new Error('Token audience mismatch'));
+            oAuth2Client.verifyIdToken.mockRejectedValue(new Error('Token audience mismatch'));
 
             const result = await verifyGoogleToken(token);
 
@@ -647,11 +642,10 @@ describe('Token utilities', () => {
                 name: 'Test User'
             });
 
-            const mockTicket = {
-                getPayload: vi.fn().mockReturnValue(mockGooglePayload)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            mockOAuth2Client.verifyIdToken.mockResolvedValue(mockTicket as any);
+            const mockTicket = mockDeep<LoginTicket>();
+            mockTicket.getPayload.mockReturnValue(mockGooglePayload);
+            // @ts-expect-error: TypeScript picks wrong overload for verifyIdToken - we need the Promise<LoginTicket> version
+            oAuth2Client.verifyIdToken.mockResolvedValue(mockTicket);
 
             // Verify Google token
             const googlePayload = await verifyGoogleToken(googleToken);

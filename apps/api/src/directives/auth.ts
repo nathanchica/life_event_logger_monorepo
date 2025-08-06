@@ -1,7 +1,9 @@
 import { mapSchema, getDirective, MapperKind } from '@graphql-tools/utils';
+import { PrismaClient, User } from '@prisma/client';
 import { defaultFieldResolver, GraphQLError, GraphQLFieldConfig, GraphQLSchema } from 'graphql';
 
 import { GraphQLContext } from '../context.js';
+import { getIdEncoder } from '../utils/encoder.js';
 
 /**
  * Resource types that can be protected by the @requireOwner directive
@@ -9,9 +11,21 @@ import { GraphQLContext } from '../context.js';
 type ProtectedResourceType = 'loggableEvent' | 'eventLabel';
 
 /**
+ * Array of valid protected resource types for runtime validation
+ */
+const VALID_RESOURCE_TYPES: readonly ProtectedResourceType[] = ['loggableEvent', 'eventLabel'] as const;
+
+/**
+ * Type guard to check if a string is a valid ProtectedResourceType
+ */
+function isValidResourceType(type: string): type is ProtectedResourceType {
+    return VALID_RESOURCE_TYPES.includes(type as ProtectedResourceType);
+}
+
+/**
  * Input arguments that may contain a resource ID for ownership validation
  */
-interface ResourceArgs {
+export interface ResourceArgs {
     id?: string;
     input?: {
         id?: string;
@@ -28,32 +42,28 @@ interface RequireOwnerDirective {
 /**
  * Validates that a user owns the specified resource
  *
- * @param context - GraphQL context containing user and prisma client
+ * @param user - Authenticated user
+ * @param prisma - Prisma client instance
  * @param resourceType - Type of resource to check (loggableEvent or eventLabel)
  * @param resourceId - ID of the resource to validate ownership for
  * @throws {GraphQLError} When resource not found or user doesn't own it
  */
 export async function validateResourceOwnership(
-    context: GraphQLContext,
+    user: User,
+    prisma: PrismaClient,
     resourceType: ProtectedResourceType,
     resourceId: string
 ): Promise<void> {
-    if (!context.user) {
-        throw new GraphQLError('User not authenticated', {
-            extensions: { code: 'UNAUTHORIZED' }
-        });
-    }
-
     try {
         let resource;
 
         if (resourceType === 'loggableEvent') {
-            resource = await context.prisma.loggableEvent.findUnique({
+            resource = await prisma.loggableEvent.findUnique({
                 where: { id: resourceId },
                 select: { userId: true }
             });
         } else if (resourceType === 'eventLabel') {
-            resource = await context.prisma.eventLabel.findUnique({
+            resource = await prisma.eventLabel.findUnique({
                 where: { id: resourceId },
                 select: { userId: true }
             });
@@ -69,7 +79,7 @@ export async function validateResourceOwnership(
             });
         }
 
-        if (resource.userId !== context.user.id) {
+        if (resource.userId !== user.id) {
             throw new GraphQLError(`You do not have permission to access this ${resourceType}`, {
                 extensions: { code: 'FORBIDDEN' }
             });
@@ -91,6 +101,36 @@ export async function validateResourceOwnership(
  */
 function extractResourceId(args: ResourceArgs): string | null {
     return args.input?.id || args.id || null;
+}
+
+/**
+ * Processes the arguments for the @requireOwner directive
+ *
+ * @param resourceType - Type of resource to validate ownership for
+ * @param resourceArgs - Arguments containing resource ID
+ * @returns Object containing validated resource type and decoded ID
+ */
+export function processAuthDirectiveArgs(
+    resourceType: string,
+    resourceArgs: ResourceArgs
+): { resourceType: ProtectedResourceType; resourceId: string } {
+    if (!isValidResourceType(resourceType)) {
+        throw new GraphQLError(`Unknown resource type: ${resourceType}`, {
+            extensions: { code: 'INTERNAL_ERROR' }
+        });
+    }
+
+    const resourceId = extractResourceId(resourceArgs);
+    if (!resourceId) {
+        throw new GraphQLError(`Resource ID is required for ${resourceType} ownership check`, {
+            extensions: { code: 'VALIDATION_ERROR' }
+        });
+    }
+
+    const encoder = getIdEncoder();
+    const decodedId = encoder.decode(resourceId, resourceType);
+
+    return { resourceType: resourceType as ProtectedResourceType, resourceId: decodedId };
 }
 
 /**
@@ -122,18 +162,13 @@ export function authDirectiveTransformer(schema: GraphQLSchema): GraphQLSchema {
                         });
                     }
 
-                    // If @requireOwner directive, perform ownership validation
+                    // If @requireOwner directive, validate resourceType then resourceId then ownership
                     if (requireOwnerDirective) {
-                        const resourceType = requireOwnerDirective.resource;
-                        const resourceId = extractResourceId(args);
-
-                        if (!resourceId) {
-                            throw new GraphQLError(`Resource ID is required for ${resourceType} ownership check`, {
-                                extensions: { code: 'VALIDATION_ERROR' }
-                            });
-                        }
-
-                        await validateResourceOwnership(context, resourceType, resourceId);
+                        const { resourceType, resourceId } = processAuthDirectiveArgs(
+                            requireOwnerDirective.resource,
+                            args
+                        );
+                        await validateResourceOwnership(context.user, context.prisma, resourceType, resourceId);
                     }
 
                     // Proceed with the original resolver

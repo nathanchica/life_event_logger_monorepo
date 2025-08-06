@@ -15,8 +15,9 @@ import { ClientType } from '../../../generated/graphql.js';
 import { createTestClient, TestGraphQLClient } from '../../../mocks/client.js';
 import { createMockContext } from '../../../mocks/context.js';
 import prismaMock from '../../../prisma/__mocks__/client.js';
+import { getIdEncoder } from '../../../utils/encoder.js';
 import { createMockEventLabel } from '../../eventLabel/__mocks__/eventLabel.js';
-import { createMockLoggableEventWithLabels } from '../../loggableEvent/__mocks__/loggableEvent.js';
+import { createMockLoggableEvent } from '../../loggableEvent/__mocks__/loggableEvent.js';
 import { createMockUser, createMockUserWithRelations } from '../__mocks__/user.js';
 
 // Mock the auth token module
@@ -46,6 +47,24 @@ const createMockContextWithSpy = (overrides?: Parameters<typeof createMockContex
     return { mockContext, headerSetSpy };
 };
 
+// Helper to encode user ID for expected responses
+const encodeUserId = (userId: string): string => {
+    const encoder = getIdEncoder();
+    return encoder.encode(userId, 'user');
+};
+
+// Helper to encode event ID for expected responses
+const encodeEventId = (eventId: string): string => {
+    const encoder = getIdEncoder();
+    return encoder.encode(eventId, 'loggableEvent');
+};
+
+// Helper to encode label ID for expected responses
+const encodeLabelId = (labelId: string): string => {
+    const encoder = getIdEncoder();
+    return encoder.encode(labelId, 'eventLabel');
+};
+
 describe('User GraphQL', () => {
     let client: TestGraphQLClient;
 
@@ -70,7 +89,6 @@ describe('User GraphQL', () => {
 
         it('should return the logged in user', async () => {
             const mockUser = createMockUserWithRelations({
-                id: 'user-123',
                 email: 'test@example.com',
                 name: 'Test User'
             });
@@ -83,7 +101,7 @@ describe('User GraphQL', () => {
 
             expect(errors).toBeUndefined();
             expect(data.loggedInUser).toEqual({
-                id: mockUser.id,
+                id: encodeUserId(mockUser.id),
                 email: mockUser.email,
                 name: mockUser.name,
                 googleId: mockUser.googleId,
@@ -131,7 +149,6 @@ describe('User GraphQL', () => {
 
         it('should login successfully with existing user (web client)', async () => {
             const mockUser = createMockUser({
-                id: 'user-123',
                 googleId: 'google_123456',
                 email: 'existing@example.com',
                 name: 'Existing User'
@@ -168,7 +185,7 @@ describe('User GraphQL', () => {
                 accessToken: 'access-token-123',
                 refreshToken: null, // Not returned for web clients
                 user: {
-                    id: mockUser.id,
+                    id: encodeUserId(mockUser.id),
                     email: mockUser.email,
                     name: mockUser.name,
                     googleId: mockUser.googleId,
@@ -199,7 +216,6 @@ describe('User GraphQL', () => {
 
         it('should login successfully with existing user (mobile client)', async () => {
             const mockUser = createMockUser({
-                id: 'user-123',
                 googleId: 'google_123456',
                 email: 'existing@example.com',
                 name: 'Existing User'
@@ -235,7 +251,7 @@ describe('User GraphQL', () => {
                 accessToken: 'access-token-123',
                 refreshToken: 'refresh-token-123', // Returned for mobile clients
                 user: {
-                    id: mockUser.id,
+                    id: encodeUserId(mockUser.id),
                     email: mockUser.email,
                     name: mockUser.name,
                     googleId: mockUser.googleId,
@@ -257,7 +273,6 @@ describe('User GraphQL', () => {
             });
 
             const mockNewUser = createMockUser({
-                id: 'user-789',
                 googleId: 'google_789',
                 email: 'newuser@example.com',
                 name: 'New User'
@@ -291,7 +306,7 @@ describe('User GraphQL', () => {
                 accessToken: 'access-token-456',
                 refreshToken: null,
                 user: {
-                    id: mockNewUser.id,
+                    id: encodeUserId(mockNewUser.id),
                     email: mockNewUser.email,
                     name: mockNewUser.name,
                     googleId: mockNewUser.googleId,
@@ -447,7 +462,6 @@ describe('User GraphQL', () => {
 
         it('should refresh token successfully for web client (token from cookie)', async () => {
             const mockUser = createMockUser({
-                id: 'user-123',
                 email: 'test@example.com',
                 name: 'Test User'
             });
@@ -494,7 +508,6 @@ describe('User GraphQL', () => {
 
         it('should refresh token successfully for mobile client (token from input)', async () => {
             const mockUser = createMockUser({
-                id: 'user-123',
                 email: 'test@example.com',
                 name: 'Test User'
             });
@@ -741,7 +754,6 @@ describe('User GraphQL', () => {
 
         it('should logout from all devices successfully', async () => {
             const mockUser = createMockUserWithRelations({
-                id: 'user-123',
                 email: 'test@example.com'
             });
 
@@ -788,7 +800,6 @@ describe('User GraphQL', () => {
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
             const mockUser = createMockUserWithRelations({
-                id: 'user-123',
                 email: 'test@example.com'
             });
 
@@ -834,29 +845,22 @@ describe('User GraphQL', () => {
             `;
 
             it('should return user loggable events ordered by createdAt desc', async () => {
-                const mockUser = createMockUserWithRelations({
-                    id: 'user-123'
-                });
+                const mockUser = createMockUserWithRelations();
 
                 const mockLabel = createMockEventLabel({
-                    id: 'label-1',
                     name: 'Test Label'
                 });
 
-                const mockEvent1 = createMockLoggableEventWithLabels({
-                    id: 'event-1',
+                const mockEvent1 = createMockLoggableEvent({
                     name: 'Event 1',
                     userId: mockUser.id,
-                    createdAt: new Date('2024-01-01'),
-                    labels: []
+                    createdAt: new Date('2024-01-01')
                 });
 
-                const mockEvent2 = createMockLoggableEventWithLabels({
-                    id: 'event-2',
+                const mockEvent2 = createMockLoggableEvent({
                     name: 'Event 2',
                     userId: mockUser.id,
-                    createdAt: new Date('2024-01-02'),
-                    labels: [mockLabel]
+                    createdAt: new Date('2024-01-02')
                 });
 
                 // Mock for User.loggableEvents field resolver
@@ -875,8 +879,8 @@ describe('User GraphQL', () => {
 
                 expect(errors).toBeUndefined();
                 expect(data.loggedInUser.loggableEvents).toHaveLength(2);
-                expect(data.loggedInUser.loggableEvents[0].id).toBe('event-2');
-                expect(data.loggedInUser.loggableEvents[1].id).toBe('event-1');
+                expect(data.loggedInUser.loggableEvents[0].id).toBe(encodeEventId(mockEvent2.id));
+                expect(data.loggedInUser.loggableEvents[1].id).toBe(encodeEventId(mockEvent1.id));
 
                 expect(prismaMock.loggableEvent.findMany).toHaveBeenCalledWith({
                     where: { userId: mockUser.id },
@@ -900,19 +904,15 @@ describe('User GraphQL', () => {
             `;
 
             it('should return user event labels ordered by createdAt asc', async () => {
-                const mockUser = createMockUserWithRelations({
-                    id: 'user-123'
-                });
+                const mockUser = createMockUserWithRelations();
 
                 const mockLabel1 = createMockEventLabel({
-                    id: 'label-1',
                     name: 'Label 1',
                     userId: mockUser.id,
                     createdAt: new Date('2024-01-02')
                 });
 
                 const mockLabel2 = createMockEventLabel({
-                    id: 'label-2',
                     name: 'Label 2',
                     userId: mockUser.id,
                     createdAt: new Date('2024-01-01')
@@ -929,8 +929,8 @@ describe('User GraphQL', () => {
 
                 expect(errors).toBeUndefined();
                 expect(data.loggedInUser.eventLabels).toHaveLength(2);
-                expect(data.loggedInUser.eventLabels[0].id).toBe('label-2');
-                expect(data.loggedInUser.eventLabels[1].id).toBe('label-1');
+                expect(data.loggedInUser.eventLabels[0].id).toBe(encodeLabelId(mockLabel2.id));
+                expect(data.loggedInUser.eventLabels[1].id).toBe(encodeLabelId(mockLabel1.id));
 
                 expect(prismaMock.eventLabel.findMany).toHaveBeenCalledWith({
                     where: { userId: mockUser.id },

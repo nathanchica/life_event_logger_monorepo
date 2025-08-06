@@ -1,5 +1,11 @@
 import { faker } from '@faker-js/faker';
-import { TokenPayload } from 'google-auth-library';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
+import { beforeEach } from 'vitest';
+import { mockDeep, mockReset } from 'vitest-mock-extended';
+
+beforeEach(() => {
+    mockReset(oAuth2Client);
+});
 
 export const createMockGoogleTokenPayload = (overrides?: Partial<TokenPayload>): TokenPayload => {
     return {
@@ -13,3 +19,5 @@ export const createMockGoogleTokenPayload = (overrides?: Partial<TokenPayload>):
         ...overrides
     };
 };
+
+export const oAuth2Client = mockDeep<OAuth2Client>();

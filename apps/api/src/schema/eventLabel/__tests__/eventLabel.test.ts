@@ -2,9 +2,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { createTestClient, TestGraphQLClient } from '../../../mocks/client.js';
 import prismaMock from '../../../prisma/__mocks__/client.js';
+import { getIdEncoder } from '../../../utils/encoder.js';
 import { createMockUserWithRelations } from '../../user/__mocks__/user.js';
 import { createMockEventLabel } from '../__mocks__/eventLabel.js';
 import { MAX_EVENT_LABEL_NAME_LENGTH } from '../index.js';
+
+// Helper to encode user ID for expected responses
+const encodeUserId = (userId: string): string => {
+    const encoder = getIdEncoder();
+    return encoder.encode(userId, 'user');
+};
+
+// Helper to encode label ID for expected responses
+const encodeLabelId = (labelId: string): string => {
+    const encoder = getIdEncoder();
+    return encoder.encode(labelId, 'eventLabel');
+};
 
 describe('EventLabel GraphQL', () => {
     let client: TestGraphQLClient;
@@ -40,12 +53,10 @@ describe('EventLabel GraphQL', () => {
 
         it('should create a new event label successfully', async () => {
             const mockUser = createMockUserWithRelations({
-                id: 'user-123',
                 name: 'Test User',
                 email: 'test@example.com'
             });
             const mockLabel = createMockEventLabel({
-                id: 'label-123',
                 name: 'Work',
                 userId: mockUser.id,
                 createdAt: new Date('2024-01-01'),
@@ -74,12 +85,12 @@ describe('EventLabel GraphQL', () => {
             expect(data.createEventLabel).toEqual({
                 tempID: 'temp-123',
                 eventLabel: {
-                    id: 'label-123',
+                    id: encodeLabelId(mockLabel.id),
                     name: 'Work',
                     createdAt: mockLabel.createdAt.toISOString(),
                     updatedAt: mockLabel.updatedAt.toISOString(),
                     user: {
-                        id: 'user-123',
+                        id: encodeUserId(mockUser.id),
                         name: 'Test User',
                         email: 'test@example.com'
                     }
@@ -90,27 +101,26 @@ describe('EventLabel GraphQL', () => {
             expect(prismaMock.eventLabel.findFirst).toHaveBeenCalledWith({
                 where: {
                     name: 'Work',
-                    userId: 'user-123'
+                    userId: mockUser.id
                 }
             });
 
             expect(prismaMock.eventLabel.create).toHaveBeenCalledWith({
                 data: {
                     name: 'Work',
-                    userId: 'user-123'
+                    userId: mockUser.id
                 }
             });
 
             // Verify the EventLabel.user resolver was called
             expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-                where: { id: 'user-123' }
+                where: { id: mockUser.id }
             });
         });
 
         it('should return error when label name already exists', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const existingLabel = createMockEventLabel({
-                id: 'existing-label',
                 name: 'Work',
                 userId: mockUser.id
             });
@@ -165,7 +175,7 @@ describe('EventLabel GraphQL', () => {
                 }
             }
         ])('should return validation error for $scenario', async ({ name, expectedError }) => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
 
             const { data, errors } = await client.request(
                 CREATE_EVENT_LABEL,
@@ -185,7 +195,7 @@ describe('EventLabel GraphQL', () => {
         });
 
         it('should return internal error when database fails', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
 
             // Mock console.error to suppress expected error output
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -215,9 +225,8 @@ describe('EventLabel GraphQL', () => {
         });
 
         it('should throw error when user does not exist for EventLabel.user resolver', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const mockLabel = createMockEventLabel({
-                id: 'label-123',
                 name: 'Work',
                 userId: mockUser.id,
                 createdAt: new Date('2024-01-01'),
@@ -255,7 +264,7 @@ describe('EventLabel GraphQL', () => {
 
             // Verify the EventLabel.user resolver was called
             expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-                where: { id: 'user-123' }
+                where: { id: mockUser.id }
             });
 
             // Restore console.error
@@ -283,9 +292,8 @@ describe('EventLabel GraphQL', () => {
         `;
 
         it('should update event label name successfully', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const updatedLabel = createMockEventLabel({
-                id: 'label-123',
                 name: 'Personal',
                 userId: mockUser.id,
                 createdAt: new Date('2024-01-01'),
@@ -303,7 +311,7 @@ describe('EventLabel GraphQL', () => {
                 UPDATE_EVENT_LABEL,
                 {
                     input: {
-                        id: 'label-123',
+                        id: encodeLabelId(updatedLabel.id),
                         name: 'Personal'
                     }
                 },
@@ -313,7 +321,7 @@ describe('EventLabel GraphQL', () => {
             expect(errors).toBeUndefined();
             expect(data.updateEventLabel).toEqual({
                 eventLabel: {
-                    id: 'label-123',
+                    id: encodeLabelId(updatedLabel.id),
                     name: 'Personal',
                     createdAt: updatedLabel.createdAt.toISOString(),
                     updatedAt: updatedLabel.updatedAt.toISOString()
@@ -322,23 +330,24 @@ describe('EventLabel GraphQL', () => {
             });
 
             expect(prismaMock.eventLabel.update).toHaveBeenCalledWith({
-                where: { id: 'label-123' },
+                where: { id: updatedLabel.id },
                 data: { name: 'Personal' }
             });
         });
 
         it('should return error when new name already exists', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const existingLabel = createMockEventLabel({
-                id: 'other-label',
                 name: 'Personal',
                 userId: mockUser.id
             });
 
+            const labelToUpdate = createMockEventLabel({
+                name: 'OldName',
+                userId: mockUser.id
+            });
             // Mock for @requireOwner directive - checking ownership
-            prismaMock.eventLabel.findUnique.mockResolvedValue(
-                createMockEventLabel({ id: 'label-123', name: 'OldName', userId: mockUser.id })
-            );
+            prismaMock.eventLabel.findUnique.mockResolvedValue(labelToUpdate);
             // Mock for checking if new name already exists (returns existing label)
             prismaMock.eventLabel.findFirst.mockResolvedValue(existingLabel);
 
@@ -346,7 +355,7 @@ describe('EventLabel GraphQL', () => {
                 UPDATE_EVENT_LABEL,
                 {
                     input: {
-                        id: 'label-123',
+                        id: encodeLabelId(labelToUpdate.id),
                         name: 'Personal'
                     }
                 },
@@ -369,9 +378,8 @@ describe('EventLabel GraphQL', () => {
         });
 
         it('should handle update with no name change', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const existingLabel = createMockEventLabel({
-                id: 'label-123',
                 name: 'Work',
                 userId: mockUser.id,
                 createdAt: new Date('2024-01-01'),
@@ -387,7 +395,7 @@ describe('EventLabel GraphQL', () => {
                 UPDATE_EVENT_LABEL,
                 {
                     input: {
-                        id: 'label-123'
+                        id: encodeLabelId(existingLabel.id)
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -396,7 +404,7 @@ describe('EventLabel GraphQL', () => {
             expect(errors).toBeUndefined();
             expect(data.updateEventLabel).toEqual({
                 eventLabel: {
-                    id: 'label-123',
+                    id: encodeLabelId(existingLabel.id),
                     name: 'Work',
                     createdAt: existingLabel.createdAt.toISOString(),
                     updatedAt: existingLabel.updatedAt.toISOString()
@@ -406,7 +414,7 @@ describe('EventLabel GraphQL', () => {
 
             expect(prismaMock.eventLabel.findFirst).not.toHaveBeenCalled();
             expect(prismaMock.eventLabel.update).toHaveBeenCalledWith({
-                where: { id: 'label-123' },
+                where: { id: existingLabel.id },
                 data: {}
             });
         });
@@ -414,7 +422,7 @@ describe('EventLabel GraphQL', () => {
         it.each([
             {
                 scenario: 'empty name',
-                input: { id: 'label-123', name: '' },
+                name: '',
                 expectedError: {
                     code: 'VALIDATION_ERROR',
                     field: 'name',
@@ -423,17 +431,16 @@ describe('EventLabel GraphQL', () => {
             },
             {
                 scenario: 'name too long',
-                input: { id: 'label-123', name: 'a'.repeat(MAX_EVENT_LABEL_NAME_LENGTH + 1) },
+                name: 'a'.repeat(MAX_EVENT_LABEL_NAME_LENGTH + 1),
                 expectedError: {
                     code: 'VALIDATION_ERROR',
                     field: 'name',
                     message: `Name must be under ${MAX_EVENT_LABEL_NAME_LENGTH} characters`
                 }
             }
-        ])('should return validation error for $scenario in update', async ({ input, expectedError }) => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+        ])('should return validation error for $scenario in update', async ({ name, expectedError }) => {
+            const mockUser = createMockUserWithRelations();
             const existingLabel = createMockEventLabel({
-                id: 'label-123',
                 name: 'Work',
                 userId: mockUser.id
             });
@@ -443,7 +450,7 @@ describe('EventLabel GraphQL', () => {
 
             const { data, errors } = await client.request(
                 UPDATE_EVENT_LABEL,
-                { input },
+                { input: { id: encodeLabelId(existingLabel.id), name } },
                 { user: mockUser, prisma: prismaMock }
             );
 
@@ -454,9 +461,8 @@ describe('EventLabel GraphQL', () => {
         });
 
         it('should return internal error when database fails during update', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const existingLabel = createMockEventLabel({
-                id: 'label-123',
                 name: 'Work',
                 userId: mockUser.id
             });
@@ -473,7 +479,7 @@ describe('EventLabel GraphQL', () => {
                 UPDATE_EVENT_LABEL,
                 {
                     input: {
-                        id: 'label-123',
+                        id: encodeLabelId(existingLabel.id),
                         name: 'Personal'
                     }
                 },
@@ -490,11 +496,11 @@ describe('EventLabel GraphQL', () => {
         });
 
         it('should return auth error when trying to update label owned by another user', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
+            const otherUser = createMockUserWithRelations();
             const otherUserLabel = createMockEventLabel({
-                id: 'label-456',
                 name: 'OtherWork',
-                userId: 'other-user-456'
+                userId: otherUser.id
             });
 
             // Mock for @requireOwner directive - returns label with different userId
@@ -507,7 +513,7 @@ describe('EventLabel GraphQL', () => {
                 UPDATE_EVENT_LABEL,
                 {
                     input: {
-                        id: 'label-456',
+                        id: encodeLabelId(otherUserLabel.id),
                         name: 'NewName'
                     }
                 },
@@ -543,9 +549,8 @@ describe('EventLabel GraphQL', () => {
         `;
 
         it('should delete event label successfully', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const deletedLabel = createMockEventLabel({
-                id: 'label-123',
                 name: 'Work',
                 userId: mockUser.id
             });
@@ -559,7 +564,7 @@ describe('EventLabel GraphQL', () => {
                 DELETE_EVENT_LABEL,
                 {
                     input: {
-                        id: 'label-123'
+                        id: encodeLabelId(deletedLabel.id)
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -568,19 +573,19 @@ describe('EventLabel GraphQL', () => {
             expect(errors).toBeUndefined();
             expect(data.deleteEventLabel).toEqual({
                 eventLabel: {
-                    id: 'label-123',
+                    id: encodeLabelId(deletedLabel.id),
                     name: 'Work'
                 },
                 errors: []
             });
 
             expect(prismaMock.eventLabel.delete).toHaveBeenCalledWith({
-                where: { id: 'label-123' }
+                where: { id: deletedLabel.id }
             });
         });
 
         it('should return validation error for empty ID', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
 
             // Mock console.error to suppress expected error output
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -606,9 +611,8 @@ describe('EventLabel GraphQL', () => {
         });
 
         it('should return internal error when database fails during delete', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
             const labelToDelete = createMockEventLabel({
-                id: 'label-123',
                 name: 'Work',
                 userId: mockUser.id
             });
@@ -625,7 +629,7 @@ describe('EventLabel GraphQL', () => {
                 DELETE_EVENT_LABEL,
                 {
                     input: {
-                        id: 'label-123'
+                        id: encodeLabelId(labelToDelete.id)
                     }
                 },
                 { user: mockUser, prisma: prismaMock }
@@ -641,11 +645,11 @@ describe('EventLabel GraphQL', () => {
         });
 
         it('should return auth error when trying to delete label owned by another user', async () => {
-            const mockUser = createMockUserWithRelations({ id: 'user-123' });
+            const mockUser = createMockUserWithRelations();
+            const otherUser = createMockUserWithRelations();
             const otherUserLabel = createMockEventLabel({
-                id: 'label-789',
                 name: 'OtherLabel',
-                userId: 'other-user-789'
+                userId: otherUser.id
             });
 
             // Mock for @requireOwner directive - returns label with different userId
@@ -658,7 +662,7 @@ describe('EventLabel GraphQL', () => {
                 DELETE_EVENT_LABEL,
                 {
                     input: {
-                        id: 'label-789'
+                        id: encodeLabelId(otherUserLabel.id)
                     }
                 },
                 { user: mockUser, prisma: prismaMock }

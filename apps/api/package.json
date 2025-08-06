@@ -5,8 +5,8 @@
     "scripts": {
         "start": "tsx src/main.ts",
         "dev": "vercel dev",
-        "build": "tsc",
-        "vercel-build": "prisma generate && tsc",
+        "build": "tsc -p tsconfig.build.json",
+        "vercel-build": "prisma generate && tsc -p tsconfig.build.json",
         "lint": "eslint . --fix",
         "format": "prettier --write \"src/**/*.{ts,js,json,graphql}\"",
         "format:check": "prettier --check \"src/**/*.{ts,js,json,graphql}\"",
