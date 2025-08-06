@@ -22,7 +22,7 @@ export type LoggableEventParent = {
     labels?: Array<EventLabelParent>;
 };
 
-export const CreateLoggableEventSchema = z.object({
+const CreateLoggableEventSchema = z.object({
     name: z
         .string()
         .min(1, 'Name cannot be empty')
@@ -31,7 +31,7 @@ export const CreateLoggableEventSchema = z.object({
     labelIds: z.array(z.string()).optional()
 });
 
-export const UpdateLoggableEventSchema = z.object({
+const UpdateLoggableEventSchema = z.object({
     id: z.string().min(1, 'ID is required'),
     name: z
         .string()
@@ -43,14 +43,14 @@ export const UpdateLoggableEventSchema = z.object({
     labelIds: z.array(z.string()).optional()
 });
 
-export type UpdateLoggableEventInput = z.infer<typeof UpdateLoggableEventSchema>;
+type UpdateLoggableEventInput = z.infer<typeof UpdateLoggableEventSchema>;
 
 /**
  * Processes an array of timestamps by removing duplicates and sorting newest first
  * @param timestamps - Array of Date objects to process
  * @returns Deduplicated and sorted array of Date objects (newest first)
  */
-export const processTimestamps = (timestamps: Date[]): Date[] => {
+const processTimestamps = (timestamps: Date[]): Date[] => {
     const uniqueTimestamps = Array.from(new Set(timestamps.map((timestamp) => new Date(timestamp).getTime()))).map(
         (time) => new Date(time)
     );
