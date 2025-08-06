@@ -30,9 +30,9 @@ module.exports = {
         'react/react-in-jsx-scope': 'off',
         'no-unused-vars': 'off',
         'react-hooks/exhaustive-deps': 'off',
-        '@typescript-eslint/no-unused-vars': ['warn'],
+        '@typescript-eslint/no-unused-vars': ['error'],
         'import/order': [
-            'warn',
+            'error',
             {
                 groups: ['builtin', 'external', 'internal', 'sibling', 'parent', 'index'],
                 'newlines-between': 'always',
