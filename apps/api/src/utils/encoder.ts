@@ -117,9 +117,9 @@ export class IdEncoder {
 
     /**
      * Encodes multiple IDs efficiently
-     * @param ids - Array of database IDs
+     * @param ids - Array of database IDs (MongoDB ObjectIds)
      * @param entityType - The type of entity
-     * @returns Array of encoded IDs
+     * @returns Array of encoded IDs (invalid ObjectIds or IDs that fail to encode are silently filtered out)
      */
     encodeBatch(ids: string[], entityType: EntityType): string[] {
         if (!ids || ids.length === 0) {
@@ -129,10 +129,23 @@ export class IdEncoder {
         // Use same Sqids instance for all IDs in batch
         const sqids = getSqids(entityType);
         return ids
-            .map((id) => {
+            .map((id, index) => {
                 if (!id) return '';
-                const numbers = this.idToNumbers(id);
-                return sqids.encode(numbers);
+
+                // Validate ObjectId format
+                const validation = objectIdSchema.safeParse(id);
+                if (!validation.success) {
+                    console.warn(`IdEncoder.encodeBatch: Invalid ObjectId format at index ${index}: "${id}"`);
+                    return ''; // Skip invalid IDs in batch operations
+                }
+
+                try {
+                    const numbers = this.idToNumbers(id);
+                    return sqids.encode(numbers);
+                } catch (error) {
+                    console.warn(`IdEncoder.encodeBatch: Failed to encode ID at index ${index}: "${id}"`, error);
+                    return ''; // Skip IDs that fail to encode
+                }
             })
             .filter(Boolean);
     }
@@ -141,7 +154,7 @@ export class IdEncoder {
      * Decodes multiple IDs efficiently
      * @param encodedIds - Array of encoded IDs
      * @param entityType - The expected entity type
-     * @returns Array of original database IDs
+     * @returns Array of original database IDs (invalid encoded IDs are silently filtered out)
      */
     decodeBatch(encodedIds: string[], entityType: EntityType): string[] {
         if (!encodedIds || encodedIds.length === 0) {
@@ -151,11 +164,20 @@ export class IdEncoder {
         // Use same Sqids instance for all IDs in batch
         const sqids = getSqids(entityType);
         return encodedIds
-            .map((encodedId) => {
+            .map((encodedId, index) => {
                 if (!encodedId) return '';
-                const numbers = sqids.decode(encodedId);
-                if (!numbers || numbers.length === 0) return '';
-                return this.numbersToId(numbers);
+
+                try {
+                    const numbers = sqids.decode(encodedId);
+                    if (!numbers || numbers.length === 0) {
+                        console.warn(`IdEncoder.decodeBatch: Invalid encoded ID at index ${index}: "${encodedId}"`);
+                        return '';
+                    }
+                    return this.numbersToId(numbers);
+                } catch (error) {
+                    console.warn(`IdEncoder.decodeBatch: Failed to decode ID at index ${index}: "${encodedId}"`, error);
+                    return '';
+                }
             })
             .filter(Boolean);
     }

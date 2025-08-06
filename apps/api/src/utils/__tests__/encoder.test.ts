@@ -159,6 +159,65 @@ describe('IdEncoder', () => {
 
             expect(encoded).toHaveLength(2);
         });
+
+        it('should filter out invalid ObjectIds and log warnings', () => {
+            const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            const ids = [sampleObjectId, 'not-an-objectid', sampleObjectId2, '123', 'gggggggggggggggggggggggg'];
+            const encoded = encoder.encodeBatch(ids, 'user');
+
+            expect(encoded).toHaveLength(2);
+            // Verify the valid IDs were encoded
+            const decoded = encoder.decodeBatch(encoded, 'user');
+            expect(decoded).toEqual([sampleObjectId, sampleObjectId2]);
+
+            // Verify warnings were logged for invalid IDs
+            expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                'IdEncoder.encodeBatch: Invalid ObjectId format at index 1: "not-an-objectid"'
+            );
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                'IdEncoder.encodeBatch: Invalid ObjectId format at index 3: "123"'
+            );
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                'IdEncoder.encodeBatch: Invalid ObjectId format at index 4: "gggggggggggggggggggggggg"'
+            );
+
+            consoleWarnSpy.mockRestore();
+        });
+
+        it('should filter out IDs that fail to encode and log warnings', () => {
+            const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            // Mock implementation for idToNumbers that simulates encoding failure
+            const mockIdToNumbers = (id: string): [number, number, number] => {
+                if (id === sampleObjectId2) {
+                    throw new Error('Simulated encoding error');
+                }
+                // Return valid numbers for other IDs
+                return [parseInt(id.slice(0, 8), 16), parseInt(id.slice(8, 16), 16), parseInt(id.slice(16, 24), 16)];
+            };
+
+            // Spy on idToNumbers to make it throw for the second ID
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const idToNumbersSpy = vi.spyOn(encoder as any, 'idToNumbers').mockImplementation(
+                // @ts-expect-error: We are forcing an error
+                mockIdToNumbers
+            );
+
+            const ids = [sampleObjectId, sampleObjectId2, '507f191e810c19729de860eb'];
+            const encoded = encoder.encodeBatch(ids, 'user');
+
+            // Only 2 IDs should be encoded (sampleObjectId2 failed)
+            expect(encoded).toHaveLength(2);
+
+            // Verify warning was logged for the failed encoding
+            expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+            expect(consoleWarnSpy.mock.calls[0][0]).toContain('IdEncoder.encodeBatch: Failed to encode ID at index 1');
+
+            idToNumbersSpy.mockRestore();
+            consoleWarnSpy.mockRestore();
+        });
     });
 
     describe('decodeBatch', () => {
@@ -184,7 +243,9 @@ describe('IdEncoder', () => {
             expect(decoded).toEqual([sampleObjectId, sampleObjectId2]);
         });
 
-        it('should filter out invalid encoded IDs that decode to empty array', () => {
+        it('should filter out invalid encoded IDs and log warnings', () => {
+            const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
             const encoded1 = encoder.encode(sampleObjectId, 'user');
             const encoded2 = encoder.encode(sampleObjectId2, 'user');
 
@@ -197,6 +258,36 @@ describe('IdEncoder', () => {
             const decoded = encoder.decodeBatch(encodedIds, 'user');
             expect(decoded).toHaveLength(2);
             expect(decoded).toEqual([sampleObjectId, sampleObjectId2]);
+
+            // Verify warning was logged for invalid encoded ID
+            expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                'IdEncoder.decodeBatch: Invalid encoded ID at index 1: "abcdefghijk"'
+            );
+
+            consoleWarnSpy.mockRestore();
+        });
+
+        it('should handle decode errors and log warnings', () => {
+            const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            // Spy on numbersToId to make it throw for testing the catch block
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const numbersToIdSpy = vi.spyOn(encoder as any, 'numbersToId').mockImplementationOnce(() => {
+                throw new Error('Simulated decode error');
+            });
+
+            const encoded = encoder.encode(sampleObjectId, 'user');
+            const decoded = encoder.decodeBatch([encoded], 'user');
+
+            expect(decoded).toHaveLength(0);
+
+            // Verify warning was logged
+            expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+            expect(consoleWarnSpy.mock.calls[0][0]).toContain('IdEncoder.decodeBatch: Failed to decode ID at index 0');
+
+            numbersToIdSpy.mockRestore();
+            consoleWarnSpy.mockRestore();
         });
     });
 
