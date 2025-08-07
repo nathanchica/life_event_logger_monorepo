@@ -32,9 +32,9 @@ const EventCardHeader = ({ eventId, name, onEditEvent, onDeleteEvent }: Props) =
     };
 
     return (
-        <Grid container alignItems="baseline" sx={{ mb: 1.5 }}>
+        <Grid container alignItems="center" sx={{ mb: 1.5 }}>
             <Grid size={11}>
-                <Typography gutterBottom variant="h5" id={`event-title-${eventId}`} component="h2">
+                <Typography variant="h5" id={`event-title-${eventId}`} component="h2">
                     {name}
                 </Typography>
             </Grid>
