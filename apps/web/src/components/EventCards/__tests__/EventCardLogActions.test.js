@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { parseISO } from 'date-fns';
 
 import { useLoggableEvents } from '../../../hooks/useLoggableEvents';
+import useMuiState from '../../../hooks/useMuiState';
 import EventCardLogActions from '../EventCardLogActions';
 
 jest.mock('../../../hooks/useLoggableEvents');
+jest.mock('../../../hooks/useMuiState');
 jest.mock('../EventDatepicker', () => {
     return function MockEventDatepicker({ eventId, isShowing, onAccept }) {
         if (!isShowing) return null;
@@ -31,6 +33,9 @@ describe('EventCardLogActions', () => {
             addTimestampToEvent: mockAddTimestampToEvent,
             addTimestampIsLoading: false
         });
+        useMuiState.mockReturnValue({
+            isMobile: false
+        });
     });
 
     afterEach(() => {
@@ -44,7 +49,14 @@ describe('EventCardLogActions', () => {
         timestamps: [new Date('2025-01-09T10:00:00Z')]
     };
 
-    it('should render log today and log custom date buttons', () => {
+    it.each([
+        ['desktop view', false],
+        ['mobile view', true]
+    ])('should render log today and log custom date buttons in %s', (_, isMobile) => {
+        useMuiState.mockReturnValue({
+            isMobile
+        });
+
         render(<EventCardLogActions {...defaultProps} />);
 
         expect(screen.getByRole('button', { name: 'Log Today' })).toBeInTheDocument();

@@ -10,7 +10,7 @@ import { blue, grey } from '@mui/material/colors';
 import { visuallyHidden } from '@mui/utils';
 
 import EditEventCard from './EditEventCard';
-import { CARD_WIDTH } from './EventCard';
+import EventCardGridItem from './EventCardGridItem';
 
 /**
  * CreateEventCard component for displaying a card that allows users to create a new event.
@@ -29,39 +29,47 @@ const CreateEventCard = () => {
     return formIsShowing ? (
         <EditEventCard onDismiss={hideForm} />
     ) : (
-        <Box
-            css={css`
-                border-radius: 8px;
-                border: 1px dashed ${grey[400]};
-                color: ${grey[400]};
-
-                :hover {
-                    border-color: ${blue[400]};
-                    color: ${blue[400]};
-                }
-            `}
-        >
-            <ButtonBase
-                onClick={handleAddEventCardClick}
-                aria-label="Add event"
-                aria-describedby="create-event-help"
+        <EventCardGridItem>
+            <Box
                 css={css`
-                    width: ${CARD_WIDTH};
-                    height: 200px;
+                    border-radius: 8px;
+                    border: 1px dashed ${grey[400]};
+                    color: ${grey[400]};
+                    width: 100%;
+
+                    :hover {
+                        border-color: ${blue[400]};
+                        color: ${blue[400]};
+                    }
                 `}
             >
-                <Box
+                <ButtonBase
+                    onClick={handleAddEventCardClick}
+                    aria-label="Add event"
+                    aria-describedby="create-event-help"
                     css={css`
-                        margin: auto;
+                        width: 100%;
+                        height: 200px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
                     `}
                 >
-                    <AddIcon color="inherit" aria-hidden="true" />
-                    <Box id="create-event-help" sx={visuallyHidden}>
-                        Click to create a new event
+                    <Box
+                        css={css`
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                        `}
+                    >
+                        <AddIcon color="inherit" aria-hidden="true" />
+                        <Box id="create-event-help" sx={visuallyHidden}>
+                            Click to create a new event
+                        </Box>
                     </Box>
-                </Box>
-            </ButtonBase>
-        </Box>
+                </ButtonBase>
+            </Box>
+        </EventCardGridItem>
     );
 };
 

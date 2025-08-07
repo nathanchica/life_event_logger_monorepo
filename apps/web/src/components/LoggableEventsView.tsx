@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
+import { useEffect } from 'react';
+
 import { css } from '@emotion/react';
 import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
 import Box from '@mui/material/Box';
@@ -9,13 +11,13 @@ import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { blueGrey, green } from '@mui/material/colors';
-import { useTheme } from '@mui/material/styles';
 
 import CreateEventCard from './EventCards/CreateEventCard';
-import { EventCardSkeleton } from './EventCards/EventCard';
+import EventCardShimmer from './EventCards/EventCardShimmer';
 import LoggableEventsList from './LoggableEventsList';
 import Sidebar from './Sidebar';
 
+import useMuiState from '../hooks/useMuiState';
 import { useToggle } from '../utils/useToggle';
 
 type Props = {
@@ -29,19 +31,22 @@ type Props = {
  * It includes a sidebar for navigation and a loading state while data is being fetched.
  */
 const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: Props) => {
-    const theme = useTheme();
-    const { value: sidebarIsCollapsed, setTrue: collapseSidebar, setFalse: expandSidebar } = useToggle(false);
+    const { theme, isMobile, isDarkMode } = useMuiState();
+    const { value: sidebarIsCollapsed, setTrue: collapseSidebar, setFalse: expandSidebar } = useToggle(isMobile);
 
-    const isDarkMode = theme.palette.mode === 'dark';
+    useEffect(() => {
+        if (isMobile) {
+            collapseSidebar();
+        } else {
+            expandSidebar();
+        }
+    }, [isMobile, collapseSidebar, expandSidebar]);
 
     const mainContent = (
         <Grid
             role="main"
             aria-label="Loggable events main content"
-            css={css`
-                padding: 64px;
-                overflow-y: scroll;
-            `}
+            sx={{ overflowY: 'scroll', padding: isMobile ? 4 : 8 }}
             size="grow"
         >
             <Grid container spacing={5} role="list" aria-label="List of loggable events" aria-live="polite">
@@ -62,21 +67,13 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
                     </Grid>
                 ) : isLoading ? (
                     <>
-                        <Grid role="listitem">
-                            <EventCardSkeleton />
-                        </Grid>
-                        <Grid role="listitem">
-                            <EventCardSkeleton />
-                        </Grid>
-                        <Grid role="listitem">
-                            <EventCardSkeleton />
-                        </Grid>
+                        <EventCardShimmer />
+                        <EventCardShimmer />
+                        <EventCardShimmer />
                     </>
                 ) : (
                     <>
-                        <Grid role="listitem">
-                            <CreateEventCard />
-                        </Grid>
+                        <CreateEventCard />
                         <LoggableEventsList />
                     </>
                 )}
@@ -90,6 +87,10 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
             css={css`
                 background-color: ${theme.palette.background.default};
                 position: relative;
+                min-height: 100vh;
+                min-height: 100dvh;
+                width: 100%;
+                overflow: hidden;
             `}
         >
             {sidebarIsCollapsed && (
@@ -124,8 +125,10 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
                 role="application"
                 aria-label="Life event logger application"
                 css={css`
-                    height: 100vh;
-                    width: 100vw;
+                    height: 100%;
+                    min-height: 100vh;
+                    min-height: 100dvh;
+                    width: 100%;
                 `}
             >
                 <Grid size="auto">

@@ -1,12 +1,14 @@
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import useMuiState from '../../hooks/useMuiState';
 import { createMockEventLabel } from '../../mocks/eventLabels';
 import { createMockViewOptionsContextValue, createMockAuthContextValue } from '../../mocks/providers';
 import { AuthContext } from '../../providers/AuthProvider';
 import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import Sidebar from '../Sidebar';
+
+jest.mock('../../hooks/useMuiState');
 
 // Mock ClickAwayListener
 jest.mock('@mui/material/ClickAwayListener', () => {
@@ -72,6 +74,11 @@ describe('Sidebar', () => {
         jest.clearAllMocks();
         // Default to successful logout
         mockLogoutMutation.mockResolvedValue({});
+        // Default mock for useMuiState
+        useMuiState.mockReturnValue({
+            isMobile: false,
+            isDarkMode: false
+        });
     });
 
     const renderWithProviders = (component, options = {}) => {
@@ -89,18 +96,10 @@ describe('Sidebar', () => {
             ...authValueOptions
         });
 
-        const muiTheme = createTheme({
-            palette: {
-                mode: theme
-            }
-        });
-
         return render(
-            <ThemeProvider theme={muiTheme}>
-                <AuthContext.Provider value={mockAuthValue}>
-                    <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
-                </AuthContext.Provider>
-            </ThemeProvider>
+            <AuthContext.Provider value={mockAuthValue}>
+                <ViewOptionsContext.Provider value={mockViewOptionsValue}>{component}</ViewOptionsContext.Provider>
+            </AuthContext.Provider>
         );
     };
 
@@ -136,10 +135,15 @@ describe('Sidebar', () => {
         });
 
         it.each([
-            ['light', 'Switch to dark mode', 'Brightness4Icon'],
-            ['dark', 'Switch to light mode', 'Brightness7Icon']
-        ])('renders sidebar in %s mode with correct theme elements', (theme, buttonLabel, iconTestId) => {
-            renderWithProviders(<Sidebar {...defaultProps} />, { theme });
+            ['light', 'Switch to dark mode', 'Brightness4Icon', false],
+            ['dark', 'Switch to light mode', 'Brightness7Icon', true]
+        ])('renders sidebar in %s mode with correct theme elements', (mode, buttonLabel, iconTestId, isDarkMode) => {
+            useMuiState.mockReturnValue({
+                isMobile: false,
+                isDarkMode
+            });
+
+            renderWithProviders(<Sidebar {...defaultProps} />, { theme: mode });
 
             expect(screen.getByText('Event Log')).toBeInTheDocument();
             expect(screen.getByLabelText(buttonLabel)).toBeInTheDocument();
@@ -148,21 +152,45 @@ describe('Sidebar', () => {
     });
 
     describe('Collapse/Expand Behavior', () => {
-        it('shows content when not collapsed', () => {
+        it.each([
+            ['desktop', false],
+            ['mobile', true]
+        ])('shows content when not collapsed in %s view', (_, isMobile) => {
+            useMuiState.mockReturnValue({
+                isMobile,
+                isDarkMode: false
+            });
+
             renderWithProviders(<Sidebar {...defaultProps} />);
 
             expect(screen.getByText('Event Log')).toBeInTheDocument();
             expect(screen.getByLabelText('Hide sidebar')).toBeInTheDocument();
         });
 
-        it('hides content when collapsed', () => {
+        it.each([
+            ['desktop', false],
+            ['mobile', true]
+        ])('hides content when collapsed in %s view', (_, isMobile) => {
+            useMuiState.mockReturnValue({
+                isMobile,
+                isDarkMode: false
+            });
+
             renderWithProviders(<Sidebar {...defaultProps} isCollapsed={true} />);
 
             expect(screen.queryByText('Event Log')).not.toBeVisible();
             expect(screen.queryByLabelText('Hide sidebar')).not.toBeVisible();
         });
 
-        it('calls onCollapseSidebarClick when hide button is clicked', async () => {
+        it.each([
+            ['desktop', false],
+            ['mobile', true]
+        ])('calls onCollapseSidebarClick when hide button is clicked in %s view', async (_, isMobile) => {
+            useMuiState.mockReturnValue({
+                isMobile,
+                isDarkMode: false
+            });
+
             renderWithProviders(<Sidebar {...defaultProps} />);
 
             await user.click(screen.getByLabelText('Hide sidebar'));
@@ -173,6 +201,11 @@ describe('Sidebar', () => {
 
     describe('Theme Toggle', () => {
         it('calls enableDarkTheme when switching from light to dark', async () => {
+            useMuiState.mockReturnValue({
+                isMobile: false,
+                isDarkMode: false
+            });
+
             renderWithProviders(<Sidebar {...defaultProps} />, { theme: 'light' });
 
             await user.click(screen.getByLabelText('Switch to dark mode'));
@@ -181,6 +214,11 @@ describe('Sidebar', () => {
         });
 
         it('calls enableLightTheme when switching from dark to light', async () => {
+            useMuiState.mockReturnValue({
+                isMobile: false,
+                isDarkMode: true
+            });
+
             renderWithProviders(<Sidebar {...defaultProps} />, { theme: 'dark' });
 
             await user.click(screen.getByLabelText('Switch to light mode'));

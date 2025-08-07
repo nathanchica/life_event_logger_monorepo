@@ -22,6 +22,7 @@ import EventLabelList from './EventLabels/EventLabelList';
 import EventLabelShimmer from './EventLabels/EventLabelShimmer';
 
 import { useAuthMutations } from '../hooks/useAuthMutations';
+import useMuiState from '../hooks/useMuiState';
 import { useAuth } from '../providers/AuthProvider';
 import { useViewOptions } from '../providers/ViewOptionsProvider';
 import { useToggle } from '../utils/useToggle';
@@ -38,10 +39,11 @@ type Props = {
  * and a link to the GitHub repository.
  */
 const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
+    const { isMobile, isDarkMode } = useMuiState();
     const { value: isEditingLabels, setTrue: startEditingLabels, setFalse: stopEditingLabels } = useToggle(false);
     const { clearAuthData, isOfflineMode } = useAuth();
     const { logoutMutation } = useAuthMutations();
-    const { theme, enableDarkTheme, enableLightTheme } = useViewOptions();
+    const { enableDarkTheme, enableLightTheme } = useViewOptions();
 
     const handleLogout = async () => {
         if (!isOfflineMode) {
@@ -55,8 +57,7 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
         clearAuthData();
     };
 
-    const isDark = theme === 'dark';
-    const handleToggleTheme = () => (isDark ? enableLightTheme() : enableDarkTheme());
+    const handleToggleTheme = () => (isDarkMode ? enableLightTheme() : enableDarkTheme());
 
     const handleClickAway = () => {
         stopEditingLabels();
@@ -76,9 +77,10 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                     elevation={3}
                     square
                     css={css`
-                        background-color: ${isDark ? blueGrey[900] : green[100]};
+                        background-color: ${isDarkMode ? blueGrey[900] : green[100]};
                         padding: 16px;
-                        width: 400px;
+                        padding-bottom: 80px;
+                        width: ${isMobile ? '100vw' : '400px'};
                         height: 100%;
                         position: relative;
                         display: flex;
@@ -99,7 +101,7 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                                     aria-label="Hide sidebar"
                                     css={css`
                                         :hover {
-                                            background-color: ${isDark ? blueGrey[600] : green[200]};
+                                            background-color: ${isDarkMode ? blueGrey[600] : green[200]};
                                         }
                                     `}
                                 >
@@ -124,9 +126,8 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                             <Box
                                 sx={{ mt: 4 }}
                                 css={css`
-                                    max-height: 80vh;
                                     overflow-y: auto;
-                                    width: 350px;
+                                    width: ${isMobile ? '250px' : '350px'};
                                 `}
                             >
                                 {isLoading ? (
@@ -145,19 +146,19 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                     <Box
                         sx={{
                             position: 'absolute',
-                            left: 8,
+                            left: isCollapsed ? -999 : 8,
                             bottom: 16,
                             display: 'flex',
                             justifyContent: 'flex-start',
-                            width: '100%'
+                            zIndex: 1
                         }}
                     >
-                        <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+                        <Tooltip title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
                             <IconButton
                                 onClick={handleToggleTheme}
-                                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                                aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                             >
-                                {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
+                                {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
                             </IconButton>
                         </Tooltip>
                         <Tooltip title={isEditingLabels ? 'Stop editing labels' : 'Manage labels'}>

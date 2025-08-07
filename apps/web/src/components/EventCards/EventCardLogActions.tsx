@@ -7,6 +7,7 @@ import { visuallyHidden } from '@mui/utils';
 import EventDatepicker from './EventDatepicker';
 
 import { useLoggableEvents } from '../../hooks/useLoggableEvents';
+import useMuiState from '../../hooks/useMuiState';
 import { useToggle } from '../../utils/useToggle';
 
 type Props = {
@@ -20,6 +21,8 @@ type Props = {
  * Includes buttons to log today's event and log a custom date, along with the date picker.
  */
 const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props) => {
+    const { isMobile } = useMuiState();
+
     const { addTimestampToEvent, addTimestampIsLoading } = useLoggableEvents();
     const { value: datepickerIsShowing, setFalse: hideDatepicker, toggle: toggleDatepicker } = useToggle();
 
@@ -42,13 +45,20 @@ const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props)
 
     return (
         <>
-            <Stack direction="row" spacing={2} role="group" aria-label="Event logging actions">
+            <Stack
+                direction={isMobile ? 'column' : 'row'}
+                spacing={isMobile ? 1.5 : 2}
+                role="group"
+                aria-label="Event logging actions"
+                sx={{ width: isMobile ? '100%' : 'auto' }}
+            >
                 <Button
                     size="small"
                     disabled={isLogTodayDisabled}
                     onClick={() => handleLogEventClick()}
                     variant="contained"
                     aria-describedby={daysSinceLastEvent === 0 ? `today-disabled-${eventId}` : undefined}
+                    fullWidth={isMobile}
                 >
                     Log Today
                 </Button>
@@ -67,6 +77,7 @@ const EventCardLogActions = ({ eventId, daysSinceLastEvent, timestamps }: Props)
                     selected={datepickerIsShowing}
                     aria-expanded={datepickerIsShowing}
                     aria-controls={datepickerIsShowing ? `datepicker-${eventId}` : undefined}
+                    sx={{ width: isMobile ? '100%' : 'auto' }}
                 >
                     Log custom date
                 </ToggleButton>
