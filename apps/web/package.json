@@ -80,12 +80,12 @@
     "lint-staged": {
         "src/**/*.{ts,tsx}": [
             "prettier --write",
-            "eslint --fix",
+            "eslint --fix --max-warnings=0",
             "tsc-files --noEmit"
         ],
         "src/**/*.{js,jsx}": [
             "prettier --write",
-            "eslint --fix"
+            "eslint --fix --max-warnings=0"
         ],
         "src/**/*.{css,md,json}": [
             "prettier --write"

@@ -20,7 +20,8 @@ module.exports = {
                 node: true
             },
             rules: {
-                "react/prop-types": "off"
+                "react/prop-types": "off",
+                "react/display-name": "off"
             }
         }
     ],
@@ -30,9 +31,9 @@ module.exports = {
         'react/react-in-jsx-scope': 'off',
         'no-unused-vars': 'off',
         'react-hooks/exhaustive-deps': 'off',
-        '@typescript-eslint/no-unused-vars': ['error'],
+        '@typescript-eslint/no-unused-vars': ['warn'],
         'import/order': [
-            'error',
+            'warn',
             {
                 groups: ['builtin', 'external', 'internal', 'sibling', 'parent', 'index'],
                 'newlines-between': 'always',
