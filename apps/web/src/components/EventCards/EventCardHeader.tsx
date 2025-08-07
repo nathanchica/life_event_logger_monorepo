@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 
 import EventOptionsDropdown from './EventOptionsDropdown';
 
+import useMuiState from '../../hooks/useMuiState';
 import { useToggle } from '../../utils/useToggle';
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
 
 const EventCardHeader = ({ eventId, name, onEditEvent, onDeleteEvent }: Props) => {
     const { value: isDropdownShowing, setTrue: showDropdown, setFalse: hideDropdown } = useToggle();
+    const { isMobile } = useMuiState();
 
     const handleEditClick = () => {
         onEditEvent();
@@ -32,9 +34,9 @@ const EventCardHeader = ({ eventId, name, onEditEvent, onDeleteEvent }: Props) =
     };
 
     return (
-        <Grid container alignItems="center" sx={{ mb: 1.5 }}>
+        <Grid container alignItems="center" sx={{ mb: 1.5, pr: 1 }}>
             <Grid size={11}>
-                <Typography variant="h5" id={`event-title-${eventId}`} component="h2">
+                <Typography variant={isMobile ? 'h6' : 'h5'} id={`event-title-${eventId}`} component="h2">
                     {name}
                 </Typography>
             </Grid>
@@ -50,6 +52,7 @@ const EventCardHeader = ({ eventId, name, onEditEvent, onDeleteEvent }: Props) =
                         aria-expanded={isDropdownShowing}
                         aria-haspopup="menu"
                         component="span"
+                        size="small"
                     >
                         <MoreVertIcon />
                     </IconButton>
