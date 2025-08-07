@@ -97,8 +97,8 @@ describe('LoggableEventsList', () => {
         it('shows all events when no activeEventLabelId is set', () => {
             renderWithProviders({ viewOptionsValue: { activeEventLabelId: null } });
 
-            const listItems = screen.getAllByRole('listitem');
-            expect(listItems).toHaveLength(3);
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(3);
 
             expect(screen.getByTestId('loggable-event-card-event-1')).toBeInTheDocument();
             expect(screen.getByTestId('loggable-event-card-event-2')).toBeInTheDocument();
@@ -112,19 +112,19 @@ describe('LoggableEventsList', () => {
         ])('filters events by %s', (_, activeEventLabelId, expectedEventIds) => {
             renderWithProviders({ viewOptionsValue: { activeEventLabelId } });
 
-            const listItems = screen.getAllByRole('listitem');
-            expect(listItems).toHaveLength(expectedEventIds.length);
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(expectedEventIds.length);
 
-            for (const eventId of expectedEventIds) {
+            expectedEventIds.forEach((eventId) => {
                 expect(screen.getByTestId(`loggable-event-card-${eventId}`)).toBeInTheDocument();
-            }
+            });
         });
 
         it('shows no events when filtering by non-existent label', () => {
             renderWithProviders({ viewOptionsValue: { activeEventLabelId: 'non-existent-label' } });
 
-            const listItems = screen.queryAllByRole('listitem');
-            expect(listItems).toHaveLength(0);
+            const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(0);
         });
     });
 
@@ -132,8 +132,8 @@ describe('LoggableEventsList', () => {
         it('renders no list items when loggableEvents is empty', () => {
             renderWithProviders({ loggableEvents: [], viewOptionsValue: { activeEventLabelId: null } });
 
-            const listItems = screen.queryAllByRole('listitem');
-            expect(listItems).toHaveLength(0);
+            const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(0);
         });
     });
 
@@ -141,8 +141,8 @@ describe('LoggableEventsList', () => {
         it('renders no list items when useFragment complete is false', () => {
             renderWithProviders({ skipCachePrepopulation: true });
 
-            const listItems = screen.queryAllByRole('listitem');
-            expect(listItems).toHaveLength(0);
+            const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(0);
         });
 
         it('renders no list items when fragment is incomplete even with active filter', () => {
@@ -151,8 +151,8 @@ describe('LoggableEventsList', () => {
                 viewOptionsValue: { activeEventLabelId: 'label-work' }
             });
 
-            const listItems = screen.queryAllByRole('listitem');
-            expect(listItems).toHaveLength(0);
+            const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(0);
         });
     });
 
@@ -171,8 +171,8 @@ describe('LoggableEventsList', () => {
                 loggableEvents: eventsWithoutLabels
             });
 
-            const listItems = screen.getAllByRole('listitem');
-            expect(listItems).toHaveLength(1);
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
             expect(screen.getByTestId('loggable-event-card-event-no-labels')).toBeInTheDocument();
         });
 
@@ -190,8 +190,8 @@ describe('LoggableEventsList', () => {
                 loggableEvents: eventsWithoutLabels
             });
 
-            const listItems = screen.queryAllByRole('listitem');
-            expect(listItems).toHaveLength(0);
+            const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(0);
         });
     });
 });

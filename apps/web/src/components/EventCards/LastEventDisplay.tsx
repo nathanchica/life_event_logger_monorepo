@@ -3,8 +3,8 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { orange, red } from '@mui/material/colors';
-import { useTheme } from '@mui/material/styles';
 
+import useMuiState from '../../hooks/useMuiState';
 import { DAYS_IN_YEAR, DAYS_IN_MONTH } from '../../utils/time';
 
 type Props = {
@@ -13,10 +13,9 @@ type Props = {
 };
 
 const LastEventDisplay = ({ daysSinceLastEvent, warningThresholdInDays }: Props) => {
-    const isViolatingThreshold = warningThresholdInDays > 0 && daysSinceLastEvent >= warningThresholdInDays;
+    const { isDarkMode } = useMuiState();
 
-    const theme = useTheme();
-    const isDarkMode = theme.palette.mode === 'dark';
+    const isViolatingThreshold = warningThresholdInDays > 0 && daysSinceLastEvent >= warningThresholdInDays;
 
     let textToDisplay;
     if (daysSinceLastEvent === 0) {

@@ -1,5 +1,4 @@
 import { gql, useFragment } from '@apollo/client';
-import Grid from '@mui/material/Grid';
 import invariant from 'tiny-invariant';
 
 import LoggableEventCard from './EventCards/LoggableEventCard';
@@ -56,11 +55,7 @@ const LoggableEventsList = () => {
     return (
         <>
             {filteredEventFragments.map(({ id, name }) => {
-                return (
-                    <Grid key={`event-${name}`} role="listitem">
-                        <LoggableEventCard eventId={id} />
-                    </Grid>
-                );
+                return <LoggableEventCard key={`event-${name}`} eventId={id} />;
             })}
         </>
     );

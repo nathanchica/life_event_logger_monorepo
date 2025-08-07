@@ -1,10 +1,13 @@
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import useMuiState from '../../hooks/useMuiState';
 import { createMockViewOptionsContextValue } from '../../mocks/providers';
 import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
 import LoggableEventsView from '../LoggableEventsView';
+
+jest.mock('../../hooks/useMuiState');
 
 // Mock child components
 jest.mock('../LoggableEventsList', () => {
@@ -39,19 +42,29 @@ describe('LoggableEventsView', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        useMuiState.mockReturnValue({
+            theme: createTheme(),
+            isMobile: false,
+            isDarkMode: false
+        });
     });
 
-    it.each([['light'], ['dark']])('renders without errors', (theme) => {
+    it.each([
+        ['light', false],
+        ['dark', true]
+    ])('renders without errors in %s mode', (mode, isDarkMode) => {
         const muiTheme = createTheme({
             palette: {
-                mode: theme
+                mode
             }
         });
-        renderWithProviders(
-            <ThemeProvider theme={muiTheme}>
-                <LoggableEventsView />
-            </ThemeProvider>
-        );
+        useMuiState.mockReturnValue({
+            theme: muiTheme,
+            isMobile: false,
+            isDarkMode
+        });
+
+        renderWithProviders(<LoggableEventsView />);
 
         expect(screen.getByRole('application', { name: /life event logger application/i })).toBeInTheDocument();
         expect(screen.getByTestId('sidebar')).toBeInTheDocument();
@@ -93,19 +106,24 @@ describe('LoggableEventsView', () => {
         expect(screen.queryByLabelText(/loading event card/i)).not.toBeInTheDocument();
     });
 
-    it.each([['light'], ['dark']])('handles sidebar collapse and expand', async (theme) => {
+    it.each([
+        ['light', false],
+        ['dark', true]
+    ])('handles sidebar collapse and expand in desktop view with %s mode', async (mode, isDarkMode) => {
         const muiTheme = createTheme({
             palette: {
-                mode: theme
+                mode
             }
         });
-        renderWithProviders(
-            <ThemeProvider theme={muiTheme}>
-                <LoggableEventsView />
-            </ThemeProvider>
-        );
+        useMuiState.mockReturnValue({
+            theme: muiTheme,
+            isMobile: false,
+            isDarkMode
+        });
 
-        // Sidebar should be visible initially
+        renderWithProviders(<LoggableEventsView />);
+
+        // Desktop: sidebar should be expanded initially
         expect(screen.getByTestId('sidebar')).toBeInTheDocument();
         expect(screen.queryByLabelText(/show sidebar/i)).not.toBeInTheDocument();
 
@@ -122,5 +140,27 @@ describe('LoggableEventsView', () => {
 
         // Show button should disappear
         expect(screen.queryByLabelText(/show sidebar/i)).not.toBeInTheDocument();
+    });
+
+    it.each([
+        ['light', false],
+        ['dark', true]
+    ])('starts with sidebar collapsed in mobile view with %s mode', (mode, isDarkMode) => {
+        const muiTheme = createTheme({
+            palette: {
+                mode
+            }
+        });
+        useMuiState.mockReturnValue({
+            theme: muiTheme,
+            isMobile: true,
+            isDarkMode
+        });
+
+        renderWithProviders(<LoggableEventsView />);
+
+        // Mobile: sidebar should be collapsed initially
+        expect(screen.getByRole('button', { name: /show sidebar/i })).toBeInTheDocument();
+        expect(screen.getByTestId('sidebar')).toBeInTheDocument();
     });
 });

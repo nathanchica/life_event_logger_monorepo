@@ -16,7 +16,6 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { blueGrey } from '@mui/material/colors';
-import { useTheme } from '@mui/material/styles';
 import { visuallyHidden } from '@mui/utils';
 import invariant from 'tiny-invariant';
 
@@ -25,6 +24,7 @@ import EventLabelAutocomplete from './EventLabelAutocomplete';
 import WarningThresholdForm from './WarningThresholdForm';
 
 import { useLoggableEvents } from '../../hooks/useLoggableEvents';
+import useMuiState from '../../hooks/useMuiState';
 import { useAuth } from '../../providers/AuthProvider';
 import { useViewOptions } from '../../providers/ViewOptionsProvider';
 import { EventLabel, LoggableEvent } from '../../utils/types';
@@ -126,13 +126,12 @@ type Props = {
  */
 const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
     const { user } = useAuth();
-    const theme = useTheme();
+    const { isDarkMode } = useMuiState();
     const { createLoggableEvent, updateLoggableEvent } = useLoggableEvents();
     const { activeEventLabelId } = useViewOptions();
 
     invariant(user, 'User is not authenticated');
 
-    const isDarkMode = theme.palette.mode === 'dark';
     const isCreatingNewEvent = !eventIdToEdit;
 
     /**
@@ -280,16 +279,16 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
     return (
         <ClickAwayListener onClickAway={dismissForm} mouseEvent="onMouseDown" touchEvent="onTouchStart">
-            <Box
-                component="form"
-                onSubmit={eventIdToEdit ? handleUpdateEventSubmit : handleNewEventSubmit}
-                role="form"
-                aria-label={isCreatingNewEvent ? 'Create new event' : 'Edit event'}
+            <EventCard
+                css={css`
+                    background-color: ${isDarkMode ? blueGrey[900] : blueGrey[50]};
+                `}
             >
-                <EventCard
-                    css={css`
-                        background-color: ${isDarkMode ? blueGrey[900] : blueGrey[50]};
-                    `}
+                <Box
+                    component="form"
+                    onSubmit={eventIdToEdit ? handleUpdateEventSubmit : handleNewEventSubmit}
+                    role="form"
+                    aria-label={isCreatingNewEvent ? 'Create new event' : 'Edit event'}
                 >
                     <CardContent>
                         {/* Event name */}
@@ -388,8 +387,8 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
                             </Typography>
                         )}
                     </CardActions>
-                </EventCard>
-            </Box>
+                </Box>
+            </EventCard>
         </ClickAwayListener>
     );
 };
