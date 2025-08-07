@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -55,5 +57,102 @@ describe('EventOptionsDropdown', () => {
 
         expect(expectedCallback).toHaveBeenCalledTimes(1);
         expect(mockOnDismiss).not.toHaveBeenCalled();
+    });
+
+    describe('viewport-aware positioning', () => {
+        const originalInnerWidth = window.innerWidth;
+
+        afterEach(() => {
+            // Restore original window width
+            Object.defineProperty(window, 'innerWidth', {
+                writable: true,
+                configurable: true,
+                value: originalInnerWidth
+            });
+        });
+
+        // Test wrapper component with positioned parent and visibility control
+        const DropdownWrapper = ({ leftPosition, initialVisible = true, ...props }) => {
+            const [isVisible, setIsVisible] = useState(initialVisible);
+
+            return (
+                <div
+                    style={{ position: 'relative', left: leftPosition }}
+                    ref={(el) => {
+                        if (el) {
+                            // Mock getBoundingClientRect for this specific element
+                            el.getBoundingClientRect = () => ({
+                                left: leftPosition,
+                                right: leftPosition + 100,
+                                top: 0,
+                                bottom: 40,
+                                width: 100,
+                                height: 40
+                            });
+                        }
+                    }}
+                >
+                    <button onClick={() => setIsVisible(!isVisible)} data-testid="toggle-dropdown">
+                        Toggle
+                    </button>
+                    {isVisible && <EventOptionsDropdown {...props} />}
+                </div>
+            );
+        };
+
+        it('renders dropdown left-aligned when there is enough space', () => {
+            // Set a wide viewport
+            Object.defineProperty(window, 'innerWidth', {
+                writable: true,
+                configurable: true,
+                value: 1200
+            });
+
+            render(<DropdownWrapper leftPosition={100} {...defaultProps} />);
+
+            const menu = screen.getByRole('menu', { name: 'Event options menu' });
+            expect(menu).toBeInTheDocument();
+        });
+
+        it('renders dropdown right-aligned when it would overflow viewport', () => {
+            // Set a narrow viewport
+            Object.defineProperty(window, 'innerWidth', {
+                writable: true,
+                configurable: true,
+                value: 400
+            });
+
+            // Position near right edge (250 + 200 dropdown width = 450 > 400 viewport)
+            render(<DropdownWrapper leftPosition={250} {...defaultProps} />);
+
+            const menu = screen.getByRole('menu', { name: 'Event options menu' });
+            expect(menu).toBeVisible();
+        });
+
+        it('calculates position when dropdown becomes visible', async () => {
+            // Set viewport
+            Object.defineProperty(window, 'innerWidth', {
+                writable: true,
+                configurable: true,
+                value: 600
+            });
+
+            // Start with dropdown hidden
+            render(<DropdownWrapper leftPosition={450} initialVisible={false} {...defaultProps} />);
+
+            // Dropdown should not be in document initially
+            expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+            // Toggle to show dropdown
+            const toggleButton = screen.getByTestId('toggle-dropdown');
+            await user.click(toggleButton);
+
+            // Now dropdown should be visible
+            const menu = screen.getByRole('menu', { name: 'Event options menu' });
+            expect(menu).toBeVisible();
+
+            // Toggle to hide dropdown
+            await user.click(screen.getByTestId('toggle-dropdown'));
+        });
     });
 });
