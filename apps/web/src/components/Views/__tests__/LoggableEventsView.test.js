@@ -169,6 +169,71 @@ describe('LoggableEventsView', () => {
         expect(screen.getByTestId('sidebar')).toBeInTheDocument();
     });
 
+    describe('Mobile sidebar expanded state', () => {
+        let user;
+
+        beforeEach(() => {
+            user = userEvent.setup();
+            const muiTheme = createTheme({
+                palette: {
+                    mode: 'light'
+                },
+                zIndex: {
+                    drawer: 1200
+                }
+            });
+            useMuiState.mockReturnValue({
+                theme: muiTheme,
+                isMobile: true,
+                isDarkMode: false
+            });
+        });
+
+        it('can expand and collapse sidebar on mobile', async () => {
+            renderWithProviders(<LoggableEventsView />);
+
+            // Initially show button is visible (sidebar collapsed)
+            const showButton = screen.getByRole('button', { name: /show sidebar/i });
+            expect(showButton).toBeInTheDocument();
+
+            // Click to expand
+            await user.click(showButton);
+
+            // Show button should disappear when sidebar is expanded
+            expect(screen.queryByRole('button', { name: /show sidebar/i })).not.toBeInTheDocument();
+
+            // Collapse button should be available
+            const collapseButton = screen.getByText('Collapse');
+            expect(collapseButton).toBeInTheDocument();
+
+            // Click to collapse
+            await user.click(collapseButton);
+
+            // Show button should reappear
+            expect(screen.getByRole('button', { name: /show sidebar/i })).toBeInTheDocument();
+        });
+
+        it('renders sidebar and main content on mobile', () => {
+            renderWithProviders(<LoggableEventsView />);
+
+            // Both sidebar and main content should be present
+            expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+            expect(screen.getByRole('main', { name: /loggable events main content/i })).toBeInTheDocument();
+        });
+
+        it('maintains content visibility when sidebar is expanded', async () => {
+            renderWithProviders(<LoggableEventsView />);
+
+            // Expand sidebar
+            const showButton = screen.getByRole('button', { name: /show sidebar/i });
+            await user.click(showButton);
+
+            // Both sidebar and main content should still be in the DOM
+            expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+            expect(screen.getByRole('main', { name: /loggable events main content/i })).toBeInTheDocument();
+        });
+    });
+
     describe('Search functionality', () => {
         let user;
 

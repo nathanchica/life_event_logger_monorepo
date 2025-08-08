@@ -37,6 +37,8 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
     const { value: sidebarIsCollapsed, setTrue: collapseSidebar, setFalse: expandSidebar } = useToggle(isMobile);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const isMobileSidebarOpen = isMobile && !sidebarIsCollapsed;
+
     useEffect(() => {
         if (isMobile) {
             collapseSidebar();
@@ -49,7 +51,11 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
         <Grid
             role="main"
             aria-label="Loggable events main content"
-            sx={{ overflowY: 'scroll', padding: isMobile ? 4 : 6 }}
+            sx={{
+                overflowY: 'auto',
+                padding: isMobile ? 4 : 6,
+                minHeight: '100vh'
+            }}
             size="grow"
         >
             {!isLoading && !isShowingFetchError && (
@@ -114,10 +120,14 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
             css={css`
                 background-color: ${theme.palette.background.default};
                 position: relative;
-                min-height: 100vh;
-                min-height: 100dvh;
                 width: 100%;
-                overflow: hidden;
+                ${isMobileSidebarOpen
+                    ? `
+                    height: 100vh;
+                    height: 100dvh;
+                    overflow: hidden;
+                `
+                    : ''}
             `}
         >
             {sidebarIsCollapsed && (
@@ -152,13 +162,21 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
                 role="application"
                 aria-label="Life event logger application"
                 css={css`
-                    height: 100%;
-                    min-height: 100vh;
-                    min-height: 100dvh;
                     width: 100%;
+                    align-items: flex-start;
                 `}
             >
-                <Grid size="auto">
+                <Grid
+                    size="auto"
+                    css={css`
+                        position: ${isMobileSidebarOpen ? 'fixed' : 'sticky'};
+                        top: 0;
+                        left: 0;
+                        height: 100vh;
+                        height: 100dvh;
+                        z-index: ${isMobileSidebarOpen ? theme.zIndex.drawer : 'auto'};
+                    `}
+                >
                     <Sidebar
                         isCollapsed={sidebarIsCollapsed}
                         isLoading={isLoading}
