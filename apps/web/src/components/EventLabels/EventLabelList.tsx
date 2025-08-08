@@ -64,7 +64,7 @@ const EventLabelList = ({ isShowingEditActions }: Props) => {
 
     return (
         <Box>
-            <List disablePadding>
+            <List disablePadding dense>
                 <ListItem disablePadding>
                     {createLabelFormIsShowing ? (
                         <CreateEventLabelForm
@@ -73,9 +73,9 @@ const EventLabelList = ({ isShowingEditActions }: Props) => {
                             existingLabelNames={existingLabelNames}
                         />
                     ) : (
-                        <ListItemButton dense disableRipple onClick={showCreateLabelForm}>
-                            <ListItemIcon>
-                                <AddIcon />
+                        <ListItemButton dense disableRipple onClick={showCreateLabelForm} sx={{ py: 0.5 }}>
+                            <ListItemIcon sx={{ minWidth: 35 }}>
+                                <AddIcon fontSize="small" />
                             </ListItemIcon>
                             <ListItemText primary="Create new label" />
                         </ListItemButton>

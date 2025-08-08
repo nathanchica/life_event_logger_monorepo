@@ -43,10 +43,10 @@ const CreateEventLabelForm = ({ onCancel, onSuccess, existingLabelNames }: Props
                 onClick={handleCancelCreate}
                 size="small"
                 color="default"
-                sx={{ ml: 1.25, mr: 1, mt: 0.5 }}
+                sx={{ ml: 1.25, mr: 0.5, mt: 0.25 }}
                 aria-label="Cancel label creation"
             >
-                <CancelIcon />
+                <CancelIcon fontSize="small" />
             </IconButton>
             <Box sx={{ flex: 1, mr: 1 }}>
                 <TextField
@@ -68,7 +68,7 @@ const CreateEventLabelForm = ({ onCancel, onSuccess, existingLabelNames }: Props
                     InputProps={{
                         sx: {
                             padding: '0px 8px',
-                            height: 36
+                            height: 28
                         }
                     }}
                 />
@@ -78,10 +78,10 @@ const CreateEventLabelForm = ({ onCancel, onSuccess, existingLabelNames }: Props
                 size="small"
                 color="primary"
                 disabled={isTooLong || isDuplicate || isEmpty || createIsLoading}
-                sx={{ mt: 0.5 }}
+                sx={{ mt: 0.25 }}
                 aria-label="Create label"
             >
-                <CheckIcon />
+                <CheckIcon fontSize="small" />
             </IconButton>
         </Box>
     );

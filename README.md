@@ -13,6 +13,16 @@ happened and stay on top of your routines.
 
 Visually inspired by Google Keep and conceptually inspired by logging systems used to measure user interaction in apps.
 
+## Features
+
+- **Frontend**: React TypeScript app with Material UI, Apollo GraphQL, offline support via apollo3-cache-persist, and Jest for testing
+- **Backend**: GraphQL Yoga API with JWT authentication, Prisma ORM with MongoDB Atlas database, sqids for encoding IDs, and Vitest for testing
+- **Authentication**: Google OAuth login with JWT tokens, secure cookie storage, and refresh token implementation
+
+See individual app READMEs for detailed information:
+- [Frontend Documentation](./apps/web/README.md)
+- [Backend Documentation](./apps/api/README.md)
+
 ## Project History
 
 This project started in 2022 before Create React App (CRA) was sunset. Picked this project back up in 2025 to learn new
@@ -79,13 +89,3 @@ A MongoDB Atlas database is also required for the backend. Set the `DATABASE_URL
 `.env` file.
 
 See the individual apps' `.env.example` files for more details on required environment variables.
-
-## Features
-
-- **Frontend**: React TypeScript app with Material UI, Apollo GraphQL, offline support via apollo3-cache-persist, and Jest for testing
-- **Backend**: GraphQL Yoga API with JWT authentication, Prisma ORM, MongoDB Atlas database, sqids for encoding IDs, and Vitest for testing
-- **Authentication**: Google OAuth login with JWT tokens, secure cookie storage, and refresh token implementation
-
-See individual app READMEs for detailed information:
-- [Frontend Documentation](./apps/web/README.md)
-- [Backend Documentation](./apps/api/README.md)

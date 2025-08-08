@@ -1,25 +1,19 @@
 /** @jsxImportSource @emotion/react */
 
 import { css } from '@emotion/react';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
-import EditIcon from '@mui/icons-material/Edit';
-import EditIconOutlined from '@mui/icons-material/EditOutlined';
-import GitHubIcon from '@mui/icons-material/GitHub';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
-import LogoutIcon from '@mui/icons-material/Logout';
 import Box from '@mui/material/Box';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
-import ToggleButton from '@mui/material/ToggleButton';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { blueGrey, green } from '@mui/material/colors';
 
 import EventLabelList from './EventLabels/EventLabelList';
 import EventLabelShimmer from './EventLabels/EventLabelShimmer';
+import SidebarActions from './SidebarActions';
 
 import { useAuthMutations } from '../hooks/useAuthMutations';
 import useMuiState from '../hooks/useMuiState';
@@ -137,67 +131,35 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                                         <EventLabelShimmer />
                                     </>
                                 ) : (
-                                    <EventLabelList isShowingEditActions={isEditingLabels} />
+                                    <>
+                                        <EventLabelList isShowingEditActions={isEditingLabels} />
+                                        {isMobile && (
+                                            <SidebarActions
+                                                variant="list"
+                                                isEditingLabels={isEditingLabels}
+                                                onToggleTheme={handleToggleTheme}
+                                                onToggleEditLabels={() =>
+                                                    isEditingLabels ? stopEditingLabels() : startEditingLabels()
+                                                }
+                                                onLogout={handleLogout}
+                                            />
+                                        )}
+                                    </>
                                 )}
                             </Box>
                         </Box>
                     </Collapse>
 
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            left: isCollapsed ? -999 : 8,
-                            bottom: 16,
-                            display: 'flex',
-                            justifyContent: 'flex-start',
-                            zIndex: 1
-                        }}
-                    >
-                        <Tooltip title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
-                            <IconButton
-                                onClick={handleToggleTheme}
-                                aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-                            >
-                                {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title={isEditingLabels ? 'Stop editing labels' : 'Manage labels'}>
-                            <ToggleButton
-                                value="edit"
-                                selected={isEditingLabels}
-                                onChange={() => (isEditingLabels ? stopEditingLabels() : startEditingLabels())}
-                                sx={{
-                                    ml: 1,
-                                    border: 'none',
-                                    borderRadius: '50%',
-                                    '&:hover': {
-                                        border: 'none'
-                                    }
-                                }}
-                                size="small"
-                                aria-label={isEditingLabels ? 'Stop editing labels' : 'Manage labels'}
-                            >
-                                {isEditingLabels ? <EditIcon color="action" /> : <EditIconOutlined />}
-                            </ToggleButton>
-                        </Tooltip>
-                        <Tooltip title="View on GitHub">
-                            <IconButton
-                                component="a"
-                                href="https://github.com/nathanchica/life_event_logger"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={{ ml: 1 }}
-                                aria-label="View on GitHub"
-                            >
-                                <GitHubIcon />
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Logout">
-                            <IconButton onClick={handleLogout} sx={{ ml: 1 }} aria-label="Logout">
-                                <LogoutIcon />
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
+                    {!isMobile && (
+                        <SidebarActions
+                            variant="toolbar"
+                            isCollapsed={isCollapsed}
+                            isEditingLabels={isEditingLabels}
+                            onToggleTheme={handleToggleTheme}
+                            onToggleEditLabels={() => (isEditingLabels ? stopEditingLabels() : startEditingLabels())}
+                            onLogout={handleLogout}
+                        />
+                    )}
                 </Paper>
             </Collapse>
         </ClickAwayListener>

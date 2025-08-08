@@ -228,7 +228,11 @@ describe('Sidebar', () => {
     });
 
     describe('Edit Labels Toggle', () => {
-        it('toggles between edit and non-edit mode', async () => {
+        it('toggles between edit and non-edit mode in desktop view', async () => {
+            useMuiState.mockReturnValue({
+                isMobile: false,
+                isDarkMode: false
+            });
             renderWithProviders(<Sidebar {...defaultProps} />, { eventLabels: mockEventLabels });
 
             // Initially should show "Manage labels"
@@ -248,6 +252,32 @@ describe('Sidebar', () => {
             // Should be back to "Manage labels"
             expect(screen.getByLabelText('Manage labels')).toBeInTheDocument();
             expect(screen.queryByLabelText('Stop editing labels')).not.toBeInTheDocument();
+        });
+
+        it('toggles between edit and non-edit mode in mobile view', async () => {
+            useMuiState.mockReturnValue({
+                isMobile: true,
+                isDarkMode: false
+            });
+            renderWithProviders(<Sidebar {...defaultProps} />, { eventLabels: mockEventLabels });
+
+            // Initially should show "Manage labels" as text in list item
+            const manageButton = screen.getByText('Manage labels');
+            expect(manageButton).toBeInTheDocument();
+
+            // Click to enter edit mode
+            await user.click(manageButton);
+
+            // Should now show "Stop editing labels" as text
+            expect(screen.getByText('Stop editing labels')).toBeInTheDocument();
+            expect(screen.queryByText('Manage labels')).not.toBeInTheDocument();
+
+            // Click again to exit edit mode
+            await user.click(screen.getByText('Stop editing labels'));
+
+            // Should be back to "Manage labels"
+            expect(screen.getByText('Manage labels')).toBeInTheDocument();
+            expect(screen.queryByText('Stop editing labels')).not.toBeInTheDocument();
         });
 
         it('exits editing mode when clicking away', async () => {
