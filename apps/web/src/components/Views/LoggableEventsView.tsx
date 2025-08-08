@@ -37,6 +37,8 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
     const { value: sidebarIsCollapsed, setTrue: collapseSidebar, setFalse: expandSidebar } = useToggle(isMobile);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const isMobileSidebarOpen = isMobile && !sidebarIsCollapsed;
+
     useEffect(() => {
         if (isMobile) {
             collapseSidebar();
@@ -119,7 +121,7 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
                 background-color: ${theme.palette.background.default};
                 position: relative;
                 width: 100%;
-                ${isMobile && !sidebarIsCollapsed
+                ${isMobileSidebarOpen
                     ? `
                     height: 100vh;
                     height: 100dvh;
@@ -167,12 +169,12 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
                 <Grid
                     size="auto"
                     css={css`
-                        position: ${isMobile && !sidebarIsCollapsed ? 'fixed' : 'sticky'};
+                        position: ${isMobileSidebarOpen ? 'fixed' : 'sticky'};
                         top: 0;
                         left: 0;
                         height: 100vh;
                         height: 100dvh;
-                        z-index: ${isMobile && !sidebarIsCollapsed ? theme.zIndex.drawer : 'auto'};
+                        z-index: ${isMobileSidebarOpen ? theme.zIndex.drawer : 'auto'};
                     `}
                 >
                     <Sidebar
