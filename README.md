@@ -2,7 +2,7 @@
 
 ### Project status: In Development
 
-Currently working on enhancing the authentication flow and security features.
+Currently working on making the app more mobile-friendly and improving the user experience.
 
 ## Overview
 
@@ -20,6 +20,7 @@ tools and patterns, including:
 - Apollo Cache
     - Using apollo3-cache-persist for offline support
     - Using apollo cache as data store for the frontend
+    - Optimistic UI updates for a better user experience
 - GraphQL Yoga
 - Prisma
 - Vitest
