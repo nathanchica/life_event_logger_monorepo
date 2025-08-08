@@ -1,8 +1,5 @@
-/** @jsxImportSource @emotion/react */
-
 import { useState } from 'react';
 
-import { css } from '@emotion/react';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
@@ -31,36 +28,35 @@ const CreateEventCard = () => {
     ) : (
         <EventCardGridItem>
             <Box
-                css={css`
-                    border-radius: 8px;
-                    border: 1px dashed ${grey[400]};
-                    color: ${grey[400]};
-                    width: 100%;
-
-                    :hover {
-                        border-color: ${blue[400]};
-                        color: ${blue[400]};
+                sx={{
+                    borderRadius: 1,
+                    border: `1px dashed ${grey[400]}`,
+                    color: grey[400],
+                    width: '100%',
+                    '&:hover': {
+                        borderColor: blue[400],
+                        color: blue[400]
                     }
-                `}
+                }}
             >
                 <ButtonBase
                     onClick={handleAddEventCardClick}
                     aria-label="Add event"
                     aria-describedby="create-event-help"
-                    css={css`
-                        width: 100%;
-                        height: 200px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    `}
+                    sx={{
+                        width: '100%',
+                        height: 200,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
                 >
                     <Box
-                        css={css`
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                        `}
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}
                     >
                         <AddIcon color="inherit" aria-hidden="true" />
                         <Box id="create-event-help" sx={visuallyHidden}>

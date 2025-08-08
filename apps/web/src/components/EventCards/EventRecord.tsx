@@ -1,8 +1,5 @@
-/** @jsxImportSource @emotion/react */
-
 import { useState } from 'react';
 
-import { css } from '@emotion/react';
 import CancelIcon from '@mui/icons-material/Cancel';
 import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
@@ -49,17 +46,11 @@ const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
                 slotProps={{
                     primary: { typography: 'body2' }
                 }}
-                css={[
-                    isFutureDate
-                        ? css`
-                              color: ${grey[400]};
-                          `
-                        : null,
-                    css`
-                        display: flex;
-                        align-items: center;
-                    `
-                ]}
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    ...(isFutureDate && { color: grey[400] })
+                }}
             >
                 {recordDate.toLocaleDateString('en-US')}
                 {isHovered && (

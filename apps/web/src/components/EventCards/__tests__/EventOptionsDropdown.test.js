@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -25,8 +26,12 @@ describe('EventOptionsDropdown', () => {
         jest.clearAllMocks();
     });
 
-    it('renders menu with correct structure and accessibility attributes', () => {
-        render(<EventOptionsDropdown {...defaultProps} />);
+    it.each(['light', 'dark'])('renders menu in %s mode', (mode) => {
+        render(
+            <ThemeProvider theme={createTheme({ palette: { mode } })}>
+                <EventOptionsDropdown {...defaultProps} />
+            </ThemeProvider>
+        );
 
         // Check menu structure
         const menu = screen.getByRole('menu', { name: 'Event options menu' });

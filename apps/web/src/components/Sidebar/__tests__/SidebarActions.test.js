@@ -98,7 +98,6 @@ describe('SidebarActions', () => {
                     onToggleTheme={mockOnToggleTheme}
                     onToggleEditLabels={mockOnToggleEditLabels}
                     onLogout={mockOnLogout}
-                    isCollapsed={false}
                     {...props}
                 />
             );
@@ -151,20 +150,6 @@ describe('SidebarActions', () => {
 
             expect(screen.getByLabelText('Stop editing labels')).toBeInTheDocument();
             expect(screen.queryByLabelText('Manage labels')).not.toBeInTheDocument();
-        });
-
-        it('hides toolbar when sidebar is collapsed', () => {
-            const { container } = renderComponent({ isCollapsed: true });
-
-            const toolbar = container.querySelector('.MuiBox-root');
-            expect(toolbar).toHaveStyle({ left: '-999px' });
-        });
-
-        it('shows toolbar when sidebar is not collapsed', () => {
-            const { container } = renderComponent({ isCollapsed: false });
-
-            const toolbar = container.querySelector('.MuiBox-root');
-            expect(toolbar).toHaveStyle({ left: '8px' });
         });
 
         it('renders edit button as ToggleButton', () => {

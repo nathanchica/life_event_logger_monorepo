@@ -1,8 +1,5 @@
-/** @jsxImportSource @emotion/react */
-
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
-import { css } from '@emotion/react';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -14,25 +11,27 @@ import ListItemText from '@mui/material/ListItemText';
 import Paper from '@mui/material/Paper';
 import { blue } from '@mui/material/colors';
 
+import useMuiState from '../../hooks/useMuiState';
+
 const DROPDOWN_WIDTH = 200;
 
-const DropdownItem = ({ name, icon, onClick }: { name: string; icon: ReactNode; onClick: () => void }) => (
-    <ListItem disablePadding>
-        <ListItemButton
-            css={css`
-                :hover {
-                    background-color: ${blue[100]};
-                }
-            `}
-            onClick={onClick}
-            role="menuitem"
-            aria-label={name}
-        >
-            <ListItemIcon aria-hidden="true">{icon}</ListItemIcon>
-            <ListItemText primary={name} />
-        </ListItemButton>
-    </ListItem>
-);
+const DropdownItem = ({ name, icon, onClick }: { name: string; icon: ReactNode; onClick: () => void }) => {
+    const { isDarkMode } = useMuiState();
+
+    return (
+        <ListItem disablePadding>
+            <ListItemButton
+                sx={{ '&:hover': { backgroundColor: isDarkMode ? 'action.hover' : blue[50] } }}
+                onClick={onClick}
+                role="menuitem"
+                aria-label={name}
+            >
+                <ListItemIcon aria-hidden="true">{icon}</ListItemIcon>
+                <ListItemText primary={name} />
+            </ListItemButton>
+        </ListItem>
+    );
+};
 
 type EventOptionsDropdownProps = {
     onDismiss: () => void;
@@ -43,6 +42,7 @@ type EventOptionsDropdownProps = {
 const EventOptionsDropdown = ({ onDismiss, onEditEventClick, onDeleteEventClick }: EventOptionsDropdownProps) => {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [alignRight, setAlignRight] = useState(false);
+    const { theme } = useMuiState();
 
     useEffect(() => {
         // istanbul ignore else
@@ -65,14 +65,13 @@ const EventOptionsDropdown = ({ onDismiss, onEditEventClick, onDeleteEventClick 
                 elevation={5}
                 role="menu"
                 aria-label="Event options menu"
-                css={css`
-                    position: absolute;
-                    width: ${DROPDOWN_WIDTH}px;
-                    top: 100%;
-                    // https://mui.com/material-ui/customization/z-index/#main-content
-                    z-index: 1500;
-                    ${alignRight ? 'right: 0;' : 'left: 0;'}
-                `}
+                sx={{
+                    position: 'absolute',
+                    width: DROPDOWN_WIDTH,
+                    top: '100%',
+                    zIndex: theme.zIndex.modal,
+                    ...(alignRight ? { right: 0 } : { left: 0 })
+                }}
             >
                 <List disablePadding role="none">
                     <DropdownItem name="Edit event" icon={<EditIcon />} onClick={onEditEventClick} />

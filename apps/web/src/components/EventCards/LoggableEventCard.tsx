@@ -13,9 +13,9 @@ import EventRecord from './EventRecord';
 import LastEventDisplay from './LastEventDisplay';
 
 import { useLoggableEvents } from '../../hooks/useLoggableEvents';
+import { useToggle } from '../../hooks/useToggle';
 import { getDaysSinceLastEventRecord, sortDateObjectsByNewestFirst } from '../../utils/time';
 import { LoggableEvent, LoggableEventFragment, EventLabelFragment } from '../../utils/types';
-import { useToggle } from '../../utils/useToggle';
 
 const MAX_RECORDS_TO_DISPLAY = 5;
 
