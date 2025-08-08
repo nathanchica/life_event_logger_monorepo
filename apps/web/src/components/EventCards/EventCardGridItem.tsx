@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 
 import Grid from '@mui/material/Grid';
 
-export const DESKTOP_CARD_MAX_WIDTH = '400px';
+const DESKTOP_CARD_MAX_WIDTH = '400px';
 
 type Props = {
     children: ReactNode;
