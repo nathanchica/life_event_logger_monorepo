@@ -64,7 +64,8 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                 collapsedSize={56}
                 orientation="horizontal"
                 css={css`
-                    height: 100%;
+                    height: 100vh;
+                    height: 100dvh;
                 `}
             >
                 <Paper
@@ -75,7 +76,8 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                         padding: 16px;
                         padding-bottom: 80px;
                         width: ${isMobile ? '100vw' : '400px'};
-                        height: 100%;
+                        height: 100vh;
+                        height: 100dvh;
                         position: relative;
                         display: flex;
                         flex-direction: column;
