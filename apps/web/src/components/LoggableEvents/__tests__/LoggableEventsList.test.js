@@ -46,7 +46,12 @@ describe('LoggableEventsList', () => {
     ];
 
     const renderWithProviders = (options = {}) => {
-        const { viewOptionsValue = {}, loggableEvents = mockLoggableEvents, skipCachePrepopulation = false } = options;
+        const {
+            viewOptionsValue = {},
+            loggableEvents = mockLoggableEvents,
+            skipCachePrepopulation = false,
+            searchTerm
+        } = options;
 
         apolloCache = new InMemoryCache();
 
@@ -76,7 +81,7 @@ describe('LoggableEventsList', () => {
             <MockedProvider cache={apolloCache} addTypename={false}>
                 <AuthContext.Provider value={mockAuthValue}>
                     <ViewOptionsContext.Provider value={mockViewOptionsValue}>
-                        <LoggableEventsList />
+                        <LoggableEventsList {...(searchTerm !== undefined && { searchTerm })} />
                     </ViewOptionsContext.Provider>
                 </AuthContext.Provider>
             </MockedProvider>
@@ -188,6 +193,113 @@ describe('LoggableEventsList', () => {
             renderWithProviders({
                 viewOptionsValue: { activeEventLabelId: 'label-work' },
                 loggableEvents: eventsWithoutLabels
+            });
+
+            const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(0);
+        });
+    });
+
+    describe('search functionality', () => {
+        it('shows all events when searchTerm prop is not provided', () => {
+            // Don't pass searchTerm at all - should use default empty string
+            renderWithProviders({ viewOptionsValue: { activeEventLabelId: null } });
+
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(3);
+        });
+
+        it('shows all events when searchTerm is empty', () => {
+            renderWithProviders({ searchTerm: '', viewOptionsValue: { activeEventLabelId: null } });
+
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(3);
+        });
+
+        it('filters events by exact match', () => {
+            renderWithProviders({ searchTerm: 'Work Meeting', viewOptionsValue: { activeEventLabelId: null } });
+
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-1')).toBeInTheDocument();
+        });
+
+        it('filters events by partial match', () => {
+            renderWithProviders({ searchTerm: 'Gym', viewOptionsValue: { activeEventLabelId: null } });
+
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-2')).toBeInTheDocument();
+        });
+
+        it('filters events with fuzzy matching for typos', () => {
+            renderWithProviders({ searchTerm: 'Meating', viewOptionsValue: { activeEventLabelId: null } }); // Typo for 'Meeting'
+
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-1')).toBeInTheDocument();
+        });
+
+        it('returns multiple matches when search term matches multiple events', () => {
+            renderWithProviders({ searchTerm: 'Team', viewOptionsValue: { activeEventLabelId: null } });
+
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-3')).toBeInTheDocument();
+        });
+
+        it('shows no events when search term does not match anything', () => {
+            renderWithProviders({ searchTerm: 'NotFoundAnywhere', viewOptionsValue: { activeEventLabelId: null } });
+
+            const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(0);
+        });
+
+        it('trims whitespace from search term', () => {
+            renderWithProviders({ searchTerm: '  Work Meeting  ', viewOptionsValue: { activeEventLabelId: null } });
+
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-1')).toBeInTheDocument();
+        });
+
+        it('is case insensitive', () => {
+            renderWithProviders({ searchTerm: 'work meeting', viewOptionsValue: { activeEventLabelId: null } });
+
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-1')).toBeInTheDocument();
+        });
+    });
+
+    describe('combined filtering (search and label)', () => {
+        it('applies both search and label filters', () => {
+            renderWithProviders({
+                searchTerm: 'Team',
+                viewOptionsValue: { activeEventLabelId: 'label-work' }
+            });
+
+            // Team Building has both 'Team' in name and 'label-work' label
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-3')).toBeInTheDocument();
+        });
+
+        it('shows no events when search matches but label does not', () => {
+            renderWithProviders({
+                searchTerm: 'Gym',
+                viewOptionsValue: { activeEventLabelId: 'label-work' }
+            });
+
+            // Gym Session matches search but has label-health, not label-work
+            const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(0);
+        });
+
+        it('shows no events when label matches but search does not', () => {
+            renderWithProviders({
+                searchTerm: 'NotFound',
+                viewOptionsValue: { activeEventLabelId: 'label-work' }
             });
 
             const eventCards = screen.queryAllByTestId(/^loggable-event-card-/);

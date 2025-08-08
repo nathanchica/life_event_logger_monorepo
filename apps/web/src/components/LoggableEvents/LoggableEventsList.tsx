@@ -1,6 +1,8 @@
-import { gql, useFragment } from '@apollo/client';
-import invariant from 'tiny-invariant';
+import { useMemo } from 'react';
 
+import { gql, useFragment } from '@apollo/client';
+import Fuse from 'fuse.js';
+import invariant from 'tiny-invariant';
 
 import { useAuth } from '../../providers/AuthProvider';
 import { useViewOptions } from '../../providers/ViewOptionsProvider';
@@ -26,11 +28,15 @@ const LOGGABLE_EVENTS_FOR_USER_FRAGMENT = gql`
     }
 `;
 
+type Props = {
+    searchTerm?: string;
+};
+
 /**
  * LoggableEventsList component for displaying a list of loggable events.
- * It filters events based on the active event label.
+ * It filters events based on the active event label and search term.
  */
-const LoggableEventsList = () => {
+const LoggableEventsList = ({ searchTerm = '' }: Props) => {
     const { user } = useAuth();
     const { activeEventLabelId } = useViewOptions();
 
@@ -46,11 +52,28 @@ const LoggableEventsList = () => {
     });
     const loggableEventsFragments: Array<LoggableEventFragment> = complete ? data.loggableEvents : [];
 
-    const filteredEventFragments: Array<LoggableEventFragment> = activeEventLabelId
+    const labelFilteredEvents: Array<LoggableEventFragment> = activeEventLabelId
         ? loggableEventsFragments.filter(
               ({ labels }) => labels && labels.some((label) => label.id === activeEventLabelId)
           )
         : loggableEventsFragments;
+
+    const fuse = useMemo(
+        () =>
+            new Fuse(labelFilteredEvents, {
+                keys: ['name'],
+                threshold: 0.3,
+                includeScore: false
+            }),
+        [labelFilteredEvents]
+    );
+
+    const filteredEventFragments: Array<LoggableEventFragment> = useMemo(() => {
+        if (!searchTerm.trim()) {
+            return labelFilteredEvents;
+        }
+        return fuse.search(searchTerm).map((result) => result.item);
+    }, [searchTerm, labelFilteredEvents, fuse]);
 
     return (
         <>

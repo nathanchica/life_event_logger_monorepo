@@ -1,13 +1,16 @@
 /** @jsxImportSource @emotion/react */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { css } from '@emotion/react';
 import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
+import SearchIcon from '@mui/icons-material/Search';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
 import Paper from '@mui/material/Paper';
+import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { blueGrey, green } from '@mui/material/colors';
@@ -32,6 +35,7 @@ type Props = {
 const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: Props) => {
     const { theme, isMobile, isDarkMode } = useMuiState();
     const { value: sidebarIsCollapsed, setTrue: collapseSidebar, setFalse: expandSidebar } = useToggle(isMobile);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         if (isMobile) {
@@ -45,9 +49,33 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
         <Grid
             role="main"
             aria-label="Loggable events main content"
-            sx={{ overflowY: 'scroll', padding: isMobile ? 4 : 8 }}
+            sx={{ overflowY: 'scroll', padding: isMobile ? 4 : 6 }}
             size="grow"
         >
+            {!isLoading && !isShowingFetchError && (
+                <Box sx={{ mb: isMobile ? 4 : 8, maxWidth: 800, mx: 'auto' }}>
+                    <TextField
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Search events..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        sx={{
+                            boxShadow: isDarkMode ? 'none' : 1
+                        }}
+                        slotProps={{
+                            input: {
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                )
+                            }
+                        }}
+                        aria-label="Search events"
+                    />
+                </Box>
+            )}
             <Grid container spacing={5} role="list" aria-label="List of loggable events" aria-live="polite">
                 {isShowingFetchError ? (
                     <Grid
@@ -73,7 +101,7 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
                 ) : (
                     <>
                         <CreateEventCard />
-                        <LoggableEventsList />
+                        <LoggableEventsList searchTerm={searchTerm} />
                     </>
                 )}
             </Grid>

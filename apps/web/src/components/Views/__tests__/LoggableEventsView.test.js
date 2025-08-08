@@ -11,8 +11,13 @@ jest.mock('../../../hooks/useMuiState');
 
 // Mock child components
 jest.mock('../../LoggableEvents/LoggableEventsList', () => {
-    return function MockLoggableEventsList() {
-        return <div data-testid="loggable-events-list">Loggable Events List</div>;
+    return function MockLoggableEventsList({ searchTerm }) {
+        return (
+            <div data-testid="loggable-events-list">
+                Loggable Events List
+                {searchTerm && <div data-testid="search-term">Search: {searchTerm}</div>}
+            </div>
+        );
     };
 });
 
@@ -162,5 +167,73 @@ describe('LoggableEventsView', () => {
         // Mobile: sidebar should be collapsed initially
         expect(screen.getByRole('button', { name: /show sidebar/i })).toBeInTheDocument();
         expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+    });
+
+    describe('Search functionality', () => {
+        let user;
+
+        beforeEach(() => {
+            user = userEvent.setup();
+        });
+
+        it.each([
+            ['light mode', false],
+            ['dark mode', true]
+        ])('renders search bar when not loading or showing error in %s', (_, isDarkMode) => {
+            useMuiState.mockReturnValue({
+                theme: createTheme({ palette: { mode: isDarkMode ? 'dark' : 'light' } }),
+                isMobile: false,
+                isDarkMode
+            });
+
+            renderWithProviders(<LoggableEventsView />);
+
+            const searchInput = screen.getByLabelText(/search events/i);
+            expect(searchInput).toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Search events...')).toBeInTheDocument();
+        });
+
+        it('does not render search bar when loading', () => {
+            renderWithProviders(<LoggableEventsView isLoading={true} />);
+
+            expect(screen.queryByLabelText(/search events/i)).not.toBeInTheDocument();
+        });
+
+        it('does not render search bar when showing error', () => {
+            renderWithProviders(<LoggableEventsView isShowingFetchError={true} />);
+
+            expect(screen.queryByLabelText(/search events/i)).not.toBeInTheDocument();
+        });
+
+        it('passes search term to LoggableEventsList when typing', async () => {
+            renderWithProviders(<LoggableEventsView />);
+
+            const searchInput = screen.getByPlaceholderText('Search events...');
+
+            // Initially no search term should be displayed
+            expect(screen.queryByText(/Search:/)).not.toBeInTheDocument();
+
+            // Type in the search input
+            await user.type(searchInput, 'doctor');
+
+            // Check that the search term is passed to LoggableEventsList
+            expect(screen.getByText('Search: doctor')).toBeInTheDocument();
+            expect(searchInput).toHaveValue('doctor');
+        });
+
+        it('updates search term as user types', async () => {
+            renderWithProviders(<LoggableEventsView />);
+
+            const searchInput = screen.getByPlaceholderText('Search events...');
+
+            // Type first search term
+            await user.type(searchInput, 'test');
+            expect(screen.getByText('Search: test')).toBeInTheDocument();
+
+            // Clear and type new search term
+            await user.clear(searchInput);
+            await user.type(searchInput, 'appointment');
+            expect(screen.getByText('Search: appointment')).toBeInTheDocument();
+        });
     });
 });
