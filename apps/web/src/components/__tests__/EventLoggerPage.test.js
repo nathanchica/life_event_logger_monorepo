@@ -14,9 +14,9 @@ jest.mock('@react-oauth/google', () => ({
 }));
 
 // Mock LoggableEventsGQL component
-jest.mock('../LoggableEventsGQL', () => ({
+jest.mock('../LoggableEvents/LoggableEventsGQL', () => ({
     __esModule: true,
-    ...jest.requireActual('../LoggableEventsGQL'),
+    ...jest.requireActual('../LoggableEvents/LoggableEventsGQL'),
     default: () => <div>LoggableEventsGQL</div>
 }));
 

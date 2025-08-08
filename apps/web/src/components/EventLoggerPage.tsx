@@ -3,8 +3,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { ApolloProvider, ApolloClient, NormalizedCacheObject } from '@apollo/client';
 import { ThemeProvider } from '@mui/material/styles';
 
-import LoggableEventsGQL from './LoggableEventsGQL';
-import LoginView from './LoginView';
+import LoggableEventsGQL from './LoggableEvents/LoggableEventsGQL';
+import LoginView from './Views/LoginView';
 
 import { createApolloClient } from '../apollo/client';
 import { useAuth } from '../providers/AuthProvider';

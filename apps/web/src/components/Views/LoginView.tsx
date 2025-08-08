@@ -17,8 +17,8 @@ import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
 import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oauth/google';
 
-import { useAuthMutations } from '../hooks/useAuthMutations';
-import { useAuth } from '../providers/AuthProvider';
+import { useAuthMutations } from '../../hooks/useAuthMutations';
+import { useAuth } from '../../providers/AuthProvider';
 
 /**
  * LoginView component

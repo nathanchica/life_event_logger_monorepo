@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import useMuiState from '../../hooks/useMuiState';
+import useMuiState from '../../../hooks/useMuiState';
 import SidebarActions from '../SidebarActions';
 
-jest.mock('../../hooks/useMuiState');
+jest.mock('../../../hooks/useMuiState');
 
 describe('SidebarActions', () => {
     let user;

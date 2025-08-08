@@ -2,16 +2,16 @@ import { InMemoryCache } from '@apollo/client';
 import { MockedProvider } from '@apollo/client/testing';
 import { render, screen } from '@testing-library/react';
 
-import { createMockEventLabelFragment } from '../../mocks/eventLabels';
-import { createMockLoggableEventFragment } from '../../mocks/loggableEvent';
-import { createMockAuthContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
-import { createMockUserFragment } from '../../mocks/user';
-import { AuthContext } from '../../providers/AuthProvider';
-import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
+import { createMockEventLabelFragment } from '../../../mocks/eventLabels';
+import { createMockLoggableEventFragment } from '../../../mocks/loggableEvent';
+import { createMockAuthContextValue, createMockViewOptionsContextValue } from '../../../mocks/providers';
+import { createMockUserFragment } from '../../../mocks/user';
+import { AuthContext } from '../../../providers/AuthProvider';
+import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import LoggableEventsList from '../LoggableEventsList';
 
 // Mock LoggableEventCard component
-jest.mock('../EventCards/LoggableEventCard', () => {
+jest.mock('../../EventCards/LoggableEventCard', () => {
     return function MockLoggableEventCard({ eventId }) {
         return <div data-testid={`loggable-event-card-${eventId}`}>LoggableEventCard {eventId}</div>;
     };

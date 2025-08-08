@@ -12,13 +12,12 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { blueGrey, green } from '@mui/material/colors';
 
-import CreateEventCard from './EventCards/CreateEventCard';
-import EventCardShimmer from './EventCards/EventCardShimmer';
-import LoggableEventsList from './LoggableEventsList';
-import Sidebar from './Sidebar';
-
-import useMuiState from '../hooks/useMuiState';
-import { useToggle } from '../utils/useToggle';
+import useMuiState from '../../hooks/useMuiState';
+import { useToggle } from '../../utils/useToggle';
+import CreateEventCard from '../EventCards/CreateEventCard';
+import EventCardShimmer from '../EventCards/EventCardShimmer';
+import LoggableEventsList from '../LoggableEvents/LoggableEventsList';
+import Sidebar from '../Sidebar/Sidebar';
 
 type Props = {
     isLoading?: boolean;

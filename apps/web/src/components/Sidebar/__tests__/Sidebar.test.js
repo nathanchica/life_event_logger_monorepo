@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import useMuiState from '../../hooks/useMuiState';
-import { createMockEventLabel } from '../../mocks/eventLabels';
-import { createMockViewOptionsContextValue, createMockAuthContextValue } from '../../mocks/providers';
-import { AuthContext } from '../../providers/AuthProvider';
-import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
+import useMuiState from '../../../hooks/useMuiState';
+import { createMockEventLabel } from '../../../mocks/eventLabels';
+import { createMockViewOptionsContextValue, createMockAuthContextValue } from '../../../mocks/providers';
+import { AuthContext } from '../../../providers/AuthProvider';
+import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import Sidebar from '../Sidebar';
 
-jest.mock('../../hooks/useMuiState');
+jest.mock('../../../hooks/useMuiState');
 
 // Mock ClickAwayListener
 jest.mock('@mui/material/ClickAwayListener', () => {
@@ -25,7 +25,7 @@ jest.mock('@mui/material/ClickAwayListener', () => {
 });
 
 // Mock EventLabelList
-jest.mock('../EventLabels/EventLabelList', () => {
+jest.mock('../../EventLabels/EventLabelList', () => {
     return function MockEventLabelList({ isShowingEditActions }) {
         return (
             <div data-testid="event-label-list">
@@ -43,7 +43,7 @@ jest.mock('../EventLabels/EventLabelList', () => {
 
 // Mock useAuthMutations hook
 const mockLogoutMutation = jest.fn();
-jest.mock('../../hooks/useAuthMutations', () => ({
+jest.mock('../../../hooks/useAuthMutations', () => ({
     useAuthMutations: () => ({
         logoutMutation: mockLogoutMutation
     })

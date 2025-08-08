@@ -2,8 +2,8 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { createMockAuthContextValue } from '../../mocks/providers';
-import { AuthContext } from '../../providers/AuthProvider';
+import { createMockAuthContextValue } from '../../../mocks/providers';
+import { AuthContext } from '../../../providers/AuthProvider';
 import LoginView from '../LoginView';
 
 // Mock the Google OAuth components
@@ -44,7 +44,7 @@ jest.mock('@react-oauth/google', () => ({
 
 // Mock useAuthMutations hook
 const mockLoginMutation = jest.fn();
-jest.mock('../../hooks/useAuthMutations', () => ({
+jest.mock('../../../hooks/useAuthMutations', () => ({
     useAuthMutations: () => ({
         loginMutation: mockLoginMutation
     })

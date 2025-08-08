@@ -1,11 +1,11 @@
 import { gql, useQuery } from '@apollo/client';
 import invariant from 'tiny-invariant';
 
-import LoggableEventCard from './EventCards/LoggableEventCard';
-import EventLabel from './EventLabels/EventLabel';
-import LoggableEventsView from './LoggableEventsView';
+import { useAuth } from '../../providers/AuthProvider';
+import LoggableEventCard from '../EventCards/LoggableEventCard';
+import EventLabel from '../EventLabels/EventLabel';
+import LoggableEventsView from '../Views/LoggableEventsView';
 
-import { useAuth } from '../providers/AuthProvider';
 
 export const GET_LOGGABLE_EVENTS_FOR_USER = gql`
     query GetLoggableEventsForUser {
