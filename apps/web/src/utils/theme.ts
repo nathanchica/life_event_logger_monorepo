@@ -1,7 +1,17 @@
+import { css } from '@emotion/react';
 import { blueGrey, brown, lightGreen } from '@mui/material/colors';
 import { createTheme } from '@mui/material/styles';
 
 export type AppTheme = 'light' | 'dark';
+
+/**
+ * CSS style for full viewport height with dvh fallback for better mobile support.
+ * Uses 100vh as fallback for older browsers, 100dvh for modern browsers.
+ */
+export const fullViewportHeight = css`
+    height: 100vh;
+    height: 100dvh;
+`;
 
 /**
  * Creates a Material-UI theme based on the specified mode.

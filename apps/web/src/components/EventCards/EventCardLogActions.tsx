@@ -8,7 +8,7 @@ import EventDatepicker from './EventDatepicker';
 
 import { useLoggableEvents } from '../../hooks/useLoggableEvents';
 import useMuiState from '../../hooks/useMuiState';
-import { useToggle } from '../../utils/useToggle';
+import { useToggle } from '../../hooks/useToggle';
 
 type Props = {
     eventId: string;

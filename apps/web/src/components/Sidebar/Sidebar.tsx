@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 
-import { css } from '@emotion/react';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 import Box from '@mui/material/Box';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -15,9 +14,10 @@ import SidebarActions from './SidebarActions';
 
 import { useAuthMutations } from '../../hooks/useAuthMutations';
 import useMuiState from '../../hooks/useMuiState';
+import { useToggle } from '../../hooks/useToggle';
 import { useAuth } from '../../providers/AuthProvider';
 import { useViewOptions } from '../../providers/ViewOptionsProvider';
-import { useToggle } from '../../utils/useToggle';
+import { fullViewportHeight } from '../../utils/theme';
 import EventLabelList from '../EventLabels/EventLabelList';
 import EventLabelShimmer from '../EventLabels/EventLabelShimmer';
 
@@ -59,72 +59,69 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
 
     return (
         <ClickAwayListener onClickAway={handleClickAway}>
-            <Collapse
-                in={!isCollapsed}
-                collapsedSize={56}
-                orientation="horizontal"
-                css={css`
-                    height: 100vh;
-                    height: 100dvh;
-                `}
-            >
+            <Collapse in={!isCollapsed} collapsedSize={56} orientation="horizontal" css={fullViewportHeight}>
                 <Paper
                     elevation={3}
                     square
-                    css={css`
-                        background-color: ${isDarkMode ? blueGrey[900] : green[100]};
-                        padding: 16px;
-                        padding-bottom: 80px;
-                        width: ${isMobile ? '100vw' : '400px'};
-                        height: 100vh;
-                        height: 100dvh;
-                        position: relative;
-                        display: flex;
-                        flex-direction: column;
-                        overflow: hidden;
-                    `}
+                    css={fullViewportHeight}
+                    sx={{
+                        backgroundColor: isDarkMode ? blueGrey[900] : green[100],
+                        p: 2,
+                        width: isMobile ? '100vw' : '400px',
+                        position: 'relative',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                    }}
                 >
-                    <Collapse in={!isCollapsed} orientation="horizontal">
+                    <Collapse in={!isCollapsed} orientation="horizontal" sx={{ height: '100%' }}>
                         <Box
-                            css={css`
-                                position: absolute;
-                                right: 16px;
-                            `}
+                            sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                height: '100%',
+                                width: '100%',
+                                position: 'relative',
+                                overflow: 'hidden'
+                            }}
                         >
-                            <Tooltip title="Hide sidebar">
-                                <IconButton
-                                    onClick={onCollapseSidebarClick}
-                                    aria-label="Hide sidebar"
-                                    css={css`
-                                        :hover {
-                                            background-color: ${isDarkMode ? blueGrey[600] : green[200]};
-                                        }
-                                    `}
-                                >
-                                    <KeyboardDoubleArrowLeftIcon />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
-
-                        <Box
-                            css={css`
-                                flex: 1 1 auto;
-                                overflow-y: auto;
-                                min-height: 0;
-                            `}
-                        >
-                            <Box sx={{ ml: 1.5, mt: 1 }}>
+                            <Box
+                                sx={{
+                                    ml: 1.5,
+                                    mt: 1,
+                                    mb: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}
+                            >
                                 <Typography noWrap variant="h5">
                                     Event Log {isOfflineMode && '(Offline mode)'}
                                 </Typography>
+
+                                <Tooltip title="Hide sidebar">
+                                    <IconButton
+                                        onClick={onCollapseSidebarClick}
+                                        aria-label="Hide sidebar"
+                                        sx={{
+                                            '&:hover': {
+                                                backgroundColor: isDarkMode ? blueGrey[600] : green[200]
+                                            }
+                                        }}
+                                    >
+                                        <KeyboardDoubleArrowLeftIcon />
+                                    </IconButton>
+                                </Tooltip>
                             </Box>
 
                             <Box
-                                sx={{ mt: 4 }}
-                                css={css`
-                                    overflow-y: auto;
-                                    width: ${isMobile ? '250px' : '350px'};
-                                `}
+                                sx={{
+                                    flex: '1 1 auto',
+                                    overflowY: 'scroll',
+                                    overflowX: 'hidden',
+                                    minHeight: 0,
+                                    width: isMobile ? '90vw' : '350px'
+                                }}
                             >
                                 {isLoading ? (
                                     <>
@@ -133,35 +130,28 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                                         <EventLabelShimmer />
                                     </>
                                 ) : (
-                                    <>
-                                        <EventLabelList isShowingEditActions={isEditingLabels} />
-                                        {isMobile && (
-                                            <SidebarActions
-                                                variant="list"
-                                                isEditingLabels={isEditingLabels}
-                                                onToggleTheme={handleToggleTheme}
-                                                onToggleEditLabels={() =>
-                                                    isEditingLabels ? stopEditingLabels() : startEditingLabels()
-                                                }
-                                                onLogout={handleLogout}
-                                            />
-                                        )}
-                                    </>
+                                    <EventLabelList isShowingEditActions={isEditingLabels} />
                                 )}
+                            </Box>
+
+                            <Box
+                                sx={{
+                                    pt: 2,
+                                    ...(isMobile ? { flexShrink: 0 } : { mt: 'auto' })
+                                }}
+                            >
+                                <SidebarActions
+                                    variant={isMobile ? 'list' : 'toolbar'}
+                                    isEditingLabels={isEditingLabels}
+                                    onToggleTheme={handleToggleTheme}
+                                    onToggleEditLabels={() =>
+                                        isEditingLabels ? stopEditingLabels() : startEditingLabels()
+                                    }
+                                    onLogout={handleLogout}
+                                />
                             </Box>
                         </Box>
                     </Collapse>
-
-                    {!isMobile && (
-                        <SidebarActions
-                            variant="toolbar"
-                            isCollapsed={isCollapsed}
-                            isEditingLabels={isEditingLabels}
-                            onToggleTheme={handleToggleTheme}
-                            onToggleEditLabels={() => (isEditingLabels ? stopEditingLabels() : startEditingLabels())}
-                            onLogout={handleLogout}
-                        />
-                    )}
                 </Paper>
             </Collapse>
         </ClickAwayListener>

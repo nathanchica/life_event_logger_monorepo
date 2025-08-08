@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-import { css } from '@emotion/react';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import SecurityIcon from '@mui/icons-material/Security';
 import Box from '@mui/material/Box';
@@ -19,6 +18,7 @@ import { GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oa
 
 import { useAuthMutations } from '../../hooks/useAuthMutations';
 import { useAuth } from '../../providers/AuthProvider';
+import { fullViewportHeight } from '../../utils/theme';
 
 /**
  * LoginView component
@@ -88,29 +88,25 @@ const LoginView = () => {
 
     return (
         <Box
-            css={css`
-                height: 100vh;
-                width: 100vw;
-                background: linear-gradient(
-                    135deg,
-                    ${theme.palette.mode === 'dark'
-                        ? `${theme.palette.secondary.dark}`
-                        : `${theme.palette.secondary.light}`},
-                    ${theme.palette.background.default}
-                );
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            `}
+            css={fullViewportHeight}
+            sx={{
+                width: '100vw',
+                background: `linear-gradient(135deg, ${
+                    theme.palette.mode === 'dark' ? theme.palette.secondary.dark : theme.palette.secondary.light
+                }, ${theme.palette.background.default})`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}
         >
             <Container maxWidth="sm">
                 <Card
                     elevation={8}
-                    css={css`
-                        background: ${theme.palette.background.paper};
-                        border-radius: 16px;
-                        overflow: visible;
-                    `}
+                    sx={{
+                        background: theme.palette.background.paper,
+                        borderRadius: 2,
+                        overflow: 'visible'
+                    }}
                 >
                     <CardContent sx={{ p: 4 }}>
                         <Stack spacing={3} alignItems="center">

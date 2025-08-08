@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 
-import { css } from '@emotion/react';
 import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
 import SearchIcon from '@mui/icons-material/Search';
 import Box from '@mui/material/Box';
@@ -16,7 +15,8 @@ import Typography from '@mui/material/Typography';
 import { blueGrey, green } from '@mui/material/colors';
 
 import useMuiState from '../../hooks/useMuiState';
-import { useToggle } from '../../utils/useToggle';
+import { useToggle } from '../../hooks/useToggle';
+import { fullViewportHeight } from '../../utils/theme';
 import CreateEventCard from '../EventCards/CreateEventCard';
 import EventCardShimmer from '../EventCards/EventCardShimmer';
 import LoggableEventsList from '../LoggableEvents/LoggableEventsList';
@@ -54,7 +54,8 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
             sx={{
                 overflowY: 'auto',
                 padding: isMobile ? 4 : 6,
-                minHeight: '100vh'
+                height: '100%',
+                flex: 1
             }}
             size="grow"
         >
@@ -85,10 +86,10 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
             <Grid container spacing={5} role="list" aria-label="List of loggable events" aria-live="polite">
                 {isShowingFetchError ? (
                     <Grid
-                        css={css`
-                            text-align: center;
-                            padding: 48px;
-                        `}
+                        sx={{
+                            textAlign: 'center',
+                            p: 6
+                        }}
                         size={12}
                     >
                         <Typography variant="h5" gutterBottom>
@@ -117,39 +118,33 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
     return (
         <Paper
             square
-            css={css`
-                background-color: ${theme.palette.background.default};
-                position: relative;
-                width: 100%;
-                ${isMobileSidebarOpen
-                    ? `
-                    height: 100vh;
-                    height: 100dvh;
-                    overflow: hidden;
-                `
-                    : ''}
-            `}
+            css={fullViewportHeight}
+            sx={{
+                backgroundColor: theme.palette.background.default,
+                position: 'relative',
+                width: '100%',
+                overflow: 'hidden'
+            }}
         >
             {sidebarIsCollapsed && (
                 <Box
-                    css={css`
-                        position: absolute;
-                        left: 8px;
-                        top: 16px;
-                        // https://mui.com/material-ui/customization/z-index/#main-content
-                        z-index: 1500;
-                    `}
+                    sx={{
+                        position: 'fixed',
+                        left: 8,
+                        top: 8,
+                        zIndex: theme.zIndex.drawer
+                    }}
                 >
                     <Tooltip title="Show sidebar">
                         <IconButton
                             onClick={expandSidebar}
                             aria-expanded={!sidebarIsCollapsed}
                             aria-label="Show sidebar"
-                            css={css`
-                                :hover {
-                                    background-color: ${isDarkMode ? blueGrey[600] : green[200]};
+                            sx={{
+                                '&:hover': {
+                                    backgroundColor: isDarkMode ? blueGrey[600] : green[200]
                                 }
-                            `}
+                            }}
                         >
                             <KeyboardDoubleArrowRight />
                         </IconButton>
@@ -161,21 +156,22 @@ const LoggableEventsView = ({ isLoading = false, isShowingFetchError = false }: 
                 wrap="nowrap"
                 role="application"
                 aria-label="Life event logger application"
-                css={css`
-                    width: 100%;
-                    align-items: flex-start;
-                `}
+                sx={{
+                    width: '100%',
+                    height: '100%',
+                    alignItems: 'flex-start'
+                }}
             >
                 <Grid
                     size="auto"
-                    css={css`
-                        position: ${isMobileSidebarOpen ? 'fixed' : 'sticky'};
-                        top: 0;
-                        left: 0;
-                        height: 100vh;
-                        height: 100dvh;
-                        z-index: ${isMobileSidebarOpen ? theme.zIndex.drawer : 'auto'};
-                    `}
+                    css={fullViewportHeight}
+                    sx={{
+                        position: isMobileSidebarOpen ? 'fixed' : 'relative',
+                        top: 0,
+                        left: 0,
+                        zIndex: isMobileSidebarOpen ? theme.zIndex.drawer : 'auto',
+                        flexShrink: 0
+                    }}
                 >
                     <Sidebar
                         isCollapsed={sidebarIsCollapsed}

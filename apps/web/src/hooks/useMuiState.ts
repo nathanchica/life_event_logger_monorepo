@@ -6,7 +6,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
  */
 const useMuiState = (): { theme: Theme; isMobile: boolean; isDarkMode: boolean } => {
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
     const isDarkMode = theme.palette.mode === 'dark';
 
     return { theme, isMobile, isDarkMode };

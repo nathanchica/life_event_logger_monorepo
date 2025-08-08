@@ -1,9 +1,6 @@
-/** @jsxImportSource @emotion/react */
-
 import { useState, ChangeEventHandler, SyntheticEvent } from 'react';
 
 import { gql, useFragment } from '@apollo/client';
-import { css } from '@emotion/react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CardActions from '@mui/material/CardActions';
@@ -279,11 +276,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
 
     return (
         <ClickAwayListener onClickAway={dismissForm} mouseEvent="onMouseDown" touchEvent="onTouchStart">
-            <EventCard
-                css={css`
-                    background-color: ${isDarkMode ? blueGrey[900] : blueGrey[50]};
-                `}
-            >
+            <EventCard sx={{ backgroundColor: isDarkMode ? blueGrey[900] : blueGrey[50] }}>
                 <Box
                     component="form"
                     onSubmit={eventIdToEdit ? handleUpdateEventSubmit : handleNewEventSubmit}

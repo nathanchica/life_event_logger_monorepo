@@ -22,17 +22,9 @@ type Props = {
     onToggleTheme: () => void;
     onToggleEditLabels: () => void;
     onLogout: () => void;
-    isCollapsed?: boolean;
 };
 
-const SidebarActions = ({
-    variant,
-    isEditingLabels,
-    onToggleTheme,
-    onToggleEditLabels,
-    onLogout,
-    isCollapsed = false
-}: Props) => {
+const SidebarActions = ({ variant, isEditingLabels, onToggleTheme, onToggleEditLabels, onLogout }: Props) => {
     const { isDarkMode } = useMuiState();
 
     const actions = [
@@ -102,12 +94,8 @@ const SidebarActions = ({
     return (
         <Box
             sx={{
-                position: 'absolute',
-                left: isCollapsed ? -999 : 8,
-                bottom: 16,
                 display: 'flex',
-                justifyContent: 'flex-start',
-                zIndex: 1
+                justifyContent: 'flex-start'
             }}
         >
             {actions.map((action, index) => (
