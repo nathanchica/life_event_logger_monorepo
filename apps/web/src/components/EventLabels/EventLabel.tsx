@@ -112,22 +112,22 @@ const EventLabel = ({ eventLabelId, isShowingEditActions, existingLabelNames }: 
                             disabled={validationError !== null || updateIsLoading}
                             aria-label="save"
                         >
-                            <CheckIcon />
+                            <CheckIcon fontSize="small" />
                         </IconButton>
                     ) : (
                         <IconButton edge="end" size="small" onClick={handleEditClick} aria-label="edit">
-                            <EditIcon />
+                            <EditIcon fontSize="small" />
                         </IconButton>
                     )
                 ) : null
             }
         >
-            <ListItemButton dense disableRipple onClick={handleLabelClick} selected={isActive}>
-                <ListItemIcon>
+            <ListItemButton dense disableRipple onClick={handleLabelClick} selected={isActive} sx={{ py: 0.5 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
                     {isShowingEditActions ? (
                         isEditingName ? (
                             <IconButton edge="start" size="small" onClick={handleCancelEdit} aria-label="cancel">
-                                <CancelIcon />
+                                <CancelIcon fontSize="small" />
                             </IconButton>
                         ) : (
                             <IconButton
@@ -137,11 +137,11 @@ const EventLabel = ({ eventLabelId, isShowingEditActions, existingLabelNames }: 
                                 disabled={deleteIsLoading}
                                 aria-label="delete"
                             >
-                                <DeleteIcon />
+                                <DeleteIcon fontSize="small" />
                             </IconButton>
                         )
                     ) : (
-                        <LabelIcon />
+                        <LabelIcon fontSize="small" />
                     )}
                 </ListItemIcon>
                 {isShowingEditActions && isEditingName ? (
