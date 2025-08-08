@@ -6,7 +6,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { FallbackProps } from 'react-error-boundary';
 
-import { createAppTheme } from '../utils/theme';
+import { createAppTheme } from '../../utils/theme';
 
 /**
  * Error view component that displays a user-friendly error message

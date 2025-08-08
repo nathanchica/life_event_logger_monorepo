@@ -3,8 +3,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ErrorBoundary } from 'react-error-boundary';
 
-import ErrorView from './components/ErrorView';
 import EventLoggerPage from './components/EventLoggerPage';
+import ErrorView from './components/Views/ErrorView';
 import AuthProvider from './providers/AuthProvider';
 import ViewOptionsProvider from './providers/ViewOptionsProvider';
 

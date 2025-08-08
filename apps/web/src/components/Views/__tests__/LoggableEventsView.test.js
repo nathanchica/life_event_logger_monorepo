@@ -2,27 +2,27 @@ import { createTheme } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import useMuiState from '../../hooks/useMuiState';
-import { createMockViewOptionsContextValue } from '../../mocks/providers';
-import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
+import useMuiState from '../../../hooks/useMuiState';
+import { createMockViewOptionsContextValue } from '../../../mocks/providers';
+import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import LoggableEventsView from '../LoggableEventsView';
 
-jest.mock('../../hooks/useMuiState');
+jest.mock('../../../hooks/useMuiState');
 
 // Mock child components
-jest.mock('../LoggableEventsList', () => {
+jest.mock('../../LoggableEvents/LoggableEventsList', () => {
     return function MockLoggableEventsList() {
         return <div data-testid="loggable-events-list">Loggable Events List</div>;
     };
 });
 
-jest.mock('../EventCards/CreateEventCard', () => {
+jest.mock('../../EventCards/CreateEventCard', () => {
     return function MockCreateEventCard() {
         return <div data-testid="create-event-card">Create Event Card</div>;
     };
 });
 
-jest.mock('../Sidebar', () => {
+jest.mock('../../Sidebar/Sidebar', () => {
     return function MockSidebar({ isCollapsed, onCollapseSidebarClick }) {
         return (
             <div data-testid="sidebar">

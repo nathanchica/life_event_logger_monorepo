@@ -1,10 +1,10 @@
 import { gql, useFragment } from '@apollo/client';
 import invariant from 'tiny-invariant';
 
-import LoggableEventCard from './EventCards/LoggableEventCard';
 
-import { useAuth } from '../providers/AuthProvider';
-import { useViewOptions } from '../providers/ViewOptionsProvider';
+import { useAuth } from '../../providers/AuthProvider';
+import { useViewOptions } from '../../providers/ViewOptionsProvider';
+import LoggableEventCard from '../EventCards/LoggableEventCard';
 
 type LoggableEventFragment = {
     id: string;

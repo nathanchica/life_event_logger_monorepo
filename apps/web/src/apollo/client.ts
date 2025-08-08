@@ -7,7 +7,7 @@ import { cache, setupCachePersistence } from './cache';
 
 import LoggableEventCard from '../components/EventCards/LoggableEventCard';
 import EventLabel from '../components/EventLabels/EventLabel';
-import { GET_LOGGABLE_EVENTS_FOR_USER } from '../components/LoggableEventsGQL';
+import { GET_LOGGABLE_EVENTS_FOR_USER } from '../components/LoggableEvents/LoggableEventsGQL';
 import { offlineUser } from '../providers/AuthProvider';
 import { LoggableEventFragment, EventLabelFragment, UserFragment } from '../utils/types';
 

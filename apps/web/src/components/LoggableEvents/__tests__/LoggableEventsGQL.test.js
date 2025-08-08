@@ -3,12 +3,12 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { render, screen } from '@testing-library/react';
 
-import { createMockEventLabelFragment } from '../../mocks/eventLabels';
-import { createMockLoggableEventFragment } from '../../mocks/loggableEvent';
-import { createMockAuthContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
-import { createMockUser } from '../../mocks/user';
-import { AuthContext } from '../../providers/AuthProvider';
-import { ViewOptionsContext } from '../../providers/ViewOptionsProvider';
+import { createMockEventLabelFragment } from '../../../mocks/eventLabels';
+import { createMockLoggableEventFragment } from '../../../mocks/loggableEvent';
+import { createMockAuthContextValue, createMockViewOptionsContextValue } from '../../../mocks/providers';
+import { createMockUser } from '../../../mocks/user';
+import { AuthContext } from '../../../providers/AuthProvider';
+import { ViewOptionsContext } from '../../../providers/ViewOptionsProvider';
 import LoggableEventsGQL, { GET_LOGGABLE_EVENTS_FOR_USER } from '../LoggableEventsGQL';
 
 const mockUser = createMockUser();

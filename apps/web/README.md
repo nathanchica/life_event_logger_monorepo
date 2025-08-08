@@ -22,22 +22,41 @@ Built with:
 - Husky, ESLint, and Prettier for maintaining code standards
 - React Testing Library for testing frontend components
 
-GraphQL Server at https://github.com/nathanchica/life_event_logger_api
-
 ## Architecture
-- **index.ts** - starting point and renders App
-- **App.ts** - renders all providers
-- **EventLoggerPage.ts** - initializes apollo client and renders login view or the main view based on user authentication.
+
+### Component Structure
+```
+src/components/
+├── EventCards/          # Card components for events
+├── EventLabels/         # Label-related components
+├── LoggableEvents/      # Main event list components
+├── Sidebar/             # Sidebar components
+├── Views/               # Top-level view components (Login, Error, LoggableEvents)
+└── EventLoggerPage.tsx  # Main page component
+```
+
+### Key Components
+- **index.tsx** - starting point and renders App
+- **App.tsx** - renders all providers
+- **EventLoggerPage.tsx** - initializes apollo client and renders login view or the main view based on user authentication.
 also sets up MUI theme
-- **LoggableEventsGQL.ts** - fetches the main GQL query and renders the main view, determining its loading and error states.
+- **LoggableEventsGQL.tsx** - fetches the main GQL query and renders the main view, determining its loading and error states.
 the data fetched by the query is stored in cache automatically, and all child components can access the data by
 useFragment. _each child that needs data from the cache defines their own fragments and parses their own fragments_
-- **LoggableEventsView.ts** - renders the main view (sidebar, list of events, main query loading states and error
+- **LoggableEventsView.tsx** - renders the main view (sidebar, list of events, main query loading states and error
 states)
-- **LoggableEventsList.ts** - renders the list of loggable event cards
-- **Sidebar.ts** - renders the sidebar (contains list of event labels)
+- **LoggableEventsList.tsx** - renders the list of loggable event cards
+- **Sidebar.tsx** - renders the sidebar (contains list of event labels)
+
+### Other Directories
 - **src/mocks** - mock data factories for tests
-- Tests located close to the components they are testing
+- **src/apollo** - Apollo Client configuration, cache setup, token storage, and auth link for token management
+- **src/hooks** - custom React hooks for managing states and mutations
+- **src/providers** - React Context providers
+- **src/utils** - utility functions
+- Tests located close to the components they are testing in `__tests__` folders
+
+## Features
 
 ### Optimistic Responses
 This app utilizes optimistic responses (supported by Apollo) to keep the experience fluid. GQL Mutations are defined
@@ -152,61 +171,76 @@ migration simplifies tooling across the monorepo. This project was started in 20
 web projects, but npm has since caught up.
 
 ## Test coverage
-As of 2025-07-19, only client.ts remains uncovered. Will create tests for it in the future. types.ts only contains
-common types.
+As of 2025-08-07, only client.ts and authLink.ts remains uncovered. Will create tests for them in the future.
+types.ts only contains common types.
 
 See CLAUDE.md for testing philosophy.
 ```
-File                         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s          
------------------------------|---------|----------|---------|---------|----------------------------
-All files                    |   94.01 |    83.95 |   96.17 |    93.8 |                            
- src                         |     100 |      100 |     100 |     100 |                            
-  App.tsx                    |     100 |      100 |     100 |     100 |                            
-  index.tsx                  |     100 |      100 |     100 |     100 |                            
- src/apollo                  |   30.76 |    13.09 |   27.27 |   31.25 |                            
-  cache.ts                   |     100 |      100 |     100 |     100 |                            
-  client.ts                  |      25 |    13.09 |   11.11 |   25.42 | 17-24,32-39,62-251,262-263 
- src/components              |     100 |      100 |     100 |     100 |                            
-  EventLoggerPage.tsx        |     100 |      100 |     100 |     100 |                            
-  LoggableEventsGQL.tsx      |     100 |      100 |     100 |     100 |                            
-  LoggableEventsList.tsx     |     100 |      100 |     100 |     100 |                            
-  LoggableEventsView.tsx     |     100 |      100 |     100 |     100 |                            
-  LoginView.tsx              |     100 |      100 |     100 |     100 |                            
-  Sidebar.tsx                |     100 |      100 |     100 |     100 |                            
- src/components/EventCards   |     100 |      100 |     100 |     100 |                            
-  CreateEventCard.tsx        |     100 |      100 |     100 |     100 |                            
-  EditEventCard.tsx          |     100 |      100 |     100 |     100 |                            
-  EventCard.tsx              |     100 |      100 |     100 |     100 |                            
-  EventCardHeader.tsx        |     100 |      100 |     100 |     100 |                            
-  EventCardLogActions.tsx    |     100 |      100 |     100 |     100 |                            
-  EventDatepicker.tsx        |     100 |      100 |     100 |     100 |                            
-  EventLabelAutocomplete.tsx |     100 |      100 |     100 |     100 |                            
-  EventOptionsDropdown.tsx   |     100 |      100 |     100 |     100 |                            
-  EventRecord.tsx            |     100 |      100 |     100 |     100 |                            
-  LastEventDisplay.tsx       |     100 |      100 |     100 |     100 |                            
-  LoggableEventCard.tsx      |     100 |      100 |     100 |     100 |                            
-  WarningThresholdForm.tsx   |     100 |      100 |     100 |     100 |                            
- src/components/EventLabels  |     100 |      100 |     100 |     100 |                            
-  CreateEventLabelForm.tsx   |     100 |      100 |     100 |     100 |                            
-  EventLabel.tsx             |     100 |      100 |     100 |     100 |                            
-  EventLabelList.tsx         |     100 |      100 |     100 |     100 |                            
- src/hooks                   |     100 |      100 |     100 |     100 |                            
-  useEventLabels.ts          |     100 |      100 |     100 |     100 |                            
-  useLoggableEvents.ts       |     100 |      100 |     100 |     100 |                            
- src/providers               |     100 |      100 |     100 |     100 |                            
-  AuthProvider.tsx           |     100 |      100 |     100 |     100 |                            
-  ViewOptionsProvider.tsx    |     100 |      100 |     100 |     100 |                            
- src/utils                   |     100 |      100 |     100 |     100 |                            
-  time.ts                    |     100 |      100 |     100 |     100 |                            
-  types.ts                   |       0 |        0 |       0 |       0 |                            
-  useToggle.ts               |     100 |      100 |     100 |     100 |                            
-  validation.ts              |     100 |      100 |     100 |     100 |                            
------------------------------|---------|----------|---------|---------|----------------------------
+-------------------------------|---------|----------|---------|---------|--------------------
+File                           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s  
+-------------------------------|---------|----------|---------|---------|--------------------
+All files                      |   94.34 |    85.84 |   95.81 |   94.27 |                    
+ src                           |     100 |      100 |     100 |     100 |                    
+  App.tsx                      |     100 |      100 |     100 |     100 |                    
+  index.tsx                    |     100 |      100 |     100 |     100 |                    
+ src/apollo                    |   60.62 |    29.35 |   56.52 |    61.6 |                    
+  authLink.ts                  |      40 |        0 |      50 |      40 | 12-13,27-31        
+  cache.ts                     |     100 |      100 |     100 |     100 |                    
+  client.ts                    |   34.32 |     8.97 |      20 |   35.38 | 18-25,33-40,63-252 
+  tokenStorage.ts              |     100 |      100 |     100 |     100 |                    
+ src/components                |     100 |      100 |     100 |     100 |                    
+  EventLoggerPage.tsx          |     100 |      100 |     100 |     100 |                    
+ src/components/EventCards     |     100 |      100 |     100 |     100 |                    
+  CreateEventCard.tsx          |     100 |      100 |     100 |     100 |                    
+  EditEventCard.tsx            |     100 |      100 |     100 |     100 |                    
+  EventCard.tsx                |     100 |      100 |     100 |     100 |                    
+  EventCardGridItem.tsx        |     100 |      100 |     100 |     100 |                    
+  EventCardHeader.tsx          |     100 |      100 |     100 |     100 |                    
+  EventCardLogActions.tsx      |     100 |      100 |     100 |     100 |                    
+  EventCardShimmer.tsx         |     100 |      100 |     100 |     100 |                    
+  EventDatepicker.tsx          |     100 |      100 |     100 |     100 |                    
+  EventLabelAutocomplete.tsx   |     100 |      100 |     100 |     100 |                    
+  EventOptionsDropdown.tsx     |     100 |      100 |     100 |     100 |                    
+  EventRecord.tsx              |     100 |      100 |     100 |     100 |                    
+  LastEventDisplay.tsx         |     100 |      100 |     100 |     100 |                    
+  LoggableEventCard.tsx        |     100 |      100 |     100 |     100 |                    
+  WarningThresholdForm.tsx     |     100 |      100 |     100 |     100 |                    
+ src/components/EventLabels    |     100 |      100 |     100 |     100 |                    
+  CreateEventLabelForm.tsx     |     100 |      100 |     100 |     100 |                    
+  EventLabel.tsx               |     100 |      100 |     100 |     100 |                    
+  EventLabelList.tsx           |     100 |      100 |     100 |     100 |                    
+  EventLabelShimmer.tsx        |     100 |      100 |     100 |     100 |                    
+ src/components/LoggableEvents |     100 |      100 |     100 |     100 |                    
+  LoggableEventsGQL.tsx        |     100 |      100 |     100 |     100 |                    
+  LoggableEventsList.tsx       |     100 |      100 |     100 |     100 |                    
+ src/components/Sidebar        |     100 |      100 |     100 |     100 |                    
+  Sidebar.tsx                  |     100 |      100 |     100 |     100 |                    
+  SidebarActions.tsx           |     100 |      100 |     100 |     100 |                    
+ src/components/Views          |     100 |      100 |     100 |     100 |                    
+  ErrorView.tsx                |     100 |      100 |     100 |     100 |                    
+  LoggableEventsView.tsx       |     100 |      100 |     100 |     100 |                    
+  LoginView.tsx                |     100 |      100 |     100 |     100 |                    
+ src/hooks                     |     100 |      100 |     100 |     100 |                    
+  useAuthMutations.ts          |     100 |      100 |     100 |     100 |                    
+  useEventLabels.ts            |     100 |      100 |     100 |     100 |                    
+  useLoggableEvents.ts         |     100 |      100 |     100 |     100 |                    
+  useMuiState.ts               |     100 |      100 |     100 |     100 |                    
+ src/providers                 |     100 |      100 |     100 |     100 |                    
+  AuthProvider.tsx             |     100 |      100 |     100 |     100 |                    
+  ViewOptionsProvider.tsx      |     100 |      100 |     100 |     100 |                    
+ src/utils                     |     100 |      100 |     100 |     100 |                    
+  theme.ts                     |     100 |      100 |     100 |     100 |                    
+  time.ts                      |     100 |      100 |     100 |     100 |                    
+  types.ts                     |       0 |        0 |       0 |       0 |                    
+  useToggle.ts                 |     100 |      100 |     100 |     100 |                    
+  validation.ts                |     100 |      100 |     100 |     100 |                    
+-------------------------------|---------|----------|---------|---------|--------------------
 
-Test Suites: 28 passed, 28 total
-Tests:       380 passed, 380 total
+Test Suites: 35 passed, 35 total
+Tests:       485 passed, 485 total
 Snapshots:   0 total
-Time:        6.033 s
+Time:        5.954 s, estimated 11 s
+Ran all test suites.
 ```
 
 ## Future plans

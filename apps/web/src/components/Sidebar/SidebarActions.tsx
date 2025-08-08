@@ -14,7 +14,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ToggleButton from '@mui/material/ToggleButton';
 import Tooltip from '@mui/material/Tooltip';
 
-import useMuiState from '../hooks/useMuiState';
+import useMuiState from '../../hooks/useMuiState';
 
 type Props = {
     variant: 'list' | 'toolbar';

@@ -11,15 +11,15 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { blueGrey, green } from '@mui/material/colors';
 
-import EventLabelList from './EventLabels/EventLabelList';
-import EventLabelShimmer from './EventLabels/EventLabelShimmer';
 import SidebarActions from './SidebarActions';
 
-import { useAuthMutations } from '../hooks/useAuthMutations';
-import useMuiState from '../hooks/useMuiState';
-import { useAuth } from '../providers/AuthProvider';
-import { useViewOptions } from '../providers/ViewOptionsProvider';
-import { useToggle } from '../utils/useToggle';
+import { useAuthMutations } from '../../hooks/useAuthMutations';
+import useMuiState from '../../hooks/useMuiState';
+import { useAuth } from '../../providers/AuthProvider';
+import { useViewOptions } from '../../providers/ViewOptionsProvider';
+import { useToggle } from '../../utils/useToggle';
+import EventLabelList from '../EventLabels/EventLabelList';
+import EventLabelShimmer from '../EventLabels/EventLabelShimmer';
 
 type Props = {
     isCollapsed: boolean;
