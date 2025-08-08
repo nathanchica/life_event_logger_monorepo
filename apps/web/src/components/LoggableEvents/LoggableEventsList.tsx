@@ -13,6 +13,7 @@ type LoggableEventFragment = {
     name: string;
     labels: Array<{
         id: string;
+        name: string;
     }>;
 };
 
@@ -23,6 +24,7 @@ const LOGGABLE_EVENTS_FOR_USER_FRAGMENT = gql`
             name
             labels {
                 id
+                name
             }
         }
     }
@@ -61,7 +63,7 @@ const LoggableEventsList = ({ searchTerm = '' }: Props) => {
     const fuse = useMemo(
         () =>
             new Fuse(labelFilteredEvents, {
-                keys: ['name'],
+                keys: ['name', 'labels.name'],
                 threshold: 0.3,
                 includeScore: false
             }),
