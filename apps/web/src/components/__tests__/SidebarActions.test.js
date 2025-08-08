@@ -11,18 +11,11 @@ describe('SidebarActions', () => {
     const mockOnToggleTheme = jest.fn();
     const mockOnToggleEditLabels = jest.fn();
     const mockOnLogout = jest.fn();
-    const mockWindowOpen = jest.fn();
-    const originalWindowOpen = window.open;
 
     beforeEach(() => {
         user = userEvent.setup();
         jest.clearAllMocks();
         useMuiState.mockReturnValue({ isDarkMode: false });
-        window.open = mockWindowOpen;
-    });
-
-    afterEach(() => {
-        window.open = originalWindowOpen;
     });
 
     describe('list variant', () => {
@@ -64,14 +57,13 @@ describe('SidebarActions', () => {
             expect(handlers[handlerName]).toHaveBeenCalledTimes(1);
         });
 
-        it('handles GitHub link click', async () => {
+        it('renders GitHub link with correct href', () => {
             renderComponent();
 
-            await user.click(screen.getByText('View on GitHub'));
-            expect(mockWindowOpen).toHaveBeenCalledWith(
-                'https://github.com/nathanchica/life_event_logger_monorepo',
-                '_blank'
-            );
+            const githubLink = screen.getByText('View on GitHub').closest('a');
+            expect(githubLink).toHaveAttribute('href', 'https://github.com/nathanchica/life_event_logger_monorepo');
+            expect(githubLink).toHaveAttribute('target', '_blank');
+            expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
         });
 
         it('shows correct theme text when dark mode is enabled', () => {
@@ -137,14 +129,13 @@ describe('SidebarActions', () => {
             expect(handlers[handlerName]).toHaveBeenCalledTimes(1);
         });
 
-        it('handles GitHub link click', async () => {
+        it('renders GitHub link with correct href', () => {
             renderComponent();
 
-            await user.click(screen.getByLabelText('View on GitHub'));
-            expect(mockWindowOpen).toHaveBeenCalledWith(
-                'https://github.com/nathanchica/life_event_logger_monorepo',
-                '_blank'
-            );
+            const githubLink = screen.getByLabelText('View on GitHub');
+            expect(githubLink).toHaveAttribute('href', 'https://github.com/nathanchica/life_event_logger_monorepo');
+            expect(githubLink).toHaveAttribute('target', '_blank');
+            expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
         });
 
         it('shows correct theme aria-label when dark mode is enabled', () => {

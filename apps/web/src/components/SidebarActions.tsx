@@ -60,7 +60,6 @@ const SidebarActions = ({
             key: 'github',
             icon: <GitHubIcon fontSize="small" />,
             label: 'View on GitHub',
-            onClick: () => window.open('https://github.com/nathanchica/life_event_logger_monorepo', '_blank'),
             isToggle: false,
             selected: false,
             isLink: true,
