@@ -270,6 +270,56 @@ describe('LoggableEventsList', () => {
             expect(eventCards).toHaveLength(1);
             expect(screen.getByTestId('loggable-event-card-event-1')).toBeInTheDocument();
         });
+
+        it('filters events by label name', () => {
+            renderWithProviders({ searchTerm: 'Health', viewOptionsValue: { activeEventLabelId: null } });
+
+            // Should find Gym Session which has the Health label
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-2')).toBeInTheDocument();
+        });
+
+        it('filters events by partial label name match', () => {
+            renderWithProviders({ searchTerm: 'Soc', viewOptionsValue: { activeEventLabelId: null } });
+
+            // Should find Team Building which has the Social label
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-3')).toBeInTheDocument();
+        });
+
+        it('finds all events with matching label name', () => {
+            renderWithProviders({ searchTerm: 'Work', viewOptionsValue: { activeEventLabelId: null } });
+
+            // Should find Work Meeting and Team Building (both have Work label)
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(2);
+            expect(screen.getByTestId('loggable-event-card-event-1')).toBeInTheDocument();
+            expect(screen.getByTestId('loggable-event-card-event-3')).toBeInTheDocument();
+        });
+
+        it('matches either event name or label name', () => {
+            // Add an event with a name that doesn't match its label
+            const customEvents = [
+                createMockLoggableEventFragment({
+                    id: 'event-4',
+                    name: 'Going for a walk',
+                    labels: [createMockEventLabelFragment({ id: 'label-health', name: 'Health' })]
+                })
+            ];
+
+            renderWithProviders({
+                searchTerm: 'Health',
+                viewOptionsValue: { activeEventLabelId: null },
+                loggableEvents: customEvents
+            });
+
+            // Should find the event even though 'Health' is only in the label, not the event name
+            const eventCards = screen.getAllByTestId(/^loggable-event-card-/);
+            expect(eventCards).toHaveLength(1);
+            expect(screen.getByTestId('loggable-event-card-event-4')).toBeInTheDocument();
+        });
     });
 
     describe('combined filtering (search and label)', () => {
