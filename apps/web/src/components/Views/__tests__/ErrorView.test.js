@@ -7,14 +7,57 @@ import ErrorView from '../ErrorView';
 // Mock useMediaQuery to control theme preference
 jest.mock('@mui/material/useMediaQuery');
 
+/**
+ * Creates a mock localStorage object
+ */
+const createLocalStorageMock = () => {
+    let store = {};
+    return {
+        getItem: jest.fn((key) => store[key] || null),
+        setItem: jest.fn((key, value) => {
+            store[key] = value;
+        }),
+        removeItem: jest.fn((key) => {
+            delete store[key];
+        }),
+        clear: jest.fn(() => {
+            store = {};
+        }),
+        _reset: () => {
+            store = {};
+        }
+    };
+};
+
 describe('ErrorView', () => {
     let user;
     const mockResetErrorBoundary = jest.fn();
     const mockError = new Error('Test error: Something went wrong!');
+    const originalLocalStorage = window.localStorage;
+    let localStorageMock;
 
     beforeEach(() => {
         jest.clearAllMocks();
         user = userEvent.setup();
+
+        // Mock localStorage
+        localStorageMock = createLocalStorageMock();
+        Object.defineProperty(window, 'localStorage', {
+            value: localStorageMock,
+            writable: true
+        });
+
+        // Pre-populate localStorage with apollo cache key
+        localStorageMock.setItem('apollo-cache-persist', JSON.stringify({ test: 'data' }));
+    });
+
+    afterEach(() => {
+        // Restore original localStorage
+        Object.defineProperty(window, 'localStorage', {
+            value: originalLocalStorage,
+            writable: true,
+            configurable: true
+        });
     });
 
     describe('Theme Modes', () => {
@@ -30,6 +73,7 @@ describe('ErrorView', () => {
             expect(screen.getByText(/We're sorry, but something unexpected happened/)).toBeInTheDocument();
             expect(screen.getByText(/chicanathan@gmail.com/)).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /clear my local data/i })).toBeInTheDocument();
         });
 
         it.each([
@@ -100,6 +144,33 @@ describe('ErrorView', () => {
             expect(screen.getByText(/at TestFunction/)).toBeInTheDocument();
 
             process.env.NODE_ENV = originalNodeEnv;
+        });
+    });
+
+    describe('Clear Local Data functionality', () => {
+        it.each([
+            ['light mode', false],
+            ['dark mode', true]
+        ])('clears apollo cache from localStorage and resets error boundary in %s', async (_, prefersDarkMode) => {
+            useMediaQuery.mockReturnValue(prefersDarkMode);
+
+            render(<ErrorView error={mockError} resetErrorBoundary={mockResetErrorBoundary} />);
+
+            // Verify apollo cache is in localStorage before clearing
+            expect(localStorageMock.getItem('apollo-cache-persist')).toBeTruthy();
+
+            const clearDataButton = screen.getByRole('button', { name: /clear my local data/i });
+            await user.click(clearDataButton);
+
+            // Should remove the apollo cache key
+            expect(localStorageMock.removeItem).toHaveBeenCalledWith('apollo-cache-persist');
+            expect(localStorageMock.removeItem).toHaveBeenCalledTimes(1);
+
+            // Should NOT clear all of localStorage
+            expect(localStorageMock.clear).not.toHaveBeenCalled();
+
+            // Should call resetErrorBoundary
+            expect(mockResetErrorBoundary).toHaveBeenCalledTimes(1);
         });
     });
 });
