@@ -21,8 +21,11 @@ const ErrorView = ({ error, resetErrorBoundary }: FallbackProps) => {
     const theme = useMemo(() => createAppTheme(prefersDarkMode ? 'dark' : 'light'), [prefersDarkMode]);
 
     const handleClearLocalData = () => {
-        localStorage.removeItem('apollo-cache-persist');
-        resetErrorBoundary();
+        try {
+            localStorage.removeItem('apollo-cache-persist');
+        } finally {
+            resetErrorBoundary();
+        }
     };
 
     return (
