@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { ErrorOutline } from '@mui/icons-material';
-import { Box, Button, Container, Typography } from '@mui/material';
+import { Box, Button, Container, Link, Typography } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { FallbackProps } from 'react-error-boundary';
@@ -19,6 +19,14 @@ const ErrorView = ({ error, resetErrorBoundary }: FallbackProps) => {
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
     const theme = useMemo(() => createAppTheme(prefersDarkMode ? 'dark' : 'light'), [prefersDarkMode]);
+
+    const handleClearLocalData = () => {
+        try {
+            localStorage.removeItem('apollo-cache-persist');
+        } finally {
+            resetErrorBoundary();
+        }
+    };
 
     return (
         <ThemeProvider theme={theme}>
@@ -49,8 +57,16 @@ const ErrorView = ({ error, resetErrorBoundary }: FallbackProps) => {
                         </Typography>
 
                         <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                            We&apos;re sorry, but something unexpected happened. Please try refreshing the page or
-                            contact chicanathan@gmail.com if the problem persists.
+                            We&apos;re sorry, but something unexpected happened.
+                            <br />
+                            <br />
+                            Please try again, or if the error persists, try clearing your local data.
+                            <br />
+                            If that doesn&apos;t work, please contact{' '}
+                            <Link href="mailto:chicanathan@gmail.com" underline="hover">
+                                chicanathan@gmail.com
+                            </Link>
+                            .
                         </Typography>
 
                         {process.env.NODE_ENV === 'development' && (
@@ -78,9 +94,12 @@ const ErrorView = ({ error, resetErrorBoundary }: FallbackProps) => {
                             </Box>
                         )}
 
-                        <Box sx={{ mt: 2 }}>
+                        <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
                             <Button variant="contained" color="primary" onClick={resetErrorBoundary}>
                                 Try Again
+                            </Button>
+                            <Button variant="outlined" color="secondary" onClick={handleClearLocalData}>
+                                Clear my local data
                             </Button>
                         </Box>
                     </Box>
