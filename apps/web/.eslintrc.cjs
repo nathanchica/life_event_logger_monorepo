@@ -23,6 +23,13 @@ module.exports = {
                 "react/prop-types": "off",
                 "react/display-name": "off"
             }
+        },
+        {
+            files: ["**/*.ts", "**/*.tsx"],
+            rules: {
+                "react/prop-types": "off",
+                "react/display-name": "off"
+            }
         }
     ],
     parser: '@typescript-eslint/parser',

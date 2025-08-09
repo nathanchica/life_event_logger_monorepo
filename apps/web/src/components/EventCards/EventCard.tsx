@@ -1,4 +1,4 @@
-import { ReactNode, ComponentProps } from 'react';
+import { ReactNode, ComponentProps, forwardRef } from 'react';
 
 import Card from '@mui/material/Card';
 import Grow from '@mui/material/Grow';
@@ -14,12 +14,15 @@ type Props = {
 
 /**
  * EventCard component for displaying a single event card.
+ *
+ * Passing ref to underlying MUI Grid component for use with MUI ClickAwayListener
+ * https://mui.com/material-ui/guides/composition/#caveat-with-refs
  */
-const EventCard = ({ children, ...cardProps }: Props) => {
+const EventCard = forwardRef<HTMLDivElement, Props>(({ children, ...cardProps }, ref) => {
     const { isDarkMode } = useMuiState();
 
     return (
-        <EventCardGridItem>
+        <EventCardGridItem ref={ref}>
             <Grow in>
                 <Card
                     sx={{
@@ -38,6 +41,6 @@ const EventCard = ({ children, ...cardProps }: Props) => {
             </Grow>
         </EventCardGridItem>
     );
-};
+});
 
 export default EventCard;
