@@ -1,3 +1,4 @@
+import { useDisableIntrospection } from '@graphql-yoga/plugin-disable-introspection';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createYoga } from 'graphql-yoga';
 
@@ -25,7 +26,7 @@ const yoga = createYoga({
         errorMessage: 'Unexpected error.',
         isDev: env.NODE_ENV === 'development' // Show full errors in development
     },
-    plugins: [contextHeadersPlugin]
+    plugins: [contextHeadersPlugin, ...(env.NODE_ENV === 'production' ? [useDisableIntrospection()] : [])]
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
