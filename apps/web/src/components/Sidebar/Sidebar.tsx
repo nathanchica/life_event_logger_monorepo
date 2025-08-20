@@ -117,10 +117,27 @@ const Sidebar = ({ isCollapsed, isLoading, onCollapseSidebarClick }: Props) => {
                             <Box
                                 sx={{
                                     flex: '1 1 auto',
-                                    overflowY: 'scroll',
+                                    overflowY: 'auto',
                                     overflowX: 'hidden',
                                     minHeight: 0,
-                                    width: isMobile ? '90vw' : '350px'
+                                    width: isMobile ? '90vw' : '350px',
+                                    scrollbarWidth: 'thin', // Firefox
+                                    scrollbarColor: 'rgba(0,0,0,0.2) transparent', // Firefox
+                                    '&::-webkit-scrollbar': {
+                                        width: '6px'
+                                    },
+                                    '&::-webkit-scrollbar-track': {
+                                        background: 'transparent'
+                                    },
+                                    '&::-webkit-scrollbar-thumb': {
+                                        backgroundColor: 'rgba(0,0,0,0.2)',
+                                        borderRadius: '3px',
+                                        opacity: 0,
+                                        transition: 'opacity 0.3s'
+                                    },
+                                    '&:hover::-webkit-scrollbar-thumb': {
+                                        opacity: 1
+                                    }
                                 }}
                             >
                                 {isLoading ? (
