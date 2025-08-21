@@ -291,8 +291,7 @@ describe('Token utilities', () => {
                 expiresAt: expectedExpiresAt,
                 createdAt: new Date(),
                 lastUsedAt: null,
-                userAgent: null,
-                ipAddress: null
+                userAgent: null
             });
 
             const result = await createRefreshToken(prismaMock, userId);
@@ -312,8 +311,7 @@ describe('Token utilities', () => {
         it('should create a refresh token with metadata', async () => {
             const userId = 'user-123';
             const metadata = {
-                userAgent: 'Mozilla/5.0',
-                ipAddress: '192.168.1.1'
+                userAgent: 'Mozilla/5.0'
             };
             const mockToken = 'generated-refresh-token';
             const mockHashedToken = 'hashed-refresh-token';
@@ -339,8 +337,7 @@ describe('Token utilities', () => {
                 expiresAt: new Date('2024-01-31T00:00:00Z'),
                 createdAt: new Date(),
                 lastUsedAt: null,
-                userAgent: metadata.userAgent,
-                ipAddress: metadata.ipAddress
+                userAgent: metadata.userAgent
             });
 
             const result = await createRefreshToken(prismaMock, userId, metadata);
@@ -351,8 +348,7 @@ describe('Token utilities', () => {
                     token: mockHashedToken,
                     userId,
                     expiresAt: new Date('2024-01-31T00:00:00Z'),
-                    userAgent: metadata.userAgent,
-                    ipAddress: metadata.ipAddress
+                    userAgent: metadata.userAgent
                 }
             });
         });
@@ -485,8 +481,7 @@ describe('Token utilities', () => {
             const newToken = 'new-refresh-token';
             const newHashedToken = 'new-hashed-token';
             const metadata = {
-                userAgent: 'Mozilla/5.0',
-                ipAddress: '192.168.1.1'
+                userAgent: 'Mozilla/5.0'
             };
 
             const oldRefreshToken = {
@@ -497,7 +492,7 @@ describe('Token utilities', () => {
                 createdAt: new Date('2024-01-01T00:00:00Z'),
                 lastUsedAt: new Date('2024-01-10T00:00:00Z'),
                 userAgent: 'Old Browser',
-                ipAddress: '10.0.0.1'
+                ipAddress: null
             };
 
             // Mock finding old token
@@ -525,8 +520,7 @@ describe('Token utilities', () => {
                 expiresAt: new Date('2024-02-14T00:00:00Z'),
                 createdAt: new Date(),
                 lastUsedAt: null,
-                userAgent: metadata.userAgent,
-                ipAddress: metadata.ipAddress
+                userAgent: metadata.userAgent
             });
 
             const result = await rotateRefreshToken(prismaMock, oldTokenId, metadata);
@@ -543,8 +537,7 @@ describe('Token utilities', () => {
                     token: newHashedToken,
                     userId,
                     expiresAt: new Date('2024-02-14T00:00:00Z'),
-                    userAgent: metadata.userAgent,
-                    ipAddress: metadata.ipAddress
+                    userAgent: metadata.userAgent
                 }
             });
         });
@@ -674,8 +667,7 @@ describe('Token utilities', () => {
 
             const userId = 'user-123';
             const metadata = {
-                userAgent: 'Mozilla/5.0',
-                ipAddress: '192.168.1.1'
+                userAgent: 'Mozilla/5.0'
             };
 
             // Create refresh token
@@ -700,7 +692,7 @@ describe('Token utilities', () => {
                 createdAt: new Date(),
                 lastUsedAt: null,
                 userAgent: metadata.userAgent,
-                ipAddress: metadata.ipAddress
+                ipAddress: null
             };
 
             prismaMock.refreshToken.create.mockResolvedValue(createdToken);
@@ -754,7 +746,7 @@ describe('Token utilities', () => {
                 createdAt: new Date(),
                 lastUsedAt: null,
                 userAgent: metadata.userAgent,
-                ipAddress: metadata.ipAddress
+                ipAddress: null
             };
 
             prismaMock.refreshToken.create.mockResolvedValue(newCreatedToken);

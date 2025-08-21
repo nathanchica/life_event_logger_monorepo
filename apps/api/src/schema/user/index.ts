@@ -16,6 +16,7 @@ import {
 import { env } from '../../config/env.js';
 import { ClientType, Resolvers } from '../../generated/graphql.js';
 import { getIdEncoder } from '../../utils/encoder.js';
+import { isGraphQLError } from '../../utils/error.js';
 import { formatZodError } from '../../utils/validation.js';
 import { EventLabelParent } from '../eventLabel/index.js';
 import { LoggableEventParent } from '../loggableEvent/index.js';
@@ -195,7 +196,7 @@ const resolvers: Resolvers = {
                     };
                 }
             } catch (error) {
-                if (error instanceof GraphQLError) {
+                if (isGraphQLError(error)) {
                     throw error;
                 }
                 console.error('Error in refreshTokenMutation:', error);
