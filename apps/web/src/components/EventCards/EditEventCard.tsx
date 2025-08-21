@@ -156,13 +156,22 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         }
     });
 
-    const allEventLabels: Array<EventLabel> = userLabelsAndEventsData.eventLabels.map(createEventLabelFromFragment);
-    const allLoggableEvents: Array<LoggableEvent> = userLabelsAndEventsData.loggableEvents.map(
-        createCoreLoggableEventFromFragment
-    );
-    const existingEventNames: Array<string> = allLoggableEvents.map(({ name }) => name);
+    let allEventLabels: Array<EventLabel>;
+    let allLoggableEvents: Array<LoggableEvent>;
+    let existingEventNames: Array<string>;
+    let eventToEdit: LoggableEvent;
 
-    const eventToEdit = !isCreatingNewEvent ? createLoggableEventFromFragment(loggableEventData) : EVENT_DEFAULT_VALUES;
+    try {
+        allEventLabels = userLabelsAndEventsData.eventLabels.map(createEventLabelFromFragment);
+        allLoggableEvents = userLabelsAndEventsData.loggableEvents.map(createCoreLoggableEventFromFragment);
+        existingEventNames = allLoggableEvents.map(({ name }) => name);
+        eventToEdit = !isCreatingNewEvent ? createLoggableEventFromFragment(loggableEventData) : EVENT_DEFAULT_VALUES;
+    } catch {
+        allEventLabels = [];
+        allLoggableEvents = [];
+        existingEventNames = [];
+        eventToEdit = EVENT_DEFAULT_VALUES;
+    }
 
     /** Event name */
     const [eventNameInputValue, setEventNameInputValue] = useState(eventToEdit.name);
@@ -207,7 +216,7 @@ const EditEventCard = ({ onDismiss, eventIdToEdit }: Props) => {
         ? allEventLabels.find(({ id }) => id === activeEventLabelId)
         : undefined;
     const [labelInputIsVisible, setLabelInputIsVisible] = useState(
-        isCreatingNewEvent ? Boolean(activeEventLabelId) : eventToEdit.labelIds && eventToEdit.labelIds.length > 0
+        isCreatingNewEvent ? Boolean(activeEventLabel) : eventToEdit.labelIds && eventToEdit.labelIds.length > 0
     );
     const [selectedLabels, setSelectedLabels] = useState<EventLabel[]>(() => {
         if (isCreatingNewEvent && activeEventLabel) {
