@@ -16,6 +16,7 @@ import {
 import { env } from '../../config/env.js';
 import { ClientType, Resolvers } from '../../generated/graphql.js';
 import { getIdEncoder } from '../../utils/encoder.js';
+import { isGraphQLError } from '../../utils/error.js';
 import { formatZodError } from '../../utils/validation.js';
 import { EventLabelParent } from '../eventLabel/index.js';
 import { LoggableEventParent } from '../loggableEvent/index.js';
@@ -91,9 +92,7 @@ const resolvers: Resolvers = {
                 const accessToken = generateAccessToken({ userId: user.id, email: user.email });
 
                 // Create refresh token
-                const refreshToken = await createRefreshToken(prisma, user.id, {
-                    userAgent: requestMetadata.userAgent
-                });
+                const refreshToken = await createRefreshToken(prisma, user.id, requestMetadata);
 
                 // Set refresh token as httpOnly cookie for web clients
                 if (clientType === ClientType.Web) {
@@ -177,9 +176,7 @@ const resolvers: Resolvers = {
                 const accessToken = generateAccessToken({ userId: user.id, email: user.email });
 
                 // Rotate refresh token
-                const newRefreshToken = await rotateRefreshToken(prisma, tokenId, {
-                    userAgent: requestMetadata.userAgent
-                });
+                const newRefreshToken = await rotateRefreshToken(prisma, tokenId, requestMetadata);
 
                 // Determine client type based on how token was provided
                 const isWebClient = !!cookies?.refreshToken;
@@ -199,7 +196,7 @@ const resolvers: Resolvers = {
                     };
                 }
             } catch (error) {
-                if (error instanceof GraphQLError) {
+                if (isGraphQLError(error)) {
                     throw error;
                 }
                 console.error('Error in refreshTokenMutation:', error);

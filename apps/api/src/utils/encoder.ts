@@ -2,6 +2,8 @@ import { GraphQLError } from 'graphql';
 import Sqids from 'sqids';
 import { z } from 'zod';
 
+import { isGraphQLError } from './error.js';
+
 export type EntityType = 'user' | 'loggableEvent' | 'eventLabel';
 
 // MongoDB ObjectId validation schema
@@ -105,7 +107,7 @@ export class IdEncoder {
 
             return this.numbersToId(numbers);
         } catch (error) {
-            if (error instanceof GraphQLError) {
+            if (isGraphQLError(error)) {
                 throw error;
             }
 

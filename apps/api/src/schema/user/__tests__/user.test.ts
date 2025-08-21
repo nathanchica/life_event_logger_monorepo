@@ -435,7 +435,6 @@ describe('User GraphQL', () => {
                 { user: null, prisma: prismaMock }
             );
 
-            // Should have GraphQL error (masked as "Unexpected error.")
             expect(errors).toBeDefined();
             expect(errors[0].extensions.code).toBe('INTERNAL_SERVER_ERROR');
             expect(data).toBeNull();

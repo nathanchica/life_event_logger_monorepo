@@ -27,7 +27,9 @@ export const createMockContext = (overrides?: Partial<GraphQLContext>): GraphQLC
         response: defaultResponse,
         cookies: {},
         params: {},
+        /* v8 ignore start */
         waitUntil: () => {},
+        /* v8 ignore stop */
         ...overrides
     };
 };

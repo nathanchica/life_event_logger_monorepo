@@ -537,8 +537,7 @@ describe('Token utilities', () => {
                     token: newHashedToken,
                     userId,
                     expiresAt: new Date('2024-02-14T00:00:00Z'),
-                    userAgent: metadata.userAgent,
-                    ipAddress: null
+                    userAgent: metadata.userAgent
                 }
             });
         });

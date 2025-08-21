@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { Resolvers } from '../../generated/graphql.js';
 import { getIdEncoder } from '../../utils/encoder.js';
+import { isGraphQLError } from '../../utils/error.js';
 import { formatZodError } from '../../utils/validation.js';
 import { EventLabelParent } from '../eventLabel/index.js';
 import { UserParent } from '../user/index.js';
@@ -228,7 +229,7 @@ const resolvers: Resolvers = {
                     };
                 }
 
-                if (error instanceof GraphQLError) {
+                if (isGraphQLError(error)) {
                     // Re-throw GraphQL errors (like authorization failures)
                     throw error;
                 }

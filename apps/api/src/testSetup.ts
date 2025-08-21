@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
 // Set up test environment variables before importing any modules
-process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = 'production';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 process.env.CLIENT_URL = 'http://localhost:3000';

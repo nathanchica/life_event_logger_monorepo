@@ -4,6 +4,7 @@ import { defaultFieldResolver, GraphQLError, GraphQLFieldConfig, GraphQLSchema }
 
 import { GraphQLContext } from '../context.js';
 import { getIdEncoder } from '../utils/encoder.js';
+import { isGraphQLError } from '../utils/error.js';
 
 /**
  * Resource types that can be protected by the @requireOwner directive
@@ -85,7 +86,7 @@ export async function validateResourceOwnership(
             });
         }
     } catch (error) {
-        if (error instanceof GraphQLError) {
+        if (isGraphQLError(error)) {
             throw error;
         }
         console.error('Failed to verify resource ownership:', error);
