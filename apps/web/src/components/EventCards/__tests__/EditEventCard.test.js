@@ -400,4 +400,172 @@ describe('EditEventCard', () => {
             expect(mockUpdateLoggableEvent).not.toHaveBeenCalled();
         });
     });
+
+    describe('Error handling for fragment data extraction', () => {
+        let mockAuthValue;
+        let mockViewOptionsValue;
+        let muiTheme;
+
+        beforeEach(() => {
+            mockAuthValue = createMockAuthContextValue({
+                user: { id: mockUserFragment.id, email: mockUserFragment.email, name: mockUserFragment.name }
+            });
+            mockViewOptionsValue = createMockViewOptionsContextValue({});
+            muiTheme = createTheme({
+                palette: {
+                    mode: 'light'
+                }
+            });
+        });
+
+        it('handles error when createEventLabelFromFragment throws during create mode', async () => {
+            // Prepare cache with invalid data that will cause map to fail
+            apolloCache = new InMemoryCache();
+            apolloCache.writeQuery({
+                query: GET_USER_EVENTS_AND_LABELS,
+                data: {
+                    loggedInUser: {
+                        __typename: 'User',
+                        id: mockUserFragment.id,
+                        loggableEvents: [mockEvent],
+                        eventLabels: null // This will cause the map to fail
+                    }
+                }
+            });
+
+            render(
+                <MockedProvider addTypename={false} cache={apolloCache}>
+                    <ThemeProvider theme={muiTheme}>
+                        <AuthContext.Provider value={mockAuthValue}>
+                            <ViewOptionsContext.Provider value={mockViewOptionsValue}>
+                                <EditEventCard onDismiss={mockOnDismiss} />
+                            </ViewOptionsContext.Provider>
+                        </AuthContext.Provider>
+                    </ThemeProvider>
+                </MockedProvider>
+            );
+
+            // Component should still render with fallback values
+            expect(screen.getByLabelText('Event name')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Add labels' })).toBeInTheDocument();
+        });
+
+        it('handles error when createCoreLoggableEventFromFragment throws', async () => {
+            // Prepare cache with invalid data structure for loggableEvents
+            apolloCache = new InMemoryCache();
+            apolloCache.writeQuery({
+                query: GET_USER_EVENTS_AND_LABELS,
+                data: {
+                    loggedInUser: {
+                        __typename: 'User',
+                        id: mockUserFragment.id,
+                        loggableEvents: null, // This will cause the map to fail
+                        eventLabels: mockEventLabels
+                    }
+                }
+            });
+
+            render(
+                <MockedProvider addTypename={false} cache={apolloCache}>
+                    <ThemeProvider theme={muiTheme}>
+                        <AuthContext.Provider value={mockAuthValue}>
+                            <ViewOptionsContext.Provider value={mockViewOptionsValue}>
+                                <EditEventCard onDismiss={mockOnDismiss} />
+                            </ViewOptionsContext.Provider>
+                        </AuthContext.Provider>
+                    </ThemeProvider>
+                </MockedProvider>
+            );
+
+            // Component should still render with fallback values
+            expect(screen.getByLabelText('Event name')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument();
+        });
+
+        it('handles error when createLoggableEventFromFragment throws during edit mode', async () => {
+            // Prepare cache with valid user data but invalid event data
+            apolloCache = new InMemoryCache();
+            apolloCache.writeQuery({
+                query: GET_USER_EVENTS_AND_LABELS,
+                data: {
+                    loggedInUser: {
+                        __typename: 'User',
+                        id: mockUserFragment.id,
+                        loggableEvents: [
+                            {
+                                __typename: 'LoggableEvent',
+                                id: 'event-1',
+                                name: 'Existing Event',
+                                timestamps: null, // This will cause createLoggableEventFromFragment to fail
+                                warningThresholdInDays: 14,
+                                labels: [mockEventLabels[0]]
+                            }
+                        ],
+                        eventLabels: mockEventLabels
+                    }
+                }
+            });
+
+            render(
+                <MockedProvider addTypename={false} cache={apolloCache}>
+                    <ThemeProvider theme={muiTheme}>
+                        <AuthContext.Provider value={mockAuthValue}>
+                            <ViewOptionsContext.Provider value={mockViewOptionsValue}>
+                                <EditEventCard onDismiss={mockOnDismiss} eventIdToEdit="event-1" />
+                            </ViewOptionsContext.Provider>
+                        </AuthContext.Provider>
+                    </ThemeProvider>
+                </MockedProvider>
+            );
+
+            expect(screen.getByLabelText('Event name')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Update' })).toBeInTheDocument();
+
+            const input = screen.getByLabelText('Event name');
+            expect(input).toHaveValue('');
+
+            const warningSwitch = screen.getByLabelText('Enable warning');
+            expect(warningSwitch).not.toBeChecked();
+        });
+
+        it('handles multiple errors in fragment data extraction', async () => {
+            apolloCache = new InMemoryCache();
+            apolloCache.writeQuery({
+                query: GET_USER_EVENTS_AND_LABELS,
+                data: {
+                    loggedInUser: {
+                        __typename: 'User',
+                        id: mockUserFragment.id,
+                        loggableEvents: undefined,
+                        eventLabels: undefined
+                    }
+                }
+            });
+
+            mockViewOptionsValue = createMockViewOptionsContextValue({
+                activeEventLabelId: 'label-1' // This won't be found in the empty labels array
+            });
+
+            render(
+                <MockedProvider addTypename={false} cache={apolloCache}>
+                    <ThemeProvider theme={muiTheme}>
+                        <AuthContext.Provider value={mockAuthValue}>
+                            <ViewOptionsContext.Provider value={mockViewOptionsValue}>
+                                <EditEventCard onDismiss={mockOnDismiss} />
+                            </ViewOptionsContext.Provider>
+                        </AuthContext.Provider>
+                    </ThemeProvider>
+                </MockedProvider>
+            );
+
+            // Component should still render with all fallback values
+            expect(screen.getByLabelText('Event name')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument();
+
+            // Labels field will not be visible since the activeEventLabelId cannot be found in event labels data
+            expect(screen.queryByLabelText('Labels')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /Work/i })).not.toBeInTheDocument();
+        });
+    });
 });
