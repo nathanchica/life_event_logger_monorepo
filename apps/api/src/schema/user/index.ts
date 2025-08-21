@@ -91,7 +91,9 @@ const resolvers: Resolvers = {
                 const accessToken = generateAccessToken({ userId: user.id, email: user.email });
 
                 // Create refresh token
-                const refreshToken = await createRefreshToken(prisma, user.id, requestMetadata);
+                const refreshToken = await createRefreshToken(prisma, user.id, {
+                    userAgent: requestMetadata.userAgent
+                });
 
                 // Set refresh token as httpOnly cookie for web clients
                 if (clientType === ClientType.Web) {
@@ -175,7 +177,9 @@ const resolvers: Resolvers = {
                 const accessToken = generateAccessToken({ userId: user.id, email: user.email });
 
                 // Rotate refresh token
-                const newRefreshToken = await rotateRefreshToken(prisma, tokenId, requestMetadata);
+                const newRefreshToken = await rotateRefreshToken(prisma, tokenId, {
+                    userAgent: requestMetadata.userAgent
+                });
 
                 // Determine client type based on how token was provided
                 const isWebClient = !!cookies?.refreshToken;

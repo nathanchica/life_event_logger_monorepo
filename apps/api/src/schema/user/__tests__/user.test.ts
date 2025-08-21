@@ -209,8 +209,7 @@ describe('User GraphQL', () => {
                 email: mockUser.email
             });
             expect(createRefreshToken).toHaveBeenCalledWith(prismaMock, mockUser.id, {
-                userAgent: 'mock-user-agent',
-                ipAddress: '127.0.0.1'
+                userAgent: 'mock-user-agent'
             });
         });
 
@@ -501,8 +500,7 @@ describe('User GraphQL', () => {
             // Verify mocks
             expect(validateRefreshToken).toHaveBeenCalledWith(prismaMock, 'old-refresh-token');
             expect(rotateRefreshToken).toHaveBeenCalledWith(prismaMock, 'token-id-123', {
-                userAgent: 'mock-user-agent',
-                ipAddress: '127.0.0.1'
+                userAgent: 'mock-user-agent'
             });
         });
 

@@ -22,7 +22,6 @@ export const createMockContext = (overrides?: Partial<GraphQLContext>): GraphQLC
         user: null,
         request: defaultRequest,
         requestMetadata: {
-            ipAddress: '127.0.0.1',
             userAgent: 'mock-user-agent'
         },
         response: defaultResponse,

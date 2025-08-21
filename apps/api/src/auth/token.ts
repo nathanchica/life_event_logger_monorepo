@@ -19,7 +19,6 @@ export interface TokenPayload {
 
 export interface TokenMetadata {
     userAgent?: string;
-    ipAddress?: string;
 }
 
 export interface RefreshTokenData {
@@ -91,7 +90,7 @@ export function hashRefreshToken(token: string): string {
  * Creates a new refresh token for a user and stores it in the database.
  * @param prisma - The Prisma client instance
  * @param userId - The ID of the user to create the token for
- * @param metadata - Optional metadata containing userAgent and ipAddress
+ * @param metadata - Optional metadata containing userAgent
  * @returns The unhashed refresh token to be sent to the client
  */
 export async function createRefreshToken(
@@ -108,8 +107,7 @@ export async function createRefreshToken(
             token: hashedToken,
             userId,
             expiresAt,
-            userAgent: metadata?.userAgent,
-            ipAddress: metadata?.ipAddress
+            userAgent: metadata?.userAgent
         }
     });
 
@@ -159,7 +157,7 @@ export async function validateRefreshToken(prisma: PrismaClient, token: string):
  * Implements token rotation for enhanced security.
  * @param prisma - The Prisma client instance
  * @param oldTokenId - The ID of the refresh token to rotate
- * @param metadata - Optional metadata containing userAgent and ipAddress
+ * @param metadata - Optional metadata containing userAgent
  * @returns The new unhashed refresh token
  * @throws Error if the old token is not found
  */

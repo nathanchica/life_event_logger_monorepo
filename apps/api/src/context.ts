@@ -7,7 +7,6 @@ import { verifyAccessToken } from './auth/token.js';
 import { prisma } from './prisma/client.js';
 
 export type RequestMetadata = {
-    ipAddress: string | undefined;
     userAgent: string | undefined;
 };
 
@@ -38,9 +37,7 @@ export async function createContext({ request, ...rest }: YogaInitialContext): P
     const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : undefined;
 
     const requestMetadata: RequestMetadata = {
-        userAgent: requestHeaders.get('user-agent') || undefined,
-        ipAddress:
-            requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() || requestHeaders.get('x-real-ip') || undefined
+        userAgent: requestHeaders.get('user-agent') || undefined
     };
 
     const contextValues = {
