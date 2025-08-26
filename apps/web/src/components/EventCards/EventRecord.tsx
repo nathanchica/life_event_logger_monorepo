@@ -23,7 +23,7 @@ const EventRecord = ({ eventId, recordDate }: Props) => {
     const [isHovered, setIsHovered] = useState(false);
     const { removeTimestampFromEvent, removeTimestampIsLoading } = useLoggableEvents();
 
-    const isFutureDate = differenceInCalendarDays(recordDate, new Date()) < 0;
+    const isFutureDate = differenceInCalendarDays(recordDate, new Date()) > 0;
 
     const onDeleteRecord = () => {
         removeTimestampFromEvent({

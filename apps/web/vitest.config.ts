@@ -25,6 +25,8 @@ export default defineConfig({
         'src/index.tsx',
         'src/mocks/**',
         'src/test/**',
+        'src/apollo/**',
+        'src/utils/types.ts',
         '**/*.d.ts',
         '**/*.config.*',
         '**/.*',
