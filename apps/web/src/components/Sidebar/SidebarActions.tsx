@@ -107,7 +107,7 @@ const SidebarActions = ({ variant, isEditingLabels, onToggleTheme, onToggleEditL
                             onChange={action.onClick}
                             sx={{
                                 // ignoring coverage here since it's not possible to test with current actions
-                                ml: /* istanbul ignore next */ index > 0 ? 1 : 0,
+                                ml: /* v8 ignore next */ index > 0 ? 1 : 0,
                                 border: 'none',
                                 borderRadius: '50%',
                                 '&:hover': {

@@ -81,8 +81,9 @@ const AuthProvider = ({ children }: Props) => {
             setIsInitializing(true);
 
             // Check for offline URL parameter
-            // istanbul ignore next - window is always defined in browser environment
+            /* v8 ignore start */
             const hasOfflineInUrlParam = window ? new URLSearchParams(window.location.search).has('offline') : false;
+            /* v8 ignore end */
             if (hasOfflineInUrlParam) {
                 setOfflineMode(true);
                 console.info('Application is in offline mode.');

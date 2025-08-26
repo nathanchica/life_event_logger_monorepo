@@ -1,3 +1,5 @@
+import { ErrorInfo } from 'react';
+
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -13,13 +15,13 @@ import ViewOptionsProvider from './providers/ViewOptionsProvider';
  * Apollo Client is now initialized within EventLoggerPage after auth state is determined.
  */
 const App = () => {
-    const handleError = (error: Error, errorInfo: { componentStack: string }) => {
-        console.error('Application error:', error, errorInfo);
+    const handleError = (error: Error, info: ErrorInfo) => {
+        console.error('Application error:', error, info);
     };
 
     return (
         <ErrorBoundary FallbackComponent={ErrorView} onError={handleError} onReset={() => (window.location.href = '/')}>
-            <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
+            <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <AuthProvider>
                         <ViewOptionsProvider>

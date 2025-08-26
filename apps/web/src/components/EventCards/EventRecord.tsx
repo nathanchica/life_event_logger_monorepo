@@ -5,14 +5,13 @@ import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import { grey } from '@mui/material/colors';
+import { differenceInCalendarDays } from 'date-fns';
 
 import { useLoggableEvents } from '../../hooks/useLoggableEvents';
-import { getNumberOfDaysBetweenDates } from '../../utils/time';
 
 type Props = {
     eventId: string;
     recordDate: Date;
-    currentDate: Date;
 };
 
 /**
@@ -20,11 +19,11 @@ type Props = {
  * It shows the date of the record and allows users to delete it if hovered.
  * If the record date is in the future, it will be displayed in a lighter color.
  */
-const EventRecord = ({ eventId, recordDate, currentDate }: Props) => {
+const EventRecord = ({ eventId, recordDate }: Props) => {
     const [isHovered, setIsHovered] = useState(false);
     const { removeTimestampFromEvent, removeTimestampIsLoading } = useLoggableEvents();
 
-    const isFutureDate = getNumberOfDaysBetweenDates(recordDate, currentDate) < 0;
+    const isFutureDate = differenceInCalendarDays(recordDate, new Date()) < 0;
 
     const onDeleteRecord = () => {
         removeTimestampFromEvent({

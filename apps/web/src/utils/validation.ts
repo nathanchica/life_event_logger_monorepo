@@ -1,7 +1,5 @@
 // Validation utilities
 
-// No imports needed - validation functions work with primitive types
-
 export enum EventLabelNameValidationError {
     EmptyName = 'EmptyName',
     /** The event label name is too long */

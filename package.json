@@ -11,6 +11,10 @@
     "url": "git+https://github.com/nathanchica/life_event_logger_monorepo.git"
   },
   "author": "Nathan Chica",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "start": "npm run dev",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
@@ -22,6 +26,10 @@
     "lint": "npm run lint:web && npm run lint:api",
     "lint:web": "cd apps/web && npm run lint",
     "lint:api": "cd apps/api && npm run lint",
+    "test": "npm run test:web && npm run test:api && npm run test:utils",
+    "test:web": "cd apps/web && npm test",
+    "test:api": "cd apps/api && npm test",
+    "test:utils": "cd packages/utils && npm test",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "prepare": "husky"
