@@ -15,4 +15,9 @@ echo "Checking API app..."
 cd ../api
 npx lint-staged
 
+# Run utils package checks
+echo "Checking utils package..."
+cd ../../packages/utils
+npx lint-staged
+
 cd ../..
