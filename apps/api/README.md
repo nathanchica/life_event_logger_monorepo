@@ -23,11 +23,12 @@ Built with:
 
 1. [Development Setup](#development-setup)
 2. [Architecture](#architecture)
-3. [Authentication Flow](#authentication-flow)
-4. [GraphQL Security Directives](#graphql-security-directives)
-5. [Error Handling Patterns](#error-handling-patterns)
-6. [Testing](#testing)
-7. [ES Module Import Extensions](#es-module-import-extensions)
+3. [Cron Jobs](#cron-jobs)
+4. [Authentication Flow](#authentication-flow)
+5. [GraphQL Security Directives](#graphql-security-directives)
+6. [Error Handling Patterns](#error-handling-patterns)
+7. [Testing](#testing)
+8. [ES Module Import Extensions](#es-module-import-extensions)
 
 ## Development Setup
 
@@ -149,6 +150,14 @@ src/
 │   ├── root/                           # Schema root
 │   └── index.ts                        # Schema merging (New resolvers and directives need to update this file)
 |
+├── cron/
+│   ├── daily-maintenance.ts            # Main cron orchestrator
+│   ├── tasks/
+│   │   ├── check-events.ts            # Event threshold monitoring
+│   │   ├── cleanup-tokens.ts          # Expired token cleanup
+│   │   └── send-discord.ts            # Discord notification summary
+│   └── utils/
+│       └── discord-webhook.ts         # Discord webhook helper
 ├── directives/                         # GraphQL directives
 ├── auth/                               # OAuth and JWT handling
 ├── prisma/
@@ -160,8 +169,103 @@ src/
 └── context.ts                          # GraphQL context
 
 api/
-└── graphql.ts                          # Vercel serverless function
+├── graphql.ts                          # Vercel serverless function
+└── cron/
+    └── daily.ts                        # Daily cron job endpoint
 ```
+
+## Cron Jobs
+
+This API implements scheduled maintenance tasks using Vercel Cron Jobs for automated system maintenance and user notifications.
+
+### Overview
+
+The cron system runs daily maintenance tasks including:
+
+- **Token Cleanup**: Removes expired refresh tokens older than 24 hours
+- **Event Monitoring**: Checks for overdue events for a configured user based on user-defined thresholds
+- **Discord Notifications**: Sends consolidated daily summaries via Discord webhooks
+
+### Configuration
+
+#### Vercel Cron Configuration
+
+```json
+// vercel.json
+{
+    "crons": [
+        {
+            "path": "/api/cron/daily",
+            "schedule": "0 7 * * *" // Daily at 7 AM UTC / 12 AM PST
+        }
+    ]
+}
+```
+
+#### Required Environment Variables
+
+```env
+# Security token for cron endpoint
+CRON_SECRET="your-random-secret-here"
+
+# Discord webhook for notifications
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."
+
+# User email for event monitoring
+EVENT_ALERTS_USER_EMAIL="user@example.com"
+```
+
+### Daily Maintenance Tasks
+
+#### 1. Token Cleanup (`cleanup-tokens.ts`)
+
+- Deletes expired refresh tokens older than 24 hours
+- Prevents database bloat from accumulated expired tokens
+- Returns count of deleted tokens for reporting
+
+#### 2. Event Threshold Monitoring (`check-events.ts`)
+
+- Monitors loggable events for the configured user
+- Checks events against their warning thresholds
+- Identifies overdue events based on days since last logged
+- Returns detailed information about overdue events
+
+#### 3. Discord Summary (`send-discord.ts`)
+
+- Sends a consolidated daily report to Discord
+- Color-coded status indicators:
+    - 🟢 Green: All systems normal
+    - 🟠 Orange: Events overdue (warnings)
+    - 🔴 Red: Errors occurred during maintenance
+- Includes detailed breakdown of overdue events (up to 15)
+- Shows maintenance statistics (tokens cleaned, events checked)
+
+### Discord Message Format
+
+The daily maintenance report includes:
+
+- **Summary Statistics**: Tokens cleaned, events checked, overdue count
+- **Overdue Event Details** (if any):
+    - Event name and labels
+    - Days since last logged
+    - Threshold setting
+    - Days overdue calculation
+- **Error Reporting** (if any): Up to 5 error messages
+
+### Security
+
+The cron endpoint (`/api/cron/daily`) is protected by:
+
+1. **Authorization header** verification with `CRON_SECRET`
+2. **Vercel-only access** - requests from outside Vercel are rejected
+3. **No sensitive data exposure** - all secrets in environment variables
+
+### Monitoring
+
+- View execution logs in Vercel Dashboard → Functions → Logs
+- Discord webhook provides real-time notification of job completion
+- Check for color-coded status in Discord messages
+- Monitor error count and details in daily summaries
 
 ## Authentication Flow
 
@@ -418,39 +522,52 @@ See these blogs about Vitest vs Jest:
 - https://www.wisp.blog/blog/vitest-vs-jest-which-should-i-use-for-my-nextjs-app
 
 \
-As of 2025-07-20, tests coverage is 100%
+As of 2025-08-26, tests coverage is 100%
 
 ```bash
-Test Files  5 passed (5)
-      Tests  78 passed (78)
-   Start at  12:10:24
-   Duration  1.03s (transform 324ms, setup 61ms, collect 2.37s, tests 182ms, environment 1ms, prepare 427ms)
+ Test Files  13 passed (13)
+      Tests  222 passed (222)
+   Start at  04:43:45
+   Duration  1.31s (transform 761ms, setup 458ms, collect 5.11s, tests 462ms, environment 2ms, prepare 1.22s)
 
  % Coverage report from v8
-----------------------|---------|----------|---------|---------|-------------------
-File                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
-----------------------|---------|----------|---------|---------|-------------------
-All files             |     100 |      100 |     100 |     100 |
- auth                 |     100 |      100 |     100 |     100 |
-  token.ts            |     100 |      100 |     100 |     100 |
- config               |     100 |      100 |     100 |     100 |
-  env.ts              |     100 |      100 |     100 |     100 |
- directives           |     100 |      100 |     100 |     100 |
-  auth.ts             |     100 |      100 |     100 |     100 |
- mocks                |     100 |      100 |     100 |     100 |
-  client.ts           |     100 |      100 |     100 |     100 |
-  context.ts          |     100 |      100 |     100 |     100 |
- schema               |     100 |      100 |     100 |     100 |
-  index.ts            |     100 |      100 |     100 |     100 |
- schema/eventLabel    |     100 |      100 |     100 |     100 |
-  index.ts            |     100 |      100 |     100 |     100 |
- schema/loggableEvent |     100 |      100 |     100 |     100 |
-  index.ts            |     100 |      100 |     100 |     100 |
- schema/user          |     100 |      100 |     100 |     100 |
-  index.ts            |     100 |      100 |     100 |     100 |
- utils                |     100 |      100 |     100 |     100 |
-  validation.ts       |     100 |      100 |     100 |     100 |
-----------------------|---------|----------|---------|---------|-------------------
+--------------------------|---------|----------|---------|---------|-------------------
+File                      | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+--------------------------|---------|----------|---------|---------|-------------------
+All files                 |     100 |      100 |     100 |     100 |
+ src                      |     100 |      100 |     100 |     100 |
+  context.ts              |     100 |      100 |     100 |     100 |
+ src/auth                 |     100 |      100 |     100 |     100 |
+  token.ts                |     100 |      100 |     100 |     100 |
+ src/config               |     100 |      100 |     100 |     100 |
+  env.ts                  |     100 |      100 |     100 |     100 |
+ src/cron                 |     100 |      100 |     100 |     100 |
+  daily-maintenance.ts    |     100 |      100 |     100 |     100 |
+ src/cron/tasks           |     100 |      100 |     100 |     100 |
+  check-events.ts         |     100 |      100 |     100 |     100 |
+  cleanup-tokens.ts       |     100 |      100 |     100 |     100 |
+  send-discord.ts         |     100 |      100 |     100 |     100 |
+ src/cron/utils           |     100 |      100 |     100 |     100 |
+  discord-webhook.ts      |     100 |      100 |     100 |     100 |
+ src/directives           |     100 |      100 |     100 |     100 |
+  auth.ts                 |     100 |      100 |     100 |     100 |
+ src/mocks                |     100 |      100 |     100 |     100 |
+  client.ts               |     100 |      100 |     100 |     100 |
+  context.ts              |     100 |      100 |     100 |     100 |
+ src/schema               |     100 |      100 |     100 |     100 |
+  index.ts                |     100 |      100 |     100 |     100 |
+ src/schema/eventLabel    |     100 |      100 |     100 |     100 |
+  index.ts                |     100 |      100 |     100 |     100 |
+ src/schema/loggableEvent |     100 |      100 |     100 |     100 |
+  index.ts                |     100 |      100 |     100 |     100 |
+ src/schema/user          |     100 |      100 |     100 |     100 |
+  index.ts                |     100 |      100 |     100 |     100 |
+ src/utils                |     100 |      100 |     100 |     100 |
+  encoder.ts              |     100 |      100 |     100 |     100 |
+  error.ts                |     100 |      100 |     100 |     100 |
+  plugins.ts              |     100 |      100 |     100 |     100 |
+  validation.ts           |     100 |      100 |     100 |     100 |
+--------------------------|---------|----------|---------|---------|-------------------
 ```
 
 ## ES Module Import Extensions

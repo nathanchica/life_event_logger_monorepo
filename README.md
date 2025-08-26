@@ -18,6 +18,7 @@ Visually inspired by Google Keep and conceptually inspired by logging systems us
 - **Frontend**: React TypeScript app with Vite, Material UI, Apollo GraphQL, offline support via apollo3-cache-persist, and Vitest for testing
 - **Backend**: GraphQL Yoga API with JWT authentication, Prisma ORM with MongoDB Atlas database, sqids for encoding IDs, and Vitest for testing
 - **Authentication**: Google OAuth login with JWT tokens, secure cookie storage, and refresh token implementation
+- **Vercel Cron Job**: Daily maintenance tasks including refresh token cleanup and monitoring overdue events for a configured user with Discord notifications
 
 See individual app READMEs for detailed information:
 - [Frontend Documentation](./apps/web/README.md)
