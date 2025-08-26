@@ -15,7 +15,7 @@ Visually inspired by Google Keep and conceptually inspired by logging systems us
 
 ## Features
 
-- **Frontend**: React TypeScript app with Material UI, Apollo GraphQL, offline support via apollo3-cache-persist, and Jest for testing
+- **Frontend**: React TypeScript app with Vite, Material UI, Apollo GraphQL, offline support via apollo3-cache-persist, and Vitest for testing
 - **Backend**: GraphQL Yoga API with JWT authentication, Prisma ORM with MongoDB Atlas database, sqids for encoding IDs, and Vitest for testing
 - **Authentication**: Google OAuth login with JWT tokens, secure cookie storage, and refresh token implementation
 
@@ -38,17 +38,15 @@ tools and patterns, including:
 - AI coding tools like Github Copilot and Claude Code
 
 This project was originally two separate repositories for the frontend and backend, but was restructured into a monorepo
-with the original goal of deploying both apps as a single Vercel project, hoping to deploy both under the same domain
-and enable secure cookie-based authentication. Now, we have both apps deployed as separate Vercel projects, but use
-Vercel's rewrite rules to serve both applications from the same domain, achieving the original goal for secure cookie
-sharing without CORS issues.
+to easily manage dependencies, share code between the two apps, and to learn about monorepos.
 
 See frontend README for details on the authentication flow: [Authentication & Refresh Token Flow](./apps/web/README.md#authentication--refresh-token-flow).
 
-Even though the apps are deployed separately, the monorepo structure provides valuable benefits:
+The monorepo structure provides valuable benefits:
 
 - **Simplified Development**: One repository to clone and set up
 - **Coordinated Changes**: Frontend and backend updates can be reviewed and merged together
+- **Shared Code**: Common utilities can be easily shared between apps
 - **Contextual Awareness**: AI tools can easily understand the entire project context, improving planning
 
 ## Project Structure
@@ -60,6 +58,8 @@ life_event_logger_monorepo/
 │   │   └── vercel.json
 │   └── api/          # GraphQL API (Yoga + Prisma)
 │       └── vercel.json
+├── packages/         # Shared packages
+│   └── utils/        # Shared utility functions
 ├── .husky/           # Git hooks for code quality
 └── package.json      # Monorepo scripts
 ```
