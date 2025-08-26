@@ -9,9 +9,9 @@ export const createMockAuthContextValue = (overrides: Partial<AuthContextType> =
         user: createMockUser(),
         isOfflineMode: false,
         isInitializing: false,
-        setAuthData: (_accessToken, _user) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
-        clearAuthData: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
-        setOfflineMode: (_isOffline) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
+        setAuthData: (_accessToken, _user) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars
+        clearAuthData: () => {},
+        setOfflineMode: (_isOffline) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars
         ...overrides
     };
 };
@@ -21,10 +21,10 @@ export const createMockViewOptionsContextValue = (
 ): ViewOptionsContextType => {
     return {
         theme: 'light',
-        enableLightTheme: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
-        enableDarkTheme: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
+        enableLightTheme: () => {},
+        enableDarkTheme: () => {},
         activeEventLabelId: createMockEventLabel().id,
-        setActiveEventLabelId: (_id) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
+        setActiveEventLabelId: (_id) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars
         ...overrides
     };
 };

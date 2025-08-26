@@ -1,12 +1,13 @@
+import { vi } from 'vitest';
+
 import { tokenStorage } from '../tokenStorage';
 
-// Mock fetch for testing
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('TokenStorage', () => {
     beforeEach(() => {
         tokenStorage.clear();
-        jest.useRealTimers();
+        vi.useRealTimers();
         fetch.mockClear();
     });
 
@@ -32,7 +33,7 @@ describe('TokenStorage', () => {
 
     describe('token expiration', () => {
         beforeEach(() => {
-            jest.useFakeTimers();
+            vi.useFakeTimers();
         });
 
         it('returns null and clears token when expired', () => {
@@ -43,9 +44,8 @@ describe('TokenStorage', () => {
             expect(tokenStorage.getAccessToken()).toBe(token);
 
             // Advance time past expiry (60 - 30 buffer + 1 = 31 seconds)
-            jest.advanceTimersByTime(31 * 1000);
+            vi.advanceTimersByTime(31 * 1000);
 
-            // Token should now be expired and cleared
             expect(tokenStorage.getAccessToken()).toBeNull();
         });
 
@@ -54,11 +54,11 @@ describe('TokenStorage', () => {
             tokenStorage.setAccessToken(token, 100); // 100 seconds
 
             // Advance to just before buffer kicks in (100 - 30 - 1 = 69 seconds)
-            jest.advanceTimersByTime(69 * 1000);
+            vi.advanceTimersByTime(69 * 1000);
             expect(tokenStorage.getAccessToken()).toBe(token);
 
             // Advance past buffer (2 more seconds)
-            jest.advanceTimersByTime(2 * 1000);
+            vi.advanceTimersByTime(2 * 1000);
             expect(tokenStorage.getAccessToken()).toBeNull();
         });
 
@@ -68,7 +68,6 @@ describe('TokenStorage', () => {
             // Set token with expiry less than buffer (20 seconds < 30 second buffer)
             tokenStorage.setAccessToken(token, 20);
 
-            // Token should be immediately expired
             expect(tokenStorage.getAccessToken()).toBeNull();
         });
     });
@@ -83,12 +82,8 @@ describe('TokenStorage', () => {
     });
 
     describe('getValidAccessToken', () => {
-        // Store original env var
-        const originalEnv = process.env.REACT_APP_GRAPHQL_URL;
-
         afterEach(() => {
-            // Restore original env var after each test
-            process.env.REACT_APP_GRAPHQL_URL = originalEnv;
+            vi.unstubAllEnvs();
         });
 
         it('returns existing token when not expired', async () => {
@@ -105,10 +100,8 @@ describe('TokenStorage', () => {
             const oldToken = 'expired-token';
             const newToken = 'new-token';
 
-            // Set expired token
             tokenStorage.setAccessToken(oldToken, 0);
 
-            // Mock successful refresh
             fetch.mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({
@@ -133,7 +126,6 @@ describe('TokenStorage', () => {
                 })
             );
 
-            // Verify token was stored
             expect(tokenStorage.getAccessToken()).toBe(newToken);
         });
 
@@ -141,7 +133,7 @@ describe('TokenStorage', () => {
             let consoleSpy;
 
             beforeEach(() => {
-                consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+                consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
             });
 
             afterEach(() => {
@@ -151,7 +143,6 @@ describe('TokenStorage', () => {
             it('returns null when refresh fails with HTTP error', async () => {
                 tokenStorage.setAccessToken('expired-token', 0);
 
-                // Mock failed refresh (401 Unauthorized)
                 fetch.mockResolvedValueOnce({
                     ok: false,
                     status: 401
@@ -167,7 +158,6 @@ describe('TokenStorage', () => {
             it('returns null when refresh fails with GraphQL errors', async () => {
                 tokenStorage.setAccessToken('expired-token', 0);
 
-                // Mock GraphQL error response
                 fetch.mockResolvedValueOnce({
                     ok: true,
                     json: async () => ({
@@ -189,7 +179,6 @@ describe('TokenStorage', () => {
             it('returns null when refresh response has no token', async () => {
                 tokenStorage.setAccessToken('expired-token', 0);
 
-                // Mock response with no token
                 fetch.mockResolvedValueOnce({
                     ok: true,
                     json: async () => ({
@@ -208,7 +197,6 @@ describe('TokenStorage', () => {
             it('logs error when refresh fails with other errors', async () => {
                 tokenStorage.setAccessToken('expired-token', 0);
 
-                // Mock response with a different error
                 fetch.mockResolvedValueOnce({
                     ok: true,
                     json: async () => ({
@@ -265,7 +253,6 @@ describe('TokenStorage', () => {
             it('does not log non-Error objects with "No refresh token provided" message', async () => {
                 tokenStorage.setAccessToken('expired-token', 0);
 
-                // Mock fetch to throw a string containing "No refresh token provided"
                 fetch.mockRejectedValueOnce('Error: No refresh token provided');
 
                 const result = await tokenStorage.getValidAccessToken();
@@ -346,7 +333,6 @@ describe('TokenStorage', () => {
             expect(result2).toBe(newToken);
             expect(result3).toBe(newToken);
 
-            // Fetch should still only have been called once
             expect(fetch).toHaveBeenCalledTimes(1);
         });
 
@@ -389,12 +375,10 @@ describe('TokenStorage', () => {
         });
 
         it('uses environment variable URL when available', async () => {
-            // Set custom GraphQL URL
-            process.env.REACT_APP_GRAPHQL_URL = 'https://api.example.com/graphql';
+            vi.stubEnv('VITE_GRAPHQL_URL', 'some.url');
 
             tokenStorage.setAccessToken('expired-token', 0);
 
-            // Mock successful refresh
             fetch.mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({
@@ -408,9 +392,8 @@ describe('TokenStorage', () => {
 
             await tokenStorage.getValidAccessToken();
 
-            // Should use environment variable URL
             expect(fetch).toHaveBeenCalledWith(
-                'https://api.example.com/graphql',
+                'some.url',
                 expect.objectContaining({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -421,12 +404,10 @@ describe('TokenStorage', () => {
         });
 
         it('uses default URL when environment variable is not set', async () => {
-            // Clear environment variable
-            delete process.env.REACT_APP_GRAPHQL_URL;
+            vi.stubEnv('VITE_GRAPHQL_URL', undefined);
 
             tokenStorage.setAccessToken('expired-token', 0);
 
-            // Mock successful refresh
             fetch.mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({
@@ -440,9 +421,8 @@ describe('TokenStorage', () => {
 
             await tokenStorage.getValidAccessToken();
 
-            // Should use default localhost URL
             expect(fetch).toHaveBeenCalledWith(
-                'http://localhost:4000/graphql',
+                '/api/graphql',
                 expect.objectContaining({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

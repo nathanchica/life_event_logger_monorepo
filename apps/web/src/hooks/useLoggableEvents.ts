@@ -265,17 +265,15 @@ export const useLoggableEvents = () => {
                         });
 
                         // Safety checks. Not practically reachable so ignore them in coverage
+                        /* v8 ignore start */
 
                         // If no existing events, return new event as the only ref
-                        // istanbul ignore next
                         if (!existingEventRefs) return [newEventRef];
 
                         // If newEventRef is null, return existing refs
-                        // istanbul ignore next
                         if (!newEventRef) return existingEventRefs;
 
                         // If event already exists, return existing refs
-                        // istanbul ignore next
                         if (
                             existingEventRefs.some(
                                 (ref: Reference) => readField('id', ref) === data.createLoggableEvent.loggableEvent.id
@@ -283,6 +281,7 @@ export const useLoggableEvents = () => {
                         ) {
                             return existingEventRefs;
                         }
+                        /* v8 ignore end */
 
                         return [newEventRef, ...existingEventRefs];
                     }
@@ -356,7 +355,7 @@ export const useLoggableEvents = () => {
                         // Safety checks. Not practically reachable so ignore them in coverage
 
                         // If no existing events, return empty array
-                        // istanbul ignore next
+                        // v8 ignore next
                         if (!existingEventRefs) return [];
 
                         return existingEventRefs.filter((eventRef: Reference) => readField('id', eventRef) !== eventId);

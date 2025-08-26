@@ -123,7 +123,7 @@ const EventLabelAutocomplete = ({ selectedLabels, setSelectedLabels, existingLab
         <Autocomplete
             multiple
             freeSolo
-            filterOptions={(options, params) => {
+            filterOptions={(_, params) => {
                 return getFilteredOptions(params.inputValue);
             }}
             options={labelOptions.map(({ name }) => name)}

@@ -26,7 +26,7 @@ export const setupCachePersistence = async () => {
             trigger: 'write' // Persist on every write
         });
     } catch (error) {
-        // istanbul ignore next
+        // v8 ignore next
         console.error('Error setting up cache persistence:', error);
     }
 };

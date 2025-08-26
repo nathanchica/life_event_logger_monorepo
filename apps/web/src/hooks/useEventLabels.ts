@@ -162,17 +162,15 @@ export const useEventLabels = () => {
                         });
 
                         // Safety checks. Not practically reachable so ignore them in coverage
+                        /* v8 ignore start */
 
                         // If no existing labels, return new label as the only ref
-                        // istanbul ignore next
                         if (!existingLabelRefs) return [newLabelRef];
 
                         // If newLabelRef is null, return existing refs
-                        // istanbul ignore next
                         if (!newLabelRef) return existingLabelRefs;
 
                         // If label already exists, return existing refs
-                        // istanbul ignore next
                         if (
                             existingLabelRefs.some(
                                 (ref: Reference) => readField('id', ref) === data.createEventLabel.eventLabel.id
@@ -180,6 +178,7 @@ export const useEventLabels = () => {
                         ) {
                             return existingLabelRefs;
                         }
+                        /* v8 ignore end */
 
                         return [...existingLabelRefs, newLabelRef];
                     }
@@ -226,7 +225,7 @@ export const useEventLabels = () => {
                         // Safety checks. Not practically reachable so ignore them in coverage
 
                         // If no existing labels, return empty array
-                        // istanbul ignore next
+                        // v8 ignore next
                         if (!existingLabelRefs) return [];
 
                         return existingLabelRefs.filter(
@@ -237,14 +236,14 @@ export const useEventLabels = () => {
                         // Safety checks. Not practically reachable so ignore them in coverage
 
                         // If no existing loggable events, return empty array
-                        // istanbul ignore next
+                        // v8 ignore next
                         if (!existingLoggableEventsRefs) return [];
 
                         // Remove label from all loggable events that had it
                         existingLoggableEventsRefs.forEach((loggableEventRef: Reference) => {
                             const labels: readonly Reference[] | undefined = readField('labels', loggableEventRef);
 
-                            // istanbul ignore next
+                            // v8 ignore next
                             if (!labels) return;
 
                             const updatedLabels = labels.filter(

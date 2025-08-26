@@ -1,3 +1,4 @@
+import { DAYS_IN_YEAR, DAYS_IN_MONTH } from '@life-event-logger/utils';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -5,7 +6,6 @@ import Typography from '@mui/material/Typography';
 import { orange, red } from '@mui/material/colors';
 
 import useMuiState from '../../hooks/useMuiState';
-import { DAYS_IN_YEAR, DAYS_IN_MONTH } from '../../utils/time';
 
 type Props = {
     daysSinceLastEvent: number;

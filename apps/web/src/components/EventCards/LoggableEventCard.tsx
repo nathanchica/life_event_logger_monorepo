@@ -1,4 +1,5 @@
 import { gql, useFragment } from '@apollo/client';
+import { processEventTimestamps } from '@life-event-logger/utils';
 import Box from '@mui/material/Box';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
@@ -14,7 +15,6 @@ import LastEventDisplay from './LastEventDisplay';
 
 import { useLoggableEvents } from '../../hooks/useLoggableEvents';
 import { useToggle } from '../../hooks/useToggle';
-import { getDaysSinceLastEventRecord, sortDateObjectsByNewestFirst } from '../../utils/time';
 import { LoggableEvent, LoggableEventFragment, EventLabelFragment } from '../../utils/types';
 
 const MAX_RECORDS_TO_DISPLAY = 5;
@@ -86,9 +86,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
         deleteLoggableEvent({ input: { id } });
     };
 
-    const currDate = new Date();
-    const sortedTimestamps = [...timestamps].sort(sortDateObjectsByNewestFirst);
-    const daysSinceLastEvent = getDaysSinceLastEventRecord(sortedTimestamps, currDate);
+    const { sortedTimestamps, daysSinceLastEvent } = processEventTimestamps(timestamps);
     const lastEventDisplayIsShowing = typeof daysSinceLastEvent === 'number';
 
     return editEventFormIsShowing ? (
@@ -128,12 +126,7 @@ const LoggableEventCard = ({ eventId }: Props) => {
                 >
                     <Box>
                         {sortedTimestamps.slice(0, MAX_RECORDS_TO_DISPLAY).map((record: Date) => (
-                            <EventRecord
-                                key={`${id}-${record.toISOString()}`}
-                                eventId={id}
-                                recordDate={record}
-                                currentDate={currDate}
-                            />
+                            <EventRecord key={`${id}-${record.toISOString()}`} eventId={id} recordDate={record} />
                         ))}
                     </Box>
                 </List>

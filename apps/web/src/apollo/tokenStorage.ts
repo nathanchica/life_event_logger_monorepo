@@ -109,7 +109,7 @@ class TokenStorage {
      */
     private async refreshToken(): Promise<string | null> {
         try {
-            const response = await fetch(process.env.REACT_APP_GRAPHQL_URL || 'http://localhost:4000/graphql', {
+            const response = await fetch(import.meta.env.VITE_GRAPHQL_URL || '/api/graphql', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
