@@ -36,6 +36,9 @@
     "scripts": {
         "start": "vite",
         "build": "tsc && vite build",
+        "vercel-build": "./scripts/vercel-build.sh",
+        "tsc": "tsc",
+        "vite:build": "vite build",
         "preview": "vite preview",
         "test": "vitest run --coverage",
         "test:watch": "vitest",

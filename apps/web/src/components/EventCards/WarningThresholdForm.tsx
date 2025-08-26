@@ -23,6 +23,9 @@ const WarningThresholdForm = ({ onChange, initialThresholdInDays }: Props) => {
                 return num * DAYS_IN_MONTH;
             case 'years':
                 return num * DAYS_IN_YEAR;
+            /* c8 ignore next 2 */
+            default:
+                return num;
         }
     };
 
@@ -34,6 +37,9 @@ const WarningThresholdForm = ({ onChange, initialThresholdInDays }: Props) => {
                 return 12;
             case 'years':
                 return 10;
+            /* c8 ignore next 2 */
+            default:
+                return 31;
         }
     };
 
