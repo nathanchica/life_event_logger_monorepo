@@ -178,7 +178,7 @@ export const useEventLabels = () => {
                         ) {
                             return existingLabelRefs;
                         }
-                        /* v8 ignore start */
+                        /* v8 ignore end */
 
                         return [...existingLabelRefs, newLabelRef];
                     }

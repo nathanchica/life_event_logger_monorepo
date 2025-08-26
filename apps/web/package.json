@@ -44,7 +44,7 @@
         "lint": "eslint --fix src --ext .js,.jsx,.ts,.tsx",
         "lint-staged": "lint-staged --config lint-staged.js",
         "husky-install": "husky install",
-        "prepare": "husky install"
+        "prepare": "husky install || true"
     },
     "husky": {
         "hooks": {
