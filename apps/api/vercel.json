@@ -6,5 +6,11 @@
             "maxDuration": 10,
             "includeFiles": "src/schema/**/*.graphql"
         }
-    }
+    },
+    "crons": [
+        {
+            "path": "/api/cron/daily",
+            "schedule": "0 8 * * *"
+        }
+    ]
 }

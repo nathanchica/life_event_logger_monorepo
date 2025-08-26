@@ -17,7 +17,13 @@ const envSchema = z.object({
     // Access token expiration time in seconds
     ACCESS_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().min(1).default(900),
     // Refresh token expiration time in days
-    REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().min(1).default(30)
+    REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().min(1).default(30),
+    // Discord webhook URL for cron job notifications
+    DISCORD_WEBHOOK_URL: z.string().url().optional(),
+    // Secret for authenticating cron job requests
+    CRON_SECRET: z.string().min(1).optional(),
+    // Email of user to check events for (for event threshold alerts)
+    EVENT_ALERTS_USER_EMAIL: z.string().email().optional()
 });
 
 export const env = envSchema.parse(process.env);

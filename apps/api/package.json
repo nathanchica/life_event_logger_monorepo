@@ -35,6 +35,7 @@
     "homepage": "https://github.com/nathanchica/life_event_logger_api#readme",
     "dependencies": {
         "@graphql-tools/load-files": "^7.0.1",
+        "@life-event-logger/utils": "^1.0.0",
         "@graphql-tools/merge": "^9.0.24",
         "@graphql-tools/schema": "^10.0.23",
         "@graphql-tools/utils": "^10.8.6",
@@ -83,13 +84,16 @@
         "vitest-mock-extended": "^3.1.0"
     },
     "lint-staged": {
-        "*.ts": [
+        "!(*.config).ts": [
             "eslint --fix --max-warnings=0",
             "prettier --write",
             "tsc-files --noEmit"
         ],
-        "*.js": [
+        "!(*.config).js": [
             "eslint --fix --max-warnings=0",
+            "prettier --write"
+        ],
+        "*.config.{js,mjs,ts}": [
             "prettier --write"
         ],
         "*.graphql": [
