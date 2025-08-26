@@ -8,6 +8,9 @@ process.env.CLIENT_URL = 'http://localhost:3000';
 process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.REFRESH_TOKEN_EXPIRES_IN_DAYS = '30';
 process.env.ACCESS_TOKEN_EXPIRES_IN_SECONDS = '900';
+process.env.DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/test/test-webhook';
+process.env.CRON_SECRET = 'test-cron-secret';
+process.env.EVENT_ALERTS_USER_EMAIL = 'test@example.com';
 
 // Mock Prisma Client
 vi.mock('./prisma/client.js', async () => {
