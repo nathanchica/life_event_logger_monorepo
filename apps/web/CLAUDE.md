@@ -346,7 +346,7 @@ describe('ComponentName', () => {
     }
 
     return render(
-      <MockedProvider cache={apolloCache} addTypename={false}>
+      <MockedProvider cache={apolloCache}>
         <AuthContext.Provider value={mockAuthValue}>
           <ViewOptionsContext.Provider value={mockViewOptionsValue}>
             {component}

@@ -64,7 +64,7 @@ describe('LoggableEventsGQL', () => {
         const defaultAuthContextValue = createMockAuthContextValue(authContextValue);
         const defaultViewOptionsValue = createMockViewOptionsContextValue(viewOptionsContextValue);
         return render(
-            <MockedProvider mocks={apolloMocks} addTypename={false}>
+            <MockedProvider mocks={apolloMocks}>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <ViewOptionsContext.Provider value={defaultViewOptionsValue}>
                         <AuthContext.Provider value={defaultAuthContextValue}>{component}</AuthContext.Provider>

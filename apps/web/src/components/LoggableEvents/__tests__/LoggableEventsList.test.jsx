@@ -79,7 +79,7 @@ describe('LoggableEventsList', () => {
         const mockViewOptionsValue = createMockViewOptionsContextValue(viewOptionsValue);
 
         return render(
-            <MockedProvider cache={apolloCache} addTypename={false}>
+            <MockedProvider cache={apolloCache}>
                 <AuthContext.Provider value={mockAuthValue}>
                     <ViewOptionsContext.Provider value={mockViewOptionsValue}>
                         <LoggableEventsList {...(searchTerm !== undefined && { searchTerm })} />
