@@ -52,7 +52,7 @@ describe('EventLabel', () => {
 
     const renderWithProviders = (component, viewOptionsOverrides = {}) => {
         return render(
-            <MockedProvider cache={apolloCache} addTypename={false}>
+            <MockedProvider cache={apolloCache}>
                 <ViewOptionsContext.Provider value={{ ...mockViewOptionsContext, ...viewOptionsOverrides }}>
                     {component}
                 </ViewOptionsContext.Provider>

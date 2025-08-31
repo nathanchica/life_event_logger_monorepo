@@ -107,7 +107,7 @@ export default [
         }
     },
     {
-        files: ['**/*.test.{js,jsx,ts,tsx}', '**/vitest.config.ts', '**/vite.config.ts', '**/test/**/*.{js,jsx,ts,tsx}'],
+        files: ['**/*.test.{js,jsx,ts,tsx}', '**/vitest.config.ts', '**/vite.config.ts', '**/test/**/*.{js,jsx,ts,tsx}', '**/testSetup.ts'],
         languageOptions: {
             globals: {
                 ...globals.node,

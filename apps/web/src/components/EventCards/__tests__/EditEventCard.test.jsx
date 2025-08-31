@@ -108,7 +108,7 @@ describe('EditEventCard', () => {
         });
 
         return render(
-            <MockedProvider mocks={mocks} addTypename={false} cache={apolloCache}>
+            <MockedProvider mocks={mocks} cache={apolloCache}>
                 <ThemeProvider theme={muiTheme}>
                     <AuthContext.Provider value={mockAuthValue}>
                         <ViewOptionsContext.Provider value={mockViewOptionsValue}>
@@ -435,7 +435,7 @@ describe('EditEventCard', () => {
             });
 
             render(
-                <MockedProvider addTypename={false} cache={apolloCache}>
+                <MockedProvider cache={apolloCache}>
                     <ThemeProvider theme={muiTheme}>
                         <AuthContext.Provider value={mockAuthValue}>
                             <ViewOptionsContext.Provider value={mockViewOptionsValue}>
@@ -468,7 +468,7 @@ describe('EditEventCard', () => {
             });
 
             render(
-                <MockedProvider addTypename={false} cache={apolloCache}>
+                <MockedProvider cache={apolloCache}>
                     <ThemeProvider theme={muiTheme}>
                         <AuthContext.Provider value={mockAuthValue}>
                             <ViewOptionsContext.Provider value={mockViewOptionsValue}>
@@ -509,7 +509,7 @@ describe('EditEventCard', () => {
             });
 
             render(
-                <MockedProvider addTypename={false} cache={apolloCache}>
+                <MockedProvider cache={apolloCache}>
                     <ThemeProvider theme={muiTheme}>
                         <AuthContext.Provider value={mockAuthValue}>
                             <ViewOptionsContext.Provider value={mockViewOptionsValue}>
@@ -538,8 +538,8 @@ describe('EditEventCard', () => {
                     loggedInUser: {
                         __typename: 'User',
                         id: mockUserFragment.id,
-                        loggableEvents: undefined,
-                        eventLabels: undefined
+                        loggableEvents: null,
+                        eventLabels: null
                     }
                 }
             });
@@ -549,7 +549,7 @@ describe('EditEventCard', () => {
             });
 
             render(
-                <MockedProvider addTypename={false} cache={apolloCache}>
+                <MockedProvider cache={apolloCache}>
                     <ThemeProvider theme={muiTheme}>
                         <AuthContext.Provider value={mockAuthValue}>
                             <ViewOptionsContext.Provider value={mockViewOptionsValue}>
