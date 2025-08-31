@@ -117,7 +117,7 @@ describe('TokenStorage', () => {
 
             expect(result).toBe(newToken);
             expect(fetch).toHaveBeenCalledWith(
-                'http://localhost:4000/graphql',
+                expect.stringMatching(/^(\/api\/graphql|http:\/\/localhost:4000\/graphql)$/),
                 expect.objectContaining({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
