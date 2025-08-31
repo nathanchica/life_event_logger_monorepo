@@ -19,6 +19,7 @@ Visually inspired by Google Keep and conceptually inspired by logging systems us
 - **Backend**: GraphQL Yoga API with JWT authentication, Prisma ORM with MongoDB Atlas database, sqids for encoding IDs, and Vitest for testing
 - **Authentication**: Google OAuth login with JWT tokens, secure cookie storage, and refresh token implementation
 - **Vercel Cron Job**: Daily maintenance tasks including refresh token cleanup and monitoring overdue events for a configured user with Discord notifications
+- **Github Actions**: CI/CD pipeline for automated testing before PR merges
 
 See individual app READMEs for detailed information:
 - [Frontend Documentation](./apps/web/README.md)
@@ -62,6 +63,7 @@ life_event_logger_monorepo/
 ├── packages/         # Shared packages
 │   └── utils/        # Shared utility functions
 ├── .husky/           # Git hooks for code quality
+├── .github/          # GitHub Actions workflows
 └── package.json      # Monorepo scripts
 ```
 
