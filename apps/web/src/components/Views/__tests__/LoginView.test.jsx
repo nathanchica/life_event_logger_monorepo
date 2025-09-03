@@ -132,7 +132,8 @@ describe('LoginView', () => {
                 variables: {
                     input: {
                         googleToken: 'mock-credential',
-                        clientType: 'WEB'
+                        clientType: 'WEB',
+                        rememberMe: false
                     }
                 }
             });
@@ -176,7 +177,8 @@ describe('LoginView', () => {
                 variables: {
                     input: {
                         googleToken: 'mock-credential',
-                        clientType: 'WEB'
+                        clientType: 'WEB',
+                        rememberMe: false
                     }
                 }
             });
@@ -318,6 +320,52 @@ describe('LoginView', () => {
             expect(consoleErrorSpy).toHaveBeenCalledWith('Google login failed');
 
             consoleErrorSpy.mockRestore();
+        });
+
+        it('sends rememberMe as true when checkbox is checked', async () => {
+            let resolveMockLoginMutation;
+            const loginPromise = new Promise((resolve) => {
+                resolveMockLoginMutation = resolve;
+            });
+            mockLoginMutation.mockReturnValue(loginPromise);
+
+            renderWithProviders();
+
+            // Check the "Keep me signed in" checkbox
+            const rememberMeCheckbox = screen.getByRole('checkbox', { name: /keep me signed in/i });
+            await user.click(rememberMeCheckbox);
+            expect(rememberMeCheckbox).toBeChecked();
+
+            // Trigger Google login
+            const googleLoginButton = screen.getByTestId('google-login');
+            await user.click(googleLoginButton);
+
+            // Should call loginMutation with rememberMe: true
+            expect(mockLoginMutation).toHaveBeenCalledWith({
+                variables: {
+                    input: {
+                        googleToken: 'mock-credential',
+                        clientType: 'WEB',
+                        rememberMe: true
+                    }
+                }
+            });
+
+            // Resolve the promise to clean up
+            await act(async () => {
+                resolveMockLoginMutation({
+                    data: {
+                        googleOAuthLoginMutation: {
+                            accessToken: 'mock-access-token',
+                            user: {
+                                id: 'user-1',
+                                email: 'test@example.com',
+                                name: 'Test User'
+                            }
+                        }
+                    }
+                });
+            });
         });
     });
 

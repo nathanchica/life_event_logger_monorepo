@@ -8,9 +8,11 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import Checkbox from '@mui/material/Checkbox';
 import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
@@ -29,6 +31,7 @@ import { fullViewportHeight } from '../../utils/theme';
 const LoginView = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [rememberMe, setRememberMe] = useState(false);
     const { setAuthData, setOfflineMode } = useAuth();
     const { loginMutation } = useAuthMutations();
     const theme = useTheme();
@@ -47,7 +50,8 @@ const LoginView = () => {
                 variables: {
                     input: {
                         googleToken: credentialResponse.credential,
-                        clientType: 'WEB'
+                        clientType: 'WEB',
+                        rememberMe
                     }
                 }
             });
@@ -182,6 +186,23 @@ const LoginView = () => {
                                                     shape="rectangular"
                                                     theme="outline"
                                                     size="large"
+                                                />
+                                            </Box>
+
+                                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={rememberMe}
+                                                            onChange={(e) => setRememberMe(e.target.checked)}
+                                                            color="primary"
+                                                        />
+                                                    }
+                                                    label={
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            Keep me signed in for 30 days
+                                                        </Typography>
+                                                    }
                                                 />
                                             </Box>
 
