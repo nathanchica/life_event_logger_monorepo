@@ -1,4 +1,5 @@
-import { MILLISECONDS_IN_DAY } from '../../auth/token.js';
+import { DAY_IN_MILLISECONDS } from '@life-event-logger/utils';
+
 import { prisma } from '../../prisma/client.js';
 
 /**
@@ -8,7 +9,7 @@ import { prisma } from '../../prisma/client.js';
 export async function cleanupExpiredTokens(): Promise<number> {
     try {
         // Delete tokens expired more than 24 hours ago
-        const cutoffDate = new Date(Date.now() - MILLISECONDS_IN_DAY);
+        const cutoffDate = new Date(Date.now() - DAY_IN_MILLISECONDS);
 
         const result = await prisma.refreshToken.deleteMany({
             where: {

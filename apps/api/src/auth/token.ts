@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+import { DAY_IN_MILLISECONDS } from '@life-event-logger/utils';
 import { PrismaClient } from '@prisma/client';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
@@ -9,7 +10,6 @@ import { env } from '../config/env.js';
 const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 // Token configuration
-export const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
 
 export interface TokenPayload {
     userId: string;
@@ -102,11 +102,11 @@ export async function createRefreshToken(
     const hashedToken = hashRefreshToken(token);
 
     const now = Date.now();
-    const slidingWindowMs = env.REFRESH_TOKEN_SLIDING_DAYS * MILLISECONDS_IN_DAY;
-    const absoluteMaxMs = env.REFRESH_TOKEN_ABSOLUTE_MAX_DAYS * MILLISECONDS_IN_DAY;
+    const slidingWindowMs = env.REFRESH_TOKEN_SLIDING_DAYS * DAY_IN_MILLISECONDS;
+    const absoluteMaxMs = env.REFRESH_TOKEN_ABSOLUTE_MAX_DAYS * DAY_IN_MILLISECONDS;
 
     // For "remember me", use full sliding window; otherwise use 1 day
-    const expiresAt = new Date(now + (metadata?.rememberMe ? slidingWindowMs : MILLISECONDS_IN_DAY));
+    const expiresAt = new Date(now + (metadata?.rememberMe ? slidingWindowMs : DAY_IN_MILLISECONDS));
     const absoluteExpiresAt = new Date(now + absoluteMaxMs);
 
     await prisma.refreshToken.create({
@@ -160,7 +160,7 @@ export async function validateRefreshToken(prisma: PrismaClient, token: string):
     }
 
     // Extend sliding window
-    const newExpiresAt = new Date(now.getTime() + env.REFRESH_TOKEN_SLIDING_DAYS * MILLISECONDS_IN_DAY);
+    const newExpiresAt = new Date(now.getTime() + env.REFRESH_TOKEN_SLIDING_DAYS * DAY_IN_MILLISECONDS);
 
     // Don't extend beyond absolute expiration
     const finalExpiresAt =
