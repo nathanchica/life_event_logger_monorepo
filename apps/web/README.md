@@ -21,6 +21,7 @@ Built with:
 - npm for package dependency management
 - Husky, ESLint, and Prettier for maintaining code standards
 - React Testing Library for testing frontend components
+- Sentry for error tracking and monitoring
 
 ## Architecture
 

@@ -1,5 +1,6 @@
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
+import * as Sentry from '@sentry/react';
 
 import { tokenStorage } from './tokenStorage';
 
@@ -23,14 +24,35 @@ export const createAuthLink = () => {
  * Error link for handling auth errors
  */
 export const createErrorLink = () => {
-    return onError(({ graphQLErrors }) => {
+    return onError(({ graphQLErrors, networkError, operation }) => {
         if (graphQLErrors) {
             for (const err of graphQLErrors) {
                 // Check for UNAUTHORIZED error code (from auth directive)
                 if (err.extensions?.code === 'UNAUTHORIZED') {
                     tokenStorage.clear();
+                } else {
+                    // Log other GraphQL errors to Sentry
+                    Sentry.captureException(new Error(err.message), {
+                        contexts: {
+                            graphql: {
+                                operationName: operation.operationName,
+                                extensions: err.extensions
+                            }
+                        }
+                    });
                 }
             }
+        }
+
+        // Log network errors to Sentry
+        if (networkError) {
+            Sentry.captureException(networkError, {
+                contexts: {
+                    graphql: {
+                        operationName: operation.operationName
+                    }
+                }
+            });
         }
     });
 };

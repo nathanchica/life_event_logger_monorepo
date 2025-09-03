@@ -20,6 +20,7 @@ Visually inspired by Google Keep and conceptually inspired by logging systems us
 - **Authentication**: Google OAuth login with JWT tokens, secure cookie storage, and refresh token implementation
 - **Vercel Cron Job**: Daily maintenance tasks including refresh token cleanup and monitoring overdue events for a configured user with Discord notifications
 - **Github Actions**: CI/CD pipeline for automated testing before PR merges
+- **Sentry**: Error tracking and monitoring
 
 See individual app READMEs for detailed information:
 - [Frontend Documentation](./apps/web/README.md)
