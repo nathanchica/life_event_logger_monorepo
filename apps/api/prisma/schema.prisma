@@ -52,15 +52,18 @@ model EventLabel {
 }
 
 model RefreshToken {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  token       String    @unique
-  userId      String    @db.ObjectId
-  user        User      @relation(fields: [userId], references: [id])
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
-  lastUsedAt  DateTime?
-  userAgent   String?
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  token             String    @unique
+  userId            String    @db.ObjectId
+  user              User      @relation(fields: [userId], references: [id])
+  expiresAt         DateTime  // Sliding expiration (extends on use)
+  absoluteExpiresAt DateTime  // Fixed maximum lifetime (never extends)
+  isActive          Boolean   @default(true) // For tracking active sessions
+  createdAt         DateTime  @default(now())
+  lastUsedAt        DateTime?
+  userAgent         String?
   
   @@index([userId])
   @@index([expiresAt])
+  @@index([absoluteExpiresAt])
 }
