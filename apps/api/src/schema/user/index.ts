@@ -38,7 +38,6 @@ const GoogleOAuthLoginMutationSchema = z.object({
     rememberMe: z.boolean().optional().default(false)
 });
 
-// Cookie configuration function to support dynamic maxAge based on rememberMe
 const getCookieOptions = (rememberMe: boolean = false) => {
     // Use absolute max days for cookie expiration when rememberMe is true
     const maxAgeDays = rememberMe ? env.REFRESH_TOKEN_ABSOLUTE_MAX_DAYS : env.REFRESH_TOKEN_EXPIRES_IN_DAYS;
