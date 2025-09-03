@@ -7,7 +7,7 @@ import { mockDeep } from 'vitest-mock-extended';
 
 import prismaMock from '../../prisma/__mocks__/client.js';
 import { createMockUser } from '../../schema/user/__mocks__/user.js';
-import { createMockGoogleTokenPayload, oAuth2Client } from '../__mocks__/token.js';
+import { createMockGoogleTokenPayload, createMockRefreshToken, oAuth2Client } from '../__mocks__/token.js';
 import {
     verifyGoogleToken,
     generateAccessToken,
@@ -30,10 +30,31 @@ vi.mock('../../config/env.js', () => ({
         JWT_SECRET: 'mock-jwt-secret',
         NODE_ENV: 'test',
         REFRESH_TOKEN_EXPIRES_IN_DAYS: 30,
-        ACCESS_TOKEN_EXPIRES_IN_SECONDS: 900
+        ACCESS_TOKEN_EXPIRES_IN_SECONDS: 900,
+        REFRESH_TOKEN_SLIDING_DAYS: 7,
+        REFRESH_TOKEN_ABSOLUTE_MAX_DAYS: 30
     }
 }));
-vi.mock('crypto');
+
+vi.mock('crypto', () => ({
+    default: {
+        randomBytes: vi.fn(),
+        createHash: vi.fn(() => {
+            const hashInstance = {
+                _data: '',
+                update: vi.fn().mockImplementation(function (data: string) {
+                    hashInstance._data = data;
+                    return hashInstance;
+                }),
+                digest: vi.fn().mockImplementation(() => {
+                    // Deterministic hash based on input
+                    return `sha256-${hashInstance._data}`;
+                })
+            };
+            return hashInstance;
+        })
+    }
+}));
 
 describe('Token utilities', () => {
     beforeEach(() => {
@@ -207,49 +228,22 @@ describe('Token utilities', () => {
     describe('hashRefreshToken', () => {
         it('should hash a refresh token using SHA256', () => {
             const token = 'test-refresh-token';
-            const mockHash = 'mocked-hash-value';
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHash)
-            };
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
 
             const result = hashRefreshToken(token);
 
-            expect(result).toBe(mockHash);
+            expect(result).toBe(`sha256-${token}`);
             expect(crypto.createHash).toHaveBeenCalledWith('sha256');
-            expect(mockHashInstance.update).toHaveBeenCalledWith(token);
-            expect(mockHashInstance.digest).toHaveBeenCalledWith('hex');
         });
 
         it('should generate different hashes for different tokens', () => {
             const token1 = 'refresh-token-1';
             const token2 = 'refresh-token-2';
-            const mockHash1 = 'hash-for-token-1';
-            const mockHash2 = 'hash-for-token-2';
-
-            const mockHashInstance1 = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHash1)
-            };
-            const mockHashInstance2 = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHash2)
-            };
-
-            vi.mocked(crypto.createHash)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .mockReturnValueOnce(mockHashInstance1 as any)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                .mockReturnValueOnce(mockHashInstance2 as any);
 
             const result1 = hashRefreshToken(token1);
             const result2 = hashRefreshToken(token2);
 
-            expect(result1).toBe(mockHash1);
-            expect(result2).toBe(mockHash2);
+            expect(result1).toBe(`sha256-${token1}`);
+            expect(result2).toBe(`sha256-${token2}`);
             expect(result1).not.toBe(result2);
         });
     });
@@ -267,28 +261,21 @@ describe('Token utilities', () => {
         it('should create a refresh token in the database', async () => {
             const userId = 'user-123';
             const mockToken = 'generated-refresh-token';
-            const mockHashedToken = 'hashed-refresh-token';
-            const expectedExpiresAt = new Date('2024-01-31T00:00:00Z'); // 30 days later
+            const expectedExpiresAt = new Date('2024-01-02T00:00:00Z'); // 1 day later (default without rememberMe)
 
             // Mock token generation
             const mockBuffer = Buffer.from(mockToken);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.mocked(crypto.randomBytes).mockReturnValue(mockBuffer as any);
 
-            // Mock token hashing
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
-
             // Mock database create
             prismaMock.refreshToken.create.mockResolvedValue({
                 id: 'token-id',
-                token: mockHashedToken,
+                token: `sha256-${mockBuffer.toString('base64url')}`,
                 userId,
                 expiresAt: expectedExpiresAt,
+                absoluteExpiresAt: new Date('2024-01-31T00:00:00Z'), // 30 days
+                isActive: true,
                 createdAt: new Date(),
                 lastUsedAt: null,
                 userAgent: null
@@ -299,11 +286,12 @@ describe('Token utilities', () => {
             expect(result).toBe(mockBuffer.toString('base64url'));
             expect(prismaMock.refreshToken.create).toHaveBeenCalledWith({
                 data: {
-                    token: mockHashedToken,
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
                     userId,
                     expiresAt: expectedExpiresAt,
-                    userAgent: undefined,
-                    ipAddress: undefined
+                    absoluteExpiresAt: new Date('2024-01-31T00:00:00Z'),
+                    isActive: true,
+                    userAgent: undefined
                 }
             });
         });
@@ -314,40 +302,114 @@ describe('Token utilities', () => {
                 userAgent: 'Mozilla/5.0'
             };
             const mockToken = 'generated-refresh-token';
-            const mockHashedToken = 'hashed-refresh-token';
 
             // Mock token generation
             const mockBuffer = Buffer.from(mockToken);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.mocked(crypto.randomBytes).mockReturnValue(mockBuffer as any);
 
-            // Mock token hashing
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
-
             // Mock database create
-            prismaMock.refreshToken.create.mockResolvedValue({
-                id: 'token-id',
-                token: mockHashedToken,
-                userId,
-                expiresAt: new Date('2024-01-31T00:00:00Z'),
-                createdAt: new Date(),
-                lastUsedAt: null,
-                userAgent: metadata.userAgent
-            });
+            prismaMock.refreshToken.create.mockResolvedValue(
+                createMockRefreshToken({
+                    id: 'token-id',
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
+                    userId,
+                    expiresAt: new Date('2024-01-02T00:00:00Z'), // 1 day with no rememberMe
+                    absoluteExpiresAt: new Date('2024-01-31T00:00:00Z'),
+                    userAgent: metadata.userAgent
+                })
+            );
 
             const result = await createRefreshToken(prismaMock, userId, metadata);
 
             expect(result).toBe(mockBuffer.toString('base64url'));
             expect(prismaMock.refreshToken.create).toHaveBeenCalledWith({
                 data: {
-                    token: mockHashedToken,
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
                     userId,
-                    expiresAt: new Date('2024-01-31T00:00:00Z'),
+                    expiresAt: new Date('2024-01-02T00:00:00Z'),
+                    absoluteExpiresAt: new Date('2024-01-31T00:00:00Z'),
+                    isActive: true,
+                    userAgent: metadata.userAgent
+                }
+            });
+        });
+
+        it('should create token with 7-day expiry when rememberMe is true', async () => {
+            const userId = 'user-123';
+            const metadata = {
+                userAgent: 'Mozilla/5.0',
+                rememberMe: true
+            };
+            const mockToken = 'generated-refresh-token';
+
+            // Mock token generation
+            const mockBuffer = Buffer.from(mockToken);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            vi.mocked(crypto.randomBytes).mockReturnValue(mockBuffer as any);
+
+            // Mock database create
+            prismaMock.refreshToken.create.mockResolvedValue(
+                createMockRefreshToken({
+                    id: 'token-id',
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
+                    userId,
+                    expiresAt: new Date('2024-01-08T00:00:00Z'), // 7 days with rememberMe
+                    absoluteExpiresAt: new Date('2024-01-31T00:00:00Z'),
+                    userAgent: metadata.userAgent
+                })
+            );
+
+            const result = await createRefreshToken(prismaMock, userId, metadata);
+
+            expect(result).toBe(mockBuffer.toString('base64url'));
+            expect(prismaMock.refreshToken.create).toHaveBeenCalledWith({
+                data: {
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
+                    userId,
+                    expiresAt: new Date('2024-01-08T00:00:00Z'), // 7 days
+                    absoluteExpiresAt: new Date('2024-01-31T00:00:00Z'),
+                    isActive: true,
+                    userAgent: metadata.userAgent
+                }
+            });
+        });
+
+        it('should create token with 1-day expiry when rememberMe is false', async () => {
+            const userId = 'user-123';
+            const metadata = {
+                userAgent: 'Mozilla/5.0',
+                rememberMe: false
+            };
+            const mockToken = 'generated-refresh-token';
+
+            // Mock token generation
+            const mockBuffer = Buffer.from(mockToken);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            vi.mocked(crypto.randomBytes).mockReturnValue(mockBuffer as any);
+
+            // Mock database create
+            prismaMock.refreshToken.create.mockResolvedValue(
+                createMockRefreshToken({
+                    id: 'token-id',
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
+                    userId,
+                    expiresAt: new Date('2024-01-02T00:00:00Z'), // 1 day without rememberMe
+                    absoluteExpiresAt: new Date('2024-01-31T00:00:00Z'),
+                    userAgent: metadata.userAgent
+                })
+            );
+
+            const result = await createRefreshToken(prismaMock, userId, metadata);
+
+            expect(result).toBe(mockBuffer.toString('base64url'));
+            expect(prismaMock.refreshToken.create).toHaveBeenCalledWith({
+                data: {
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
+                    userId,
+                    expiresAt: new Date('2024-01-02T00:00:00Z'), // 1 day
+                    absoluteExpiresAt: new Date('2024-01-31T00:00:00Z'),
+                    isActive: true,
                     userAgent: metadata.userAgent
                 }
             });
@@ -364,32 +426,23 @@ describe('Token utilities', () => {
             vi.useRealTimers();
         });
 
-        it('should validate a valid refresh token', async () => {
+        it('should validate a valid refresh token and extend sliding window', async () => {
             const token = 'valid-refresh-token';
-            const mockHashedToken = 'hashed-token';
-            const mockRefreshToken = {
+            const mockHashedToken = `sha256-${token}`;
+            const mockRefreshToken = createMockRefreshToken({
                 id: 'token-123',
                 token: mockHashedToken,
                 userId: 'user-123',
-                expiresAt: new Date('2024-02-01T00:00:00Z'), // Future date
-                createdAt: new Date('2024-01-01T00:00:00Z'),
-                lastUsedAt: null,
-                userAgent: null,
-                ipAddress: null
-            };
-
-            // Mock token hashing
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
+                expiresAt: new Date('2024-01-20T00:00:00Z'), // 5 days from now
+                absoluteExpiresAt: new Date('2024-02-15T00:00:00Z'), // 31 days from now
+                isActive: true
+            });
 
             prismaMock.refreshToken.findUnique.mockResolvedValue(mockRefreshToken);
             prismaMock.refreshToken.update.mockResolvedValue({
                 ...mockRefreshToken,
-                lastUsedAt: new Date()
+                lastUsedAt: new Date('2024-01-15T00:00:00Z'),
+                expiresAt: new Date('2024-01-22T00:00:00Z') // Extended by 7 days
             });
 
             const result = await validateRefreshToken(prismaMock, token);
@@ -403,21 +456,16 @@ describe('Token utilities', () => {
             });
             expect(prismaMock.refreshToken.update).toHaveBeenCalledWith({
                 where: { id: 'token-123' },
-                data: { lastUsedAt: new Date() }
+                data: {
+                    lastUsedAt: new Date('2024-01-15T00:00:00Z'),
+                    expiresAt: new Date('2024-01-22T00:00:00Z') // Extended by 7 days
+                }
             });
         });
 
         it('should return null for non-existent token', async () => {
             const token = 'non-existent-token';
-            const mockHashedToken = 'hashed-token';
-
-            // Mock token hashing
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
+            const mockHashedToken = `sha256-${token}`;
 
             prismaMock.refreshToken.findUnique.mockResolvedValue(null);
 
@@ -432,25 +480,17 @@ describe('Token utilities', () => {
 
         it('should delete and return null for expired token', async () => {
             const token = 'expired-refresh-token';
-            const mockHashedToken = 'hashed-token';
-            const mockRefreshToken = {
+            const mockHashedToken = `sha256-${token}`;
+            const mockRefreshToken = createMockRefreshToken({
                 id: 'token-123',
                 token: mockHashedToken,
                 userId: 'user-123',
-                expiresAt: new Date('2024-01-01T00:00:00Z'), // Past date
+                expiresAt: new Date('2024-01-01T00:00:00Z'), // Past date (expired)
+                absoluteExpiresAt: new Date('2024-02-01T00:00:00Z'),
                 createdAt: new Date('2023-12-01T00:00:00Z'),
                 lastUsedAt: null,
-                userAgent: null,
-                ipAddress: null
-            };
-
-            // Mock token hashing
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
+                userAgent: null
+            });
 
             prismaMock.refreshToken.findUnique.mockResolvedValue(mockRefreshToken);
             prismaMock.refreshToken.delete.mockResolvedValue(mockRefreshToken);
@@ -461,6 +501,86 @@ describe('Token utilities', () => {
             expect(prismaMock.refreshToken.delete).toHaveBeenCalledWith({
                 where: { id: 'token-123' }
             });
+            expect(prismaMock.refreshToken.update).not.toHaveBeenCalled();
+        });
+
+        it('should not extend expiration beyond absolute maximum', async () => {
+            const token = 'valid-refresh-token';
+            const mockHashedToken = `sha256-${token}`;
+            // Token close to absolute expiration
+            const mockRefreshToken = createMockRefreshToken({
+                id: 'token-123',
+                token: mockHashedToken,
+                userId: 'user-123',
+                expiresAt: new Date('2024-01-17T00:00:00Z'), // 2 days from now
+                absoluteExpiresAt: new Date('2024-01-18T00:00:00Z'), // 3 days from now (close to absolute)
+                isActive: true
+            });
+
+            prismaMock.refreshToken.findUnique.mockResolvedValue(mockRefreshToken);
+            prismaMock.refreshToken.update.mockResolvedValue({
+                ...mockRefreshToken,
+                lastUsedAt: new Date('2024-01-15T00:00:00Z'),
+                expiresAt: new Date('2024-01-18T00:00:00Z') // Capped at absolute max
+            });
+
+            const result = await validateRefreshToken(prismaMock, token);
+
+            expect(result).toEqual({
+                userId: 'user-123',
+                tokenId: 'token-123'
+            });
+            expect(prismaMock.refreshToken.update).toHaveBeenCalledWith({
+                where: { id: 'token-123' },
+                data: {
+                    lastUsedAt: new Date('2024-01-15T00:00:00Z'),
+                    expiresAt: new Date('2024-01-18T00:00:00Z') // Should be capped at absolute max
+                }
+            });
+        });
+
+        it('should delete token that exceeds absolute expiration', async () => {
+            const token = 'absolute-expired-token';
+            const mockHashedToken = `sha256-${token}`;
+            const mockRefreshToken = createMockRefreshToken({
+                id: 'token-123',
+                token: mockHashedToken,
+                userId: 'user-123',
+                expiresAt: new Date('2024-01-20T00:00:00Z'), // Still valid sliding window
+                absoluteExpiresAt: new Date('2024-01-10T00:00:00Z'), // Absolute expired
+                isActive: true
+            });
+
+            prismaMock.refreshToken.findUnique.mockResolvedValue(mockRefreshToken);
+            prismaMock.refreshToken.delete.mockResolvedValue(mockRefreshToken);
+
+            const result = await validateRefreshToken(prismaMock, token);
+
+            expect(result).toBeNull();
+            expect(prismaMock.refreshToken.delete).toHaveBeenCalledWith({
+                where: { id: 'token-123' }
+            });
+            expect(prismaMock.refreshToken.update).not.toHaveBeenCalled();
+        });
+
+        it('should return null for inactive token', async () => {
+            const token = 'inactive-token';
+            const mockHashedToken = `sha256-${token}`;
+            const mockRefreshToken = createMockRefreshToken({
+                id: 'token-123',
+                token: mockHashedToken,
+                userId: 'user-123',
+                expiresAt: new Date('2024-01-20T00:00:00Z'),
+                absoluteExpiresAt: new Date('2024-02-01T00:00:00Z'),
+                isActive: false // Marked as inactive
+            });
+
+            prismaMock.refreshToken.findUnique.mockResolvedValue(mockRefreshToken);
+
+            const result = await validateRefreshToken(prismaMock, token);
+
+            expect(result).toBeNull();
+            expect(prismaMock.refreshToken.delete).not.toHaveBeenCalled();
             expect(prismaMock.refreshToken.update).not.toHaveBeenCalled();
         });
     });
@@ -479,21 +599,20 @@ describe('Token utilities', () => {
             const oldTokenId = 'old-token-123';
             const userId = 'user-123';
             const newToken = 'new-refresh-token';
-            const newHashedToken = 'new-hashed-token';
             const metadata = {
                 userAgent: 'Mozilla/5.0'
             };
 
-            const oldRefreshToken = {
+            const oldRefreshToken = createMockRefreshToken({
                 id: oldTokenId,
                 token: 'old-hashed-token',
                 userId,
                 expiresAt: new Date('2024-02-01T00:00:00Z'),
+                absoluteExpiresAt: new Date('2024-02-15T00:00:00Z'),
                 createdAt: new Date('2024-01-01T00:00:00Z'),
                 lastUsedAt: new Date('2024-01-10T00:00:00Z'),
-                userAgent: 'Old Browser',
-                ipAddress: null
-            };
+                userAgent: 'Old Browser'
+            });
 
             // Mock finding old token
             prismaMock.refreshToken.findUnique.mockResolvedValue(oldRefreshToken);
@@ -506,22 +625,18 @@ describe('Token utilities', () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.mocked(crypto.randomBytes).mockReturnValue(mockBuffer as any);
 
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(newHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
-
-            prismaMock.refreshToken.create.mockResolvedValue({
-                id: 'new-token-123',
-                token: newHashedToken,
-                userId,
-                expiresAt: new Date('2024-02-14T00:00:00Z'),
-                createdAt: new Date(),
-                lastUsedAt: null,
-                userAgent: metadata.userAgent
-            });
+            prismaMock.refreshToken.create.mockResolvedValue(
+                createMockRefreshToken({
+                    id: 'new-token-123',
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
+                    userId,
+                    expiresAt: new Date('2024-01-16T00:00:00Z'), // 1 day for rotation
+                    absoluteExpiresAt: new Date('2024-02-14T00:00:00Z'),
+                    createdAt: new Date(),
+                    lastUsedAt: null,
+                    userAgent: metadata.userAgent
+                })
+            );
 
             const result = await rotateRefreshToken(prismaMock, oldTokenId, metadata);
 
@@ -534,9 +649,11 @@ describe('Token utilities', () => {
             });
             expect(prismaMock.refreshToken.create).toHaveBeenCalledWith({
                 data: {
-                    token: newHashedToken,
+                    token: `sha256-${mockBuffer.toString('base64url')}`,
                     userId,
-                    expiresAt: new Date('2024-02-14T00:00:00Z'),
+                    expiresAt: new Date('2024-01-16T00:00:00Z'), // 1 day default
+                    absoluteExpiresAt: new Date('2024-02-14T00:00:00Z'),
+                    isActive: true,
                     userAgent: metadata.userAgent
                 }
             });
@@ -557,15 +674,7 @@ describe('Token utilities', () => {
     describe('revokeRefreshToken', () => {
         it('should revoke a refresh token', async () => {
             const token = 'token-to-revoke';
-            const mockHashedToken = 'hashed-token';
-
-            // Mock token hashing
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
+            const mockHashedToken = `sha256-${token}`;
 
             prismaMock.refreshToken.deleteMany.mockResolvedValue({ count: 1 });
 
@@ -578,15 +687,7 @@ describe('Token utilities', () => {
 
         it('should handle revoking non-existent token gracefully', async () => {
             const token = 'non-existent-token';
-            const mockHashedToken = 'hashed-token';
-
-            // Mock token hashing
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
+            const mockHashedToken = `sha256-${token}`;
 
             prismaMock.refreshToken.deleteMany.mockResolvedValue({ count: 0 });
 
@@ -672,28 +773,20 @@ describe('Token utilities', () => {
 
             // Create refresh token
             const mockToken = 'initial-refresh-token';
-            const mockHashedToken = 'initial-hashed-token';
             const mockBuffer = Buffer.from(mockToken);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.mocked(crypto.randomBytes).mockReturnValue(mockBuffer as any);
 
-            const mockHashInstance = {
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-            };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            vi.mocked(crypto.createHash).mockReturnValue(mockHashInstance as any);
-
-            const createdToken = {
+            const createdToken = createMockRefreshToken({
                 id: 'token-123',
-                token: mockHashedToken,
+                token: `sha256-${mockBuffer.toString('base64url')}`,
                 userId,
-                expiresAt: new Date('2024-01-31T00:00:00Z'),
+                expiresAt: new Date('2024-01-16T00:00:00Z'), // 1 day default
+                absoluteExpiresAt: new Date('2024-02-14T00:00:00Z'),
                 createdAt: new Date(),
                 lastUsedAt: null,
-                userAgent: metadata.userAgent,
-                ipAddress: null
-            };
+                userAgent: metadata.userAgent
+            });
 
             prismaMock.refreshToken.create.mockResolvedValue(createdToken);
 
@@ -703,17 +796,11 @@ describe('Token utilities', () => {
             // Validate the token
             vi.setSystemTime(new Date('2024-01-15T00:00:00Z'));
 
-            // Reset mocks for validation
-            vi.mocked(crypto.createHash).mockReturnValue({
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(mockHashedToken)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
-
             prismaMock.refreshToken.findUnique.mockResolvedValue(createdToken);
             prismaMock.refreshToken.update.mockResolvedValue({
                 ...createdToken,
-                lastUsedAt: new Date()
+                lastUsedAt: new Date('2024-01-15T00:00:00Z'),
+                expiresAt: new Date('2024-01-22T00:00:00Z') // Extended by 7 days
             });
 
             const validationResult = await validateRefreshToken(prismaMock, token);
@@ -724,7 +811,6 @@ describe('Token utilities', () => {
 
             // Rotate the token
             const newToken = 'new-refresh-token';
-            const newHashedToken = 'new-hashed-token';
             const newMockBuffer = Buffer.from(newToken);
 
             prismaMock.refreshToken.findUnique.mockResolvedValue(createdToken);
@@ -732,22 +818,17 @@ describe('Token utilities', () => {
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             vi.mocked(crypto.randomBytes).mockReturnValue(newMockBuffer as any);
-            vi.mocked(crypto.createHash).mockReturnValue({
-                update: vi.fn().mockReturnThis(),
-                digest: vi.fn().mockReturnValue(newHashedToken)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
 
-            const newCreatedToken = {
+            const newCreatedToken = createMockRefreshToken({
                 id: 'new-token-123',
-                token: newHashedToken,
+                token: `sha256-${newMockBuffer.toString('base64url')}`,
                 userId,
-                expiresAt: new Date('2024-02-14T00:00:00Z'),
+                expiresAt: new Date('2024-01-16T00:00:00Z'), // 1 day default
+                absoluteExpiresAt: new Date('2024-02-14T00:00:00Z'),
                 createdAt: new Date(),
                 lastUsedAt: null,
-                userAgent: metadata.userAgent,
-                ipAddress: null
-            };
+                userAgent: metadata.userAgent
+            });
 
             prismaMock.refreshToken.create.mockResolvedValue(newCreatedToken);
 

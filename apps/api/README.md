@@ -63,6 +63,14 @@ GOOGLE_CLIENT_ID="your-google-client-id"
 # Node environment
 NODE_ENV="development"
 
+# Token expiration settings
+ACCESS_TOKEN_EXPIRES_IN_SECONDS=900  # 15 minutes
+REFRESH_TOKEN_EXPIRES_IN_DAYS=30     # For backward compatibility
+
+# Sliding window authentication
+REFRESH_TOKEN_SLIDING_DAYS=7         # Activity extends by this many days
+REFRESH_TOKEN_ABSOLUTE_MAX_DAYS=30   # Maximum session lifetime
+
 See `.env.example` for other required variables.
 ```
 
@@ -269,7 +277,15 @@ The cron endpoint (`/api/cron/daily`) is protected by:
 
 ## Authentication Flow
 
-This API uses Google OAuth for user authentication with JWT tokens for session management.
+This API uses Google OAuth for user authentication with JWT access tokens and refresh tokens for session management.
+
+### Token Types
+
+1. **Access Token**: Short-lived JWT (15 minutes) for API requests
+2. **Refresh Token**: Long-lived token with sliding window expiration
+    - Stored as httpOnly cookie for web clients
+    - Extends by 7 days on each use (up to 30 days maximum)
+    - Absolute maximum lifetime of 30 days
 
 ### Login Process
 
@@ -277,24 +293,48 @@ This API uses Google OAuth for user authentication with JWT tokens for session m
 2. **Frontend**: Sends Google OAuth token to `googleOAuthLoginMutation`
 3. **Backend**: Verifies Google OAuth token using Google's auth library
 4. **Backend**: Creates or finds user in database
-5. **Backend**: Generates JWT token (7-day expiration) containing `userId` and `email`
-6. **Backend**: Returns JWT token and user object to frontend
-7. **Frontend**: Stores JWT token for subsequent requests
+5. **Backend**: Generates:
+    - JWT access token (15 minutes)
+    - Refresh token with sliding window expiration
+6. **Backend**: Sets refresh token as httpOnly cookie
+7. **Backend**: Returns access token and user object to frontend
+8. **Frontend**: Stores access token in memory for API requests
+
+### Sliding Window Authentication
+
+The refresh token implements a sliding window expiration mechanism:
+
+- **Initial Duration**:
+    - Without "Remember Me": 1 day
+    - With "Remember Me": 7 days (pending implementation)
+- **Extension on Use**: Each token refresh extends expiration by 7 days
+- **Maximum Lifetime**: 30 days absolute maximum (never exceeds)
+- **Inactivity Timeout**: Token expires after configured period of no use
+
+### Token Refresh Process
+
+1. **Frontend**: Access token expires or is about to expire
+2. **Frontend**: Calls `refreshTokenMutation` (refresh token in cookie)
+3. **Backend**: Validates refresh token
+4. **Backend**: Extends sliding window expiration (up to absolute max)
+5. **Backend**: Rotates refresh token for security
+6. **Backend**: Returns new access token
+7. **Frontend**: Updates stored access token
 
 ### Authenticated Requests
 
-1. **Frontend**: Includes JWT token in `Authorization: Bearer <jwt>` header
-2. **Backend**: Verifies JWT token in GraphQL context
+1. **Frontend**: Includes access token in `Authorization: Bearer <jwt>` header
+2. **Backend**: Verifies JWT access token in GraphQL context
 3. **Backend**: Loads user from database using `userId` from JWT payload
 4. **Backend**: Provides `user` object to resolvers via GraphQL context
 
-### Example
+### Example Mutations
 
 ```graphql
-# Login mutation
+# Login mutation (sets refresh token as httpOnly cookie)
 mutation GoogleOAuthLogin($input: GoogleOAuthLoginMutationInput!) {
     googleOAuthLoginMutation(input: $input) {
-        token # JWT token to store and use for authenticated requests
+        accessToken # Short-lived JWT for API requests
         user {
             id
             email
@@ -306,25 +346,47 @@ mutation GoogleOAuthLogin($input: GoogleOAuthLoginMutationInput!) {
         }
     }
 }
+
+# Refresh token mutation (uses refresh token from cookie)
+mutation RefreshToken {
+    refreshTokenMutation {
+        accessToken # New access token
+        errors {
+            code
+            message
+        }
+    }
+}
+
+# Logout mutation (clears refresh token cookie)
+mutation Logout($input: LogoutMutationInput) {
+    logoutMutation(input: $input) {
+        success
+        errors {
+            code
+            message
+        }
+    }
+}
 ```
 
-```javascript
-// React frontend usage with Apollo Client or similar
-import { useMutation, useQuery } from '@apollo/client';
+### Frontend Integration
 
-// Login
-const [login] = useMutation(GOOGLE_OAUTH_LOGIN);
-const handleLogin = async (googleToken) => {
-    const { data } = await login({
-        variables: { input: { googleToken } }
-    });
-    // Store JWT token in localStorage or secure storage
-    localStorage.setItem('authToken', data.googleOAuthLoginMutation.token);
-};
+The web app uses a TokenStorage service (`apps/web/src/apollo/tokenStorage.ts`) that:
 
-// Authenticated requests (token automatically included via Apollo Client context)
-const { data } = useQuery(GET_LOGGED_IN_USER);
-```
+- **Stores access tokens in memory only** (for security)
+- **Automatically checks token expiration** with a 30-second buffer
+- **Handles token refresh** using the refresh token cookie
+- **Prevents race conditions** when multiple requests need refresh
+- **Works with Apollo Client** for automatic authentication
+
+Key methods:
+
+- `setAccessToken(token, expiresInSeconds)` - Store access token with expiration
+- `getValidAccessToken()` - Get current token or refresh if expired
+- `clear()` - Clear stored tokens on logout
+
+The refresh token (httpOnly cookie) automatically extends its expiration by 7 days on each use, up to a maximum of 30 days, keeping users logged in during active use.
 
 ## GraphQL Security Directives
 

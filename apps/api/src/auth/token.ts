@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+import { DAY_IN_MILLISECONDS } from '@life-event-logger/utils';
 import { PrismaClient } from '@prisma/client';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
@@ -9,8 +10,6 @@ import { env } from '../config/env.js';
 const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 // Token configuration
-export const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
-const REFRESH_TOKEN_EXPIRES_IN_MS = env.REFRESH_TOKEN_EXPIRES_IN_DAYS * MILLISECONDS_IN_DAY;
 
 export interface TokenPayload {
     userId: string;
@@ -19,6 +18,7 @@ export interface TokenPayload {
 
 export interface TokenMetadata {
     userAgent?: string;
+    rememberMe?: boolean;
 }
 
 export interface RefreshTokenData {
@@ -100,13 +100,22 @@ export async function createRefreshToken(
 ): Promise<string> {
     const token = generateRefreshToken();
     const hashedToken = hashRefreshToken(token);
-    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN_MS);
+
+    const now = Date.now();
+    const slidingWindowMs = env.REFRESH_TOKEN_SLIDING_DAYS * DAY_IN_MILLISECONDS;
+    const absoluteMaxMs = env.REFRESH_TOKEN_ABSOLUTE_MAX_DAYS * DAY_IN_MILLISECONDS;
+
+    // For "remember me", use full sliding window; otherwise use 1 day
+    const expiresAt = new Date(now + (metadata?.rememberMe ? slidingWindowMs : DAY_IN_MILLISECONDS));
+    const absoluteExpiresAt = new Date(now + absoluteMaxMs);
 
     await prisma.refreshToken.create({
         data: {
             token: hashedToken,
             userId,
             expiresAt,
+            absoluteExpiresAt,
+            isActive: true,
             userAgent: metadata?.userAgent
         }
     });
@@ -123,27 +132,46 @@ export async function createRefreshToken(
  */
 export async function validateRefreshToken(prisma: PrismaClient, token: string): Promise<RefreshTokenData | null> {
     const hashedToken = hashRefreshToken(token);
+    const now = new Date();
 
     const refreshToken = await prisma.refreshToken.findUnique({
         where: { token: hashedToken }
     });
 
-    if (!refreshToken) {
+    if (!refreshToken || !refreshToken.isActive) {
         return null;
     }
 
-    // Check if token is expired
-    if (refreshToken.expiresAt < new Date()) {
+    // Check absolute expiration (cannot be extended)
+    if (refreshToken.absoluteExpiresAt < now) {
         await prisma.refreshToken.delete({
             where: { id: refreshToken.id }
         });
         return null;
     }
 
-    // Update last used timestamp
+    // Check sliding expiration
+    if (refreshToken.expiresAt < now) {
+        // Token expired due to inactivity
+        await prisma.refreshToken.delete({
+            where: { id: refreshToken.id }
+        });
+        return null;
+    }
+
+    // Extend sliding window
+    const newExpiresAt = new Date(now.getTime() + env.REFRESH_TOKEN_SLIDING_DAYS * DAY_IN_MILLISECONDS);
+
+    // Don't extend beyond absolute expiration
+    const finalExpiresAt =
+        newExpiresAt > refreshToken.absoluteExpiresAt ? refreshToken.absoluteExpiresAt : newExpiresAt;
+
     await prisma.refreshToken.update({
         where: { id: refreshToken.id },
-        data: { lastUsedAt: new Date() }
+        data: {
+            lastUsedAt: now,
+            expiresAt: finalExpiresAt
+        }
     });
 
     return {

@@ -1,3 +1,4 @@
+import { DAY_IN_MILLISECONDS } from '@life-event-logger/utils';
 import { serialize } from 'cookie';
 import { GraphQLError } from 'graphql';
 import invariant from 'tiny-invariant';
@@ -10,8 +11,7 @@ import {
     revokeRefreshToken,
     rotateRefreshToken,
     validateRefreshToken,
-    verifyGoogleToken,
-    MILLISECONDS_IN_DAY
+    verifyGoogleToken
 } from '../../auth/token.js';
 import { env } from '../../config/env.js';
 import { ClientType, Resolvers } from '../../generated/graphql.js';
@@ -41,7 +41,7 @@ const GoogleOAuthLoginMutationSchema = z.object({
 const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    maxAge: env.REFRESH_TOKEN_EXPIRES_IN_DAYS * MILLISECONDS_IN_DAY,
+    maxAge: env.REFRESH_TOKEN_EXPIRES_IN_DAYS * DAY_IN_MILLISECONDS,
     path: '/',
     // In development, omit sameSite to allow cross-origin cookies
     // In production, use 'lax' for security
