@@ -9,8 +9,6 @@ import { env } from '../config/env.js';
 
 const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
-// Token configuration
-
 export interface TokenPayload {
     userId: string;
     email: string;
@@ -90,7 +88,7 @@ export function hashRefreshToken(token: string): string {
  * Creates a new refresh token for a user and stores it in the database.
  * @param prisma - The Prisma client instance
  * @param userId - The ID of the user to create the token for
- * @param metadata - Optional metadata containing userAgent
+ * @param metadata - Optional metadata containing additional information
  * @returns The unhashed refresh token to be sent to the client
  */
 export async function createRefreshToken(

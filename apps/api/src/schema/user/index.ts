@@ -34,20 +34,25 @@ export type UserParent = {
 
 const GoogleOAuthLoginMutationSchema = z.object({
     googleToken: z.string().min(1, 'Google token is required'),
-    clientType: z.nativeEnum(ClientType).optional().default(ClientType.Web)
+    clientType: z.nativeEnum(ClientType).optional().default(ClientType.Web),
+    rememberMe: z.boolean().optional().default(false)
 });
 
-// Cookie configuration
-const COOKIE_OPTIONS = {
-    httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    maxAge: env.REFRESH_TOKEN_EXPIRES_IN_DAYS * DAY_IN_MILLISECONDS,
-    path: '/',
-    // In development, omit sameSite to allow cross-origin cookies
-    // In production, use 'lax' for security
-    /* v8 ignore start */
-    ...(env.NODE_ENV === 'production' ? { sameSite: 'lax' as const } : {})
-    /* v8 ignore stop */
+// Cookie configuration function to support dynamic maxAge based on rememberMe
+const getCookieOptions = (rememberMe: boolean = false) => {
+    // Use absolute max days for cookie expiration when rememberMe is true
+    const maxAgeDays = rememberMe ? env.REFRESH_TOKEN_ABSOLUTE_MAX_DAYS : env.REFRESH_TOKEN_EXPIRES_IN_DAYS;
+    return {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        maxAge: maxAgeDays * DAY_IN_MILLISECONDS,
+        path: '/',
+        // In development, omit sameSite to allow cross-origin cookies
+        // In production, use 'lax' for security
+        /* v8 ignore start */
+        ...(env.NODE_ENV === 'production' ? { sameSite: 'lax' as const } : {})
+        /* v8 ignore stop */
+    };
 };
 
 const resolvers: Resolvers = {
@@ -60,7 +65,7 @@ const resolvers: Resolvers = {
     Mutation: {
         googleOAuthLoginMutation: async (_, { input }, { prisma, requestMetadata, response }) => {
             try {
-                const { googleToken, clientType } = GoogleOAuthLoginMutationSchema.parse(input);
+                const { googleToken, clientType, rememberMe } = GoogleOAuthLoginMutationSchema.parse(input);
 
                 const googleUser = await verifyGoogleToken(googleToken);
 
@@ -92,11 +97,17 @@ const resolvers: Resolvers = {
                 const accessToken = generateAccessToken({ userId: user.id, email: user.email });
 
                 // Create refresh token
-                const refreshToken = await createRefreshToken(prisma, user.id, requestMetadata);
+                const refreshToken = await createRefreshToken(prisma, user.id, {
+                    ...requestMetadata,
+                    rememberMe
+                });
 
                 // Set refresh token as httpOnly cookie for web clients
                 if (clientType === ClientType.Web) {
-                    response.headers.set('Set-Cookie', serialize('refreshToken', refreshToken, COOKIE_OPTIONS));
+                    response.headers.set(
+                        'Set-Cookie',
+                        serialize('refreshToken', refreshToken, getCookieOptions(rememberMe))
+                    );
 
                     return {
                         token: accessToken,
@@ -182,7 +193,8 @@ const resolvers: Resolvers = {
                 const isWebClient = !!cookies?.refreshToken;
 
                 if (isWebClient) {
-                    response.headers.set('Set-Cookie', serialize('refreshToken', newRefreshToken, COOKIE_OPTIONS));
+                    // Use default cookie options for refresh (not rememberMe since this is a refresh)
+                    response.headers.set('Set-Cookie', serialize('refreshToken', newRefreshToken, getCookieOptions()));
                     return {
                         accessToken,
                         refreshToken: undefined,
@@ -233,7 +245,7 @@ const resolvers: Resolvers = {
                     response.headers.set(
                         'Set-Cookie',
                         serialize('refreshToken', '', {
-                            ...COOKIE_OPTIONS,
+                            ...getCookieOptions(),
                             maxAge: 0 // Expire immediately
                         })
                     );
@@ -265,7 +277,7 @@ const resolvers: Resolvers = {
                     response.headers.set(
                         'Set-Cookie',
                         serialize('refreshToken', '', {
-                            ...COOKIE_OPTIONS,
+                            ...getCookieOptions(),
                             maxAge: 0 // Expire immediately
                         })
                     );
