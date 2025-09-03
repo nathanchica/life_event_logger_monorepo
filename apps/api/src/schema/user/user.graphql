@@ -56,6 +56,11 @@ input GoogleOAuthLoginMutationInput {
     Client type - defaults to WEB if not specified
     """
     clientType: ClientType
+
+    """
+    Keep user signed in for longer (extends session to 30 days with activity)
+    """
+    rememberMe: Boolean
 }
 
 """

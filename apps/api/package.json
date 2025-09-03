@@ -85,12 +85,12 @@
     },
     "lint-staged": {
         "!(*.config).ts": [
-            "eslint --fix --max-warnings=0",
+            "bash -c 'for file in \"$@\"; do if [[ \"$file\" != */generated/* ]]; then eslint --fix --max-warnings=0 \"$file\"; fi; done' --",
             "prettier --write",
             "tsc-files --noEmit"
         ],
         "!(*.config).js": [
-            "eslint --fix --max-warnings=0",
+            "bash -c 'for file in \"$@\"; do if [[ \"$file\" != */generated/* ]]; then eslint --fix --max-warnings=0 \"$file\"; fi; done' --",
             "prettier --write"
         ],
         "*.config.{js,mjs,ts}": [

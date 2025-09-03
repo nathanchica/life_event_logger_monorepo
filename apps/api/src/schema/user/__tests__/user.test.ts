@@ -209,7 +209,8 @@ describe('User GraphQL', () => {
                 email: mockUser.email
             });
             expect(createRefreshToken).toHaveBeenCalledWith(prismaMock, mockUser.id, {
-                userAgent: 'mock-user-agent'
+                userAgent: 'mock-user-agent',
+                rememberMe: false
             });
         });
 
@@ -440,6 +441,162 @@ describe('User GraphQL', () => {
             expect(data).toBeNull();
 
             consoleErrorSpy.mockRestore();
+        });
+
+        it('should handle rememberMe flag for web client', async () => {
+            const mockUser = createMockUser({
+                googleId: 'google_123456',
+                email: 'test@example.com',
+                name: 'Test User'
+            });
+
+            const mockGooglePayload = createMockGoogleTokenPayload({
+                sub: 'google_123456',
+                email: 'test@example.com',
+                name: 'Test User'
+            });
+
+            // Mock Google token verification
+            vi.mocked(verifyGoogleToken).mockResolvedValue(mockGooglePayload);
+
+            // Mock finding existing user
+            prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+            // Mock JWT generation
+            vi.mocked(generateAccessToken).mockReturnValue('access-token-remember');
+            vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-remember');
+            vi.mocked(serialize).mockReturnValue('refreshToken=refresh-token-remember; HttpOnly; Max-Age=2592000');
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { data, errors } = await client.request(
+                GOOGLE_LOGIN_MUTATION,
+                { input: { googleToken: 'valid-google-token', rememberMe: true } },
+                mockContext
+            );
+
+            expect(errors).toBeUndefined();
+            expect(data.googleOAuthLoginMutation).toEqual({
+                token: 'access-token-remember',
+                accessToken: 'access-token-remember',
+                refreshToken: null,
+                user: {
+                    id: encodeUserId(mockUser.id),
+                    email: mockUser.email,
+                    name: mockUser.name,
+                    googleId: mockUser.googleId,
+                    createdAt: mockUser.createdAt.toISOString(),
+                    updatedAt: mockUser.updatedAt.toISOString()
+                },
+                errors: []
+            });
+
+            // Verify refresh token was created with rememberMe flag
+            expect(createRefreshToken).toHaveBeenCalledWith(prismaMock, mockUser.id, {
+                userAgent: 'mock-user-agent',
+                rememberMe: true
+            });
+
+            // Verify cookie was set
+            expect(headerSetSpy).toHaveBeenCalled();
+        });
+
+        it('should handle rememberMe flag for mobile client', async () => {
+            const mockUser = createMockUser({
+                googleId: 'google_mobile',
+                email: 'mobile@example.com',
+                name: 'Mobile User'
+            });
+
+            const mockGooglePayload = createMockGoogleTokenPayload({
+                sub: 'google_mobile',
+                email: 'mobile@example.com',
+                name: 'Mobile User'
+            });
+
+            // Mock Google token verification
+            vi.mocked(verifyGoogleToken).mockResolvedValue(mockGooglePayload);
+
+            // Mock finding existing user
+            prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+            // Mock JWT generation
+            vi.mocked(generateAccessToken).mockReturnValue('access-token-mobile-remember');
+            vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-mobile-remember');
+
+            const { mockContext, headerSetSpy } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { data, errors } = await client.request(
+                GOOGLE_LOGIN_MUTATION,
+                { input: { googleToken: 'valid-google-token', clientType: 'MOBILE', rememberMe: true } },
+                mockContext
+            );
+
+            expect(errors).toBeUndefined();
+            expect(data.googleOAuthLoginMutation).toEqual({
+                token: 'access-token-mobile-remember',
+                accessToken: 'access-token-mobile-remember',
+                refreshToken: 'refresh-token-mobile-remember',
+                user: {
+                    id: encodeUserId(mockUser.id),
+                    email: mockUser.email,
+                    name: mockUser.name,
+                    googleId: mockUser.googleId,
+                    createdAt: mockUser.createdAt.toISOString(),
+                    updatedAt: mockUser.updatedAt.toISOString()
+                },
+                errors: []
+            });
+
+            // Verify refresh token was created with rememberMe flag
+            expect(createRefreshToken).toHaveBeenCalledWith(prismaMock, mockUser.id, {
+                userAgent: 'mock-user-agent',
+                rememberMe: true
+            });
+
+            // Verify no cookie was set for mobile client
+            expect(headerSetSpy).not.toHaveBeenCalled();
+        });
+
+        it('should default rememberMe to false when not provided', async () => {
+            const mockUser = createMockUser({
+                googleId: 'google_default',
+                email: 'default@example.com',
+                name: 'Default User'
+            });
+
+            const mockGooglePayload = createMockGoogleTokenPayload({
+                sub: 'google_default',
+                email: 'default@example.com',
+                name: 'Default User'
+            });
+
+            // Mock Google token verification
+            vi.mocked(verifyGoogleToken).mockResolvedValue(mockGooglePayload);
+
+            // Mock finding existing user
+            prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+            // Mock JWT generation
+            vi.mocked(generateAccessToken).mockReturnValue('access-token-default');
+            vi.mocked(createRefreshToken).mockResolvedValue('refresh-token-default');
+            vi.mocked(serialize).mockReturnValue('refreshToken=refresh-token-default; HttpOnly');
+
+            const { mockContext } = createMockContextWithSpy({ user: null, prisma: prismaMock });
+
+            const { errors } = await client.request(
+                GOOGLE_LOGIN_MUTATION,
+                { input: { googleToken: 'valid-google-token' } },
+                mockContext
+            );
+
+            expect(errors).toBeUndefined();
+
+            // Verify refresh token was created with rememberMe: false (default)
+            expect(createRefreshToken).toHaveBeenCalledWith(prismaMock, mockUser.id, {
+                userAgent: 'mock-user-agent',
+                rememberMe: false
+            });
         });
     });
 
