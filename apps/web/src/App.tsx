@@ -3,6 +3,7 @@ import { ErrorInfo } from 'react';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import * as Sentry from '@sentry/react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import EventLoggerPage from './components/EventLoggerPage';
@@ -17,6 +18,13 @@ import ViewOptionsProvider from './providers/ViewOptionsProvider';
 const App = () => {
     const handleError = (error: Error, info: ErrorInfo) => {
         console.error('Application error:', error, info);
+        Sentry.captureException(error, {
+            contexts: {
+                react: {
+                    componentStack: info.componentStack
+                }
+            }
+        });
     };
 
     return (
