@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 
 import { ApolloProvider, ApolloClient, NormalizedCacheObject } from '@apollo/client';
+import { Snackbar } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 
 import LoggableEventsGQL from './LoggableEvents/LoggableEventsGQL';
@@ -21,7 +22,7 @@ import { createAppTheme } from '../utils/theme';
  * The theme includes custom styles for error states in form components when in dark mode.
  */
 const EventLoggerPage = () => {
-    const { theme: mode } = useViewOptions();
+    const { theme: mode, snackbarMessage, snackbarDuration, hideSnackbar } = useViewOptions();
     const { user, isOfflineMode, isInitializing } = useAuth();
     const [apolloClient, setApolloClient] = useState<ApolloClient<NormalizedCacheObject> | null>(null);
 
@@ -39,7 +40,30 @@ const EventLoggerPage = () => {
 
     return (
         <ThemeProvider theme={appTheme}>
-            <ApolloProvider client={apolloClient}>{user ? <LoggableEventsGQL /> : <LoginView />}</ApolloProvider>
+            <ApolloProvider client={apolloClient}>
+                {user ? <LoggableEventsGQL /> : <LoginView />}
+                <Snackbar
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right'
+                    }}
+                    slotProps={{
+                        clickAwayListener: {
+                            /* v8 ignore start */
+                            onClickAway: (event) => {
+                                // https://mui.com/material-ui/react-snackbar/#preventing-default-click-away-event
+                                // @ts-expect-error - defaultMuiPrevented works but isn't in the type definitions
+                                event.defaultMuiPrevented = true;
+                            }
+                            /* v8 ignore end */
+                        }
+                    }}
+                    open={Boolean(snackbarMessage)}
+                    message={snackbarMessage}
+                    autoHideDuration={snackbarDuration}
+                    onClose={hideSnackbar}
+                />
+            </ApolloProvider>
         </ThemeProvider>
     );
 };

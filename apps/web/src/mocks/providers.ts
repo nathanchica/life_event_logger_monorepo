@@ -25,6 +25,10 @@ export const createMockViewOptionsContextValue = (
         enableDarkTheme: () => {},
         activeEventLabelId: createMockEventLabel().id,
         setActiveEventLabelId: (_id) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars
+        snackbarMessage: null,
+        snackbarDuration: 5000,
+        showSnackbar: (_message, _duration) => {}, // eslint-disable-line @typescript-eslint/no-unused-vars
+        hideSnackbar: () => {},
         ...overrides
     };
 };

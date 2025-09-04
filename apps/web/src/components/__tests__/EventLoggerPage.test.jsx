@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import { createMockAuthContextValue, createMockViewOptionsContextValue } from '../../mocks/providers';
@@ -86,5 +86,55 @@ describe('EventLoggerPage', () => {
     ])('renders with %s', async (_, theme) => {
         renderWithProviders({ viewOptionsValue: { theme } });
         expect(await screen.findByText('LoggableEventsGQL')).toBeInTheDocument();
+    });
+
+    describe('Snackbar functionality', () => {
+        it.each([
+            ['short message', 'Success!', 2000],
+            ['long message', 'Operation completed successfully with all requirements met', 5000],
+            ['error message', 'An error occurred while processing your request', 4000]
+        ])('renders %s with correct duration', async (_, message, duration) => {
+            renderWithProviders({
+                viewOptionsValue: {
+                    snackbarMessage: message,
+                    snackbarDuration: duration
+                }
+            });
+
+            await screen.findByText('LoggableEventsGQL');
+            expect(screen.getByText(message)).toBeInTheDocument();
+        });
+
+        it('does not render snackbar when snackbarMessage is empty', async () => {
+            renderWithProviders({
+                viewOptionsValue: {
+                    snackbarMessage: '',
+                    snackbarDuration: 3000
+                }
+            });
+
+            await screen.findByText('LoggableEventsGQL');
+            expect(screen.queryByText('Test snackbar message')).not.toBeInTheDocument();
+        });
+
+        it('calls hideSnackbar when snackbar closes', async () => {
+            const mockHideSnackbar = vi.fn();
+
+            renderWithProviders({
+                viewOptionsValue: {
+                    snackbarMessage: 'Test message',
+                    snackbarDuration: 100,
+                    hideSnackbar: mockHideSnackbar
+                }
+            });
+
+            await screen.findByText('LoggableEventsGQL');
+            expect(screen.getByText('Test message')).toBeInTheDocument();
+
+            // Wait for auto-hide to trigger
+            await waitFor(() => {
+                expect(mockHideSnackbar).toHaveBeenCalled();
+            });
+        });
     });
 });
