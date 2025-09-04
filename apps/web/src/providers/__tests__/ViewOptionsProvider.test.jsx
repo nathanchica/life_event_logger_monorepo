@@ -50,7 +50,11 @@ describe('ViewOptionsProvider', () => {
                 enableLightTheme: expect.any(Function),
                 enableDarkTheme: expect.any(Function),
                 activeEventLabelId: null,
-                setActiveEventLabelId: expect.any(Function)
+                setActiveEventLabelId: expect.any(Function),
+                snackbarMessage: null,
+                snackbarDuration: 5000,
+                showSnackbar: expect.any(Function),
+                hideSnackbar: expect.any(Function)
             });
         });
     });
@@ -154,7 +158,11 @@ describe('ViewOptionsProvider', () => {
                 enableLightTheme: expect.any(Function),
                 enableDarkTheme: expect.any(Function),
                 activeEventLabelId: null,
-                setActiveEventLabelId: expect.any(Function)
+                setActiveEventLabelId: expect.any(Function),
+                snackbarMessage: null,
+                snackbarDuration: 5000,
+                showSnackbar: expect.any(Function),
+                hideSnackbar: expect.any(Function)
             });
         });
 
@@ -175,6 +183,106 @@ describe('ViewOptionsProvider', () => {
         });
     });
 
+    describe('Snackbar management', () => {
+        it('initializes snackbar state correctly', () => {
+            const { TestComponent, getContextValue } = captureContextValue();
+            renderWithProvider(<TestComponent />);
+
+            expect(getContextValue().snackbarMessage).toBeNull();
+            expect(getContextValue().snackbarDuration).toBe(5000);
+        });
+
+        it('shows snackbar with default duration when showSnackbar is called', async () => {
+            const TestComponent = () => {
+                const { snackbarMessage, snackbarDuration, showSnackbar } = useContext(ViewOptionsContext);
+                return (
+                    <div>
+                        <span>Message: {snackbarMessage || 'none'}</span>
+                        <span>Duration: {snackbarDuration}</span>
+                        <button onClick={() => showSnackbar('Test notification')}>Show Snackbar</button>
+                    </div>
+                );
+            };
+
+            renderWithProvider(<TestComponent />);
+
+            expect(screen.getByText('Message: none')).toBeInTheDocument();
+            expect(screen.getByText('Duration: 5000')).toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: /show snackbar/i }));
+
+            expect(screen.getByText('Message: Test notification')).toBeInTheDocument();
+            expect(screen.getByText('Duration: 5000')).toBeInTheDocument();
+        });
+
+        it('shows snackbar with custom duration when specified', async () => {
+            const TestComponent = () => {
+                const { snackbarMessage, snackbarDuration, showSnackbar } = useContext(ViewOptionsContext);
+                return (
+                    <div>
+                        <span>Message: {snackbarMessage || 'none'}</span>
+                        <span>Duration: {snackbarDuration}</span>
+                        <button onClick={() => showSnackbar('Custom duration', 3000)}>Show Custom</button>
+                    </div>
+                );
+            };
+
+            renderWithProvider(<TestComponent />);
+
+            await user.click(screen.getByRole('button', { name: /show custom/i }));
+
+            expect(screen.getByText('Message: Custom duration')).toBeInTheDocument();
+            expect(screen.getByText('Duration: 3000')).toBeInTheDocument();
+        });
+
+        it('hides snackbar when hideSnackbar is called', async () => {
+            const TestComponent = () => {
+                const { snackbarMessage, showSnackbar, hideSnackbar } = useContext(ViewOptionsContext);
+                return (
+                    <div>
+                        <span>Message: {snackbarMessage || 'none'}</span>
+                        <button onClick={() => showSnackbar('Visible message')}>Show</button>
+                        <button onClick={hideSnackbar}>Hide</button>
+                    </div>
+                );
+            };
+
+            renderWithProvider(<TestComponent />);
+
+            // Show snackbar
+            await user.click(screen.getByRole('button', { name: /show/i }));
+            expect(screen.getByText('Message: Visible message')).toBeInTheDocument();
+
+            // Hide snackbar
+            await user.click(screen.getByRole('button', { name: /hide/i }));
+            expect(screen.getByText('Message: none')).toBeInTheDocument();
+        });
+
+        it.each([
+            ['short message', 'OK', 1000],
+            ['normal message', 'Operation completed successfully', 5000],
+            ['long message', 'This is a very long notification message that provides detailed information', 8000]
+        ])('handles %s with duration %dms', async (_, message, duration) => {
+            const TestComponent = () => {
+                const { snackbarMessage, snackbarDuration, showSnackbar } = useContext(ViewOptionsContext);
+                return (
+                    <div>
+                        <span>Message: {snackbarMessage || 'none'}</span>
+                        <span>Duration: {snackbarDuration}</span>
+                        <button onClick={() => showSnackbar(message, duration)}>Show</button>
+                    </div>
+                );
+            };
+
+            renderWithProvider(<TestComponent />);
+
+            await user.click(screen.getByRole('button', { name: /show/i }));
+
+            expect(screen.getByText(`Message: ${message}`)).toBeInTheDocument();
+            expect(screen.getByText(`Duration: ${duration}`)).toBeInTheDocument();
+        });
+    });
+
     describe('Media query integration', () => {
         it('checks for dark mode preference on mount', () => {
             renderWithProvider(<div>Test</div>);
@@ -188,13 +296,19 @@ describe('ViewOptionsProvider', () => {
             const mockSetActiveEventLabelId = vi.fn();
             const mockEnableLightTheme = vi.fn();
             const mockEnableDarkTheme = vi.fn();
+            const mockShowSnackbar = vi.fn();
+            const mockHideSnackbar = vi.fn();
 
             const mockContextValue = createMockViewOptionsContextValue({
                 theme: 'dark',
                 activeEventLabelId: 'mock-label-id',
                 setActiveEventLabelId: mockSetActiveEventLabelId,
                 enableLightTheme: mockEnableLightTheme,
-                enableDarkTheme: mockEnableDarkTheme
+                enableDarkTheme: mockEnableDarkTheme,
+                snackbarMessage: 'Test message',
+                snackbarDuration: 3000,
+                showSnackbar: mockShowSnackbar,
+                hideSnackbar: mockHideSnackbar
             });
 
             const TestComponent = () => {
@@ -206,6 +320,10 @@ describe('ViewOptionsProvider', () => {
                         <button onClick={() => context.setActiveEventLabelId('new-id')}>Update Label</button>
                         <button onClick={context.enableLightTheme}>Light Theme</button>
                         <button onClick={context.enableDarkTheme}>Dark Theme</button>
+                        <button onClick={() => context.showSnackbar('New message', 2000)}>Show Snackbar</button>
+                        <button onClick={context.hideSnackbar}>Hide Snackbar</button>
+                        <span>Snackbar: {context.snackbarMessage}</span>
+                        <span>Duration: {context.snackbarDuration}</span>
                     </div>
                 );
             };
@@ -227,6 +345,15 @@ describe('ViewOptionsProvider', () => {
 
             await user.click(screen.getByRole('button', { name: /dark theme/i }));
             expect(mockEnableDarkTheme).toHaveBeenCalled();
+
+            expect(screen.getByText('Snackbar: Test message')).toBeInTheDocument();
+            expect(screen.getByText('Duration: 3000')).toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: /show snackbar/i }));
+            expect(mockShowSnackbar).toHaveBeenCalledWith('New message', 2000);
+
+            await user.click(screen.getByRole('button', { name: /hide snackbar/i }));
+            expect(mockHideSnackbar).toHaveBeenCalled();
         });
     });
 });

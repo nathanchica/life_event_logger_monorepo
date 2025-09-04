@@ -48,6 +48,22 @@ const createGetLoggableEventsForUserErrorMock = () => ({
     error: new Error('GraphQL Error: Unable to fetch loggable events')
 });
 
+const createUnauthorizedErrorMock = () => ({
+    request: {
+        query: GET_LOGGABLE_EVENTS_FOR_USER
+    },
+    result: {
+        errors: [
+            {
+                message: 'Unauthorized',
+                extensions: {
+                    code: 'UNAUTHORIZED'
+                }
+            }
+        ]
+    }
+});
+
 describe('LoggableEventsGQL', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -131,5 +147,49 @@ describe('LoggableEventsGQL', () => {
         renderWithProviders(<LoggableEventsGQL />, { apolloMocks });
 
         expect(await screen.findByLabelText('Add event')).toBeInTheDocument();
+    });
+
+    it('handles unauthorized error and shows snackbar', async () => {
+        const mockClearAuthData = vi.fn();
+        const mockShowSnackbar = vi.fn();
+
+        const apolloMocks = [createUnauthorizedErrorMock()];
+
+        renderWithProviders(<LoggableEventsGQL />, {
+            apolloMocks,
+            authContextValue: {
+                user: mockUser,
+                clearAuthData: mockClearAuthData
+            },
+            viewOptionsContextValue: {
+                showSnackbar: mockShowSnackbar
+            }
+        });
+
+        await screen.findByText(/Sorry, something went wrong/);
+        expect(mockClearAuthData).toHaveBeenCalled();
+        expect(mockShowSnackbar).toHaveBeenCalledWith('You have been logged out due to inactivity.');
+    });
+
+    it('does not show snackbar for non-unauthorized errors', async () => {
+        const mockClearAuthData = vi.fn();
+        const mockShowSnackbar = vi.fn();
+
+        const apolloMocks = [createGetLoggableEventsForUserErrorMock()];
+
+        renderWithProviders(<LoggableEventsGQL />, {
+            apolloMocks,
+            authContextValue: {
+                user: mockUser,
+                clearAuthData: mockClearAuthData
+            },
+            viewOptionsContextValue: {
+                showSnackbar: mockShowSnackbar
+            }
+        });
+
+        await screen.findByText(/Sorry, something went wrong/);
+        expect(mockClearAuthData).not.toHaveBeenCalled();
+        expect(mockShowSnackbar).not.toHaveBeenCalled();
     });
 });
